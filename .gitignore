@@ -1,0 +1,50 @@
+# Dependencias
+node_modules/
+functions/node_modules/
+worker/node_modules/
+
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+*.local
+ui-debug.log
+firestore-debug.log
+database-debug.log
+
+# Cloudflare Wrangler
+worker/.wrangler/
+worker/wrangler-account.toml
+.dev.vars
+.dev.vars.*
+
+# ⚠️ NUNCA SUBIR — Service Account de Firebase
+*-service-account.json
+service-account*.json
+serviceAccountKey.json
+*firebase-adminsdk*.json
+*adminsdk*.json
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+.cache/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
