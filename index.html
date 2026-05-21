@@ -4878,6 +4878,7 @@ window.cerrarJuegoWindow = function() {
         }
 
         function iniciarJuegoStop(esRevancha = false) {
+            _tttAttachSignalListener(); // escuchar señales (revancha, salida) durante Stop
             // Determinar si hay premio (de alguno de los dos jugadores)
             const hayPremio = !!(premiosJuego.stop.mi || premiosJuego.stop.oponente);
 
@@ -5514,15 +5515,32 @@ window.cerrarJuegoWindow = function() {
             const nombre = capitalizarNombre(de);
             switch(tipo) {
                 case 'rematch_request':
+                    // Si yo también estaba "esperando respuesta" (ambos pulsaron a la vez),
+                    // usamos el timestamp para decidir: el de mayor ts es el "solicitante" real.
+                    // El de menor ts cierra su notify y pasa a mostrar el modal de aceptar/rechazar.
+                    if (document.getElementById('modal-game-notify').classList.contains('active')) {
+                        // Ambos pidieron a la vez: comparar timestamps
+                        const miTs = window._tttMiRematchTs || 0;
+                        const suTs = (payload && payload.ts) ? payload.ts : 0;
+                        if (miTs >= suTs) {
+                            // Yo soy el "solicitante", ignoro su request (él procesará el mío)
+                            return;
+                        } else {
+                            // Él tiene mayor ts, yo cedo: cierro mi "esperando" y muestro aceptar/rechazar
+                            _hideNotify();
+                        }
+                    }
+                    document.getElementById('modal-win').classList.remove('active');
                     _showNotify('🎮', `¡Revancha!`, `${nombre} quiere jugar de nuevo. ¿Aceptas?`,
                         [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
                             _tttClearSignal();
                             _tttSendSignal('rematch_accepted');
                             _tttDoRematch();
                         }},
-                        { label: 'Rechazar', cls: 'btn-notify-decline', cb: () => {
+                        { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
                             _tttClearSignal();
                             _tttSendSignal('rematch_declined');
+                            _tttResetCompleto();
                             salirAlMenuJuegos();
                         }}]
                     );
@@ -5535,8 +5553,10 @@ window.cerrarJuegoWindow = function() {
                 case 'rematch_declined':
                     _hideNotify();
                     _tttClearSignal();
-                    _showNotify('😔', 'Sin revancha', `${nombre} no quiere jugar de nuevo.`,
-                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}]
+                    _tttResetCompleto();
+                    _showNotify('😔', 'Revancha rechazada', `${nombre} ha decidido no jugar de nuevo.`,
+                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
+                        () => salirAlMenuJuegos()
                     );
                     break;
                 case 'player_left':
@@ -5568,6 +5588,82 @@ window.cerrarJuegoWindow = function() {
                     _showNotify('🚪', `${nombre} cerró los juegos`,
                         `${nombre} salió de la ventana de juegos. Tú también serás llevado al menú de juegos.`,
                         [{ label: 'Entendido', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
+                        () => salirAlMenuJuegos()
+                    );
+                    break;
+
+                // ── Revancha Stop ──
+                case 'stop_rematch_request':
+                    if (document.getElementById('modal-game-notify').classList.contains('active')) {
+                        const miTs2 = window._stopMiRematchTs || 0;
+                        const suTs2 = (payload && payload.ts) ? payload.ts : 0;
+                        if (miTs2 >= suTs2) return;
+                        _hideNotify();
+                    }
+                    document.getElementById('modal-win').classList.remove('active');
+                    _showNotify('🎮', `¡Revancha Stop!`, `${nombre} quiere jugar de nuevo. ¿Aceptas?`,
+                        [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
+                            _tttClearSignal();
+                            _tttSendSignal('stop_rematch_accepted');
+                            _doRevanchaStopReal();
+                        }},
+                        { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
+                            _tttClearSignal();
+                            _tttSendSignal('stop_rematch_declined');
+                            _stopResetCompleto();
+                            salirAlMenuJuegos();
+                        }}]
+                    );
+                    break;
+                case 'stop_rematch_accepted':
+                    _hideNotify();
+                    _tttClearSignal();
+                    _doRevanchaStopReal();
+                    break;
+                case 'stop_rematch_declined':
+                    _hideNotify();
+                    _tttClearSignal();
+                    _stopResetCompleto();
+                    _showNotify('😔', 'Revancha rechazada', `${nombre} ha decidido no jugar de nuevo.`,
+                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
+                        () => salirAlMenuJuegos()
+                    );
+                    break;
+
+                // ── Revancha Quiz ──
+                case 'quiz_rematch_request':
+                    if (document.getElementById('modal-game-notify').classList.contains('active')) {
+                        const miTs3 = window._quizMiRematchTs || 0;
+                        const suTs3 = (payload && payload.ts) ? payload.ts : 0;
+                        if (miTs3 >= suTs3) return;
+                        _hideNotify();
+                    }
+                    document.getElementById('modal-win').classList.remove('active');
+                    _showNotify('🎮', `¡Revancha Quiz!`, `${nombre} quiere jugar de nuevo. ¿Aceptas?`,
+                        [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
+                            _tttClearSignal();
+                            _tttSendSignal('quiz_rematch_accepted');
+                            _doRevanchaQuizReal();
+                        }},
+                        { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
+                            _tttClearSignal();
+                            _tttSendSignal('quiz_rematch_declined');
+                            _quizResetCompleto();
+                            salirAlMenuJuegos();
+                        }}]
+                    );
+                    break;
+                case 'quiz_rematch_accepted':
+                    _hideNotify();
+                    _tttClearSignal();
+                    _doRevanchaQuizReal();
+                    break;
+                case 'quiz_rematch_declined':
+                    _hideNotify();
+                    _tttClearSignal();
+                    _quizResetCompleto();
+                    _showNotify('😔', 'Revancha rechazada', `${nombre} ha decidido no jugar de nuevo.`,
+                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
                         () => salirAlMenuJuegos()
                     );
                     break;
@@ -5615,6 +5711,8 @@ window.cerrarJuegoWindow = function() {
                 iniciadorTicTacToe = 'X';
                 tttModoRondas = false;
                 tttRondaActual = 1;
+                premiosJuego.tictactoe.mi = null;
+                premiosJuego.tictactoe.oponente = null;
                 document.getElementById('modal-win').classList.remove('active');
                 mostrarTicTacToe();
                 _tttAttachSignalListener(); // re-escuchar señales en el lobby
@@ -6023,11 +6121,14 @@ window.cerrarJuegoWindow = function() {
             tttRondaActual = 1;
             premiosJuego.tictactoe.mi = null;
             premiosJuego.tictactoe.oponente = null;
-            _tttSendSignal('rematch_request');
+            const miTs = Date.now();
+            window._tttMiRematchTs = miTs;
+            _tttSendSignal('rematch_request', { ts: miTs });
             _showNotify('⏳', 'Esperando respuesta...', `Solicitaste jugar de nuevo. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
                 [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
                     _hideNotify();
                     _tttClearSignal();
+                    _tttResetCompleto();
                     salirAlMenuJuegos();
                 }}]
             );
@@ -6264,12 +6365,33 @@ window.cerrarJuegoWindow = function() {
         }
 
         function revanchaStop() {
-            // Revancha: mantener los MISMOS premios y el histórico acumulado,
-            // pero resetear los puntajes de la partida actual a 0.
+            // Pedir revancha al oponente a través de señales
             document.getElementById('modal-win').classList.remove('active');
-            // Volver a la vista del juego con todos los puntajes de partida en 0
-            // y comenzar de nuevo desde el inicio (con la simulación de espera saltada,
-            // ya que es revancha entre los mismos dos jugadores).
+            const miTs = Date.now();
+            window._stopMiRematchTs = miTs;
+            _tttAttachSignalListener(); // asegurar que el listener esté activo
+            _tttSendSignal('stop_rematch_request', { ts: miTs });
+            _showNotify('⏳', 'Esperando respuesta...', `Solicitaste revancha. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
+                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
+                    _hideNotify();
+                    _tttClearSignal();
+                    _stopResetCompleto();
+                    salirAlMenuJuegos();
+                }}]
+            );
+        }
+
+        function _stopResetCompleto() {
+            premiosJuego.stop.mi = null;
+            premiosJuego.stop.oponente = null;
+            if (stopGameState) {
+                stopGameState.historicoTotal = { [usuarioActual]: 0, 'Oponente': 0 };
+            }
+        }
+
+        function _doRevanchaStopReal() {
+            // Revancha efectiva de Stop: mismos premios, puntajes a 0, histórico se mantiene
+            _hideNotify();
             document.getElementById('stop-resultados').classList.remove('active');
             document.getElementById('stop-calificacion').classList.remove('active');
             document.getElementById('stopTableBody').innerHTML = '';
@@ -6286,7 +6408,6 @@ window.cerrarJuegoWindow = function() {
             const revHint = document.getElementById('stopCircleHint');
             if (revHint) revHint.classList.remove('hidden');
             document.getElementById('btnStopGame').disabled = true;
-            // Iniciar juego en modo REVANCHA (preserva el histórico)
             iniciarJuegoStop(true);
         }
 
@@ -6315,10 +6436,19 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('quiz-window').classList.remove('active', 'jugando');
             document.getElementById('pantalla-chat').classList.remove('jugando');
             document.getElementById('stopScoreboard').classList.remove('visible');
-            // Resetear histórico de Stop al volver al menú (es nueva sesión de juegos)
+            // Resetear todos los estados al volver al menú (nueva sesión)
             if (stopGameState) {
                 stopGameState.historicoTotal = { [usuarioActual]: 0, 'Oponente': 0 };
             }
+            // Limpiar puntajes y premios de todos los juegos
+            premiosJuego.tictactoe.mi = null; premiosJuego.tictactoe.oponente = null;
+            premiosJuego.stop.mi = null; premiosJuego.stop.oponente = null;
+            premiosJuego.quiz.mi = null; premiosJuego.quiz.oponente = null;
+            victorias[usuarioActual] = 0; victorias['Oponente'] = 0;
+            tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
+            iniciadorTicTacToe = 'X'; tttModoRondas = false; tttRondaActual = 1;
+            quizGameState.puntajes = { mi: 0, oponente: 0 }; quizGameState.preguntaActual = 0;
+            _tttLimpiarFirebase(); // limpiar datos del tablero en Firebase
             // Asegurar que el games-panel siga visible
             document.getElementById('games-panel').classList.add('active');
         }
@@ -6326,14 +6456,32 @@ window.cerrarJuegoWindow = function() {
         function reiniciarTicTacToe() {
             // Pedir revancha al oponente (no iniciar directamente)
             document.getElementById('modal-win').classList.remove('active');
-            _tttSendSignal('rematch_request');
+            // Incluir timestamp propio para resolver colisión (si ambos pulsan a la vez,
+            // el de mayor ts queda como "solicitante" y el otro recibe el modal).
+            const miTs = Date.now();
+            window._tttMiRematchTs = miTs;
+            _tttSendSignal('rematch_request', { ts: miTs });
             _showNotify('⏳', 'Esperando respuesta...', `Solicitaste jugar de nuevo. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
                 [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
                     _hideNotify();
                     _tttClearSignal();
+                    // Limpiar datos del juego y volver al menú
+                    _tttResetCompleto();
                     salirAlMenuJuegos();
                 }}]
             );
+        }
+
+        function _tttResetCompleto() {
+            tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
+            victorias[usuarioActual] = 0;
+            victorias['Oponente'] = 0;
+            iniciadorTicTacToe = 'X';
+            tttModoRondas = false;
+            tttRondaActual = 1;
+            premiosJuego.tictactoe.mi = null;
+            premiosJuego.tictactoe.oponente = null;
+            _tttLimpiarFirebase();
         }
 
         function abrirModalImagen(src) {
@@ -6496,6 +6644,7 @@ window.cerrarJuegoWindow = function() {
         }
 
         function arrancarQuiz() {
+            _tttAttachSignalListener(); // escuchar señales (revancha, salida) durante Quiz
             const hayPremio = !!(premiosJuego.quiz.mi || premiosJuego.quiz.oponente);
             const numPregs = hayPremio ? 5 : 10;
             quizGameState.preguntas = mezclarArray(quizBancoPeguntas).slice(0, numPregs);
@@ -6770,15 +6919,18 @@ window.cerrarJuegoWindow = function() {
                 btnPlay.textContent = '🔄 Revancha';
                 btnPlay.onclick = () => {
                     document.getElementById('modal-win').classList.remove('active');
-                    // Revancha: mismos premios, nuevas preguntas
-                    document.getElementById('quiz-lobby').style.display = 'none';
-                    document.getElementById('quizScoreboard').classList.add('visible');
-                    document.getElementById('quiz-question-view').classList.add('active');
-                    quizGameState.preguntaActual = 0;
-                    quizGameState.puntajes = { mi: 0, oponente: 0 };
-                    quizGameState.preguntas = mezclarArray(quizBancoPeguntas).slice(0, 5);
-                    actualizarScoreboardQuiz();
-                    mostrarPreguntaQuiz();
+                    const miTs = Date.now();
+                    window._quizMiRematchTs = miTs;
+                    _tttAttachSignalListener(); // asegurar listener activo
+                    _tttSendSignal('quiz_rematch_request', { ts: miTs });
+                    _showNotify('⏳', 'Esperando respuesta...', `Solicitaste revancha. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
+                        [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
+                            _hideNotify();
+                            _tttClearSignal();
+                            _quizResetCompleto();
+                            salirAlMenuJuegos();
+                        }}]
+                    );
                 };
             } else {
                 btnPlay.style.display = 'none';
@@ -6791,6 +6943,28 @@ window.cerrarJuegoWindow = function() {
         }
 
         // Hook confirmarPremio para quiz
+
+        function _quizResetCompleto() {
+            premiosJuego.quiz.mi = null;
+            premiosJuego.quiz.oponente = null;
+            quizGameState.puntajes = { mi: 0, oponente: 0 };
+            quizGameState.preguntaActual = 0;
+            quizGameState.historicoTotal = {};
+        }
+
+        function _doRevanchaQuizReal() {
+            // Revancha efectiva del Quiz: mismos premios, nuevas preguntas
+            _hideNotify();
+            document.getElementById('modal-win').classList.remove('active');
+            document.getElementById('quiz-lobby').style.display = 'none';
+            document.getElementById('quizScoreboard').classList.add('visible');
+            document.getElementById('quiz-question-view').classList.add('active');
+            quizGameState.preguntaActual = 0;
+            quizGameState.puntajes = { mi: 0, oponente: 0 };
+            quizGameState.preguntas = mezclarArray(quizBancoPeguntas).slice(0, 5);
+            actualizarScoreboardQuiz();
+            mostrarPreguntaQuiz();
+        }
 
 
         // INICIAR
