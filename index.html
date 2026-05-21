@@ -1822,16 +1822,27 @@
             animation: notifyPop 0.3s cubic-bezier(.175,.885,.32,1.275);
         }
         .modal-rematch-cd.active { display: block; }
+        /* Modo salida: borde y colores rojos */
+        .modal-rematch-cd.exit-mode {
+            background: linear-gradient(135deg, #1b0d0d 0%, #2a1a1a 100%);
+            border-color: #cc3300;
+            box-shadow: 0 0 40px rgba(204,51,0,0.4);
+        }
         .rematch-cd-icon { font-size: 42px; margin-bottom: 8px; }
         .rematch-cd-msg {
             color: #b0d4b0; font-size: 15px; margin-bottom: 16px; line-height: 1.5;
         }
+        .modal-rematch-cd.exit-mode .rematch-cd-msg { color: #d4b0b0; }
         .rematch-cd-num {
             font-size: 56px; font-weight: 900;
             color: #00cc66;
             text-shadow: 0 0 16px rgba(0,204,102,0.7);
             line-height: 1;
             animation: cdPulse 1s ease-in-out infinite;
+        }
+        .modal-rematch-cd.exit-mode .rematch-cd-num {
+            color: #cc3300;
+            text-shadow: 0 0 16px rgba(204,51,0,0.7);
         }
         @keyframes cdPulse {
             0%,100% { transform: scale(1); opacity: 1; }
@@ -5479,27 +5490,8 @@ window.cerrarJuegoWindow = function() {
         }
 
         function cerrarJuegoWindow() {
-            // Notificar al oponente que cerramos la ventana de juegos
-            if (juegoActivoTicTacToe || document.getElementById('tictactoe-window').classList.contains('active')) {
-                _tttSendSignal('left_games');
-            }
-            clearInterval(timerIntervalo);
-            juegoActivoTicTacToe = false;
-            _tttDetachListener();
-            // Limpiar timers pendientes de la simulación de Stop
-            if (stopGameState && stopGameState.calificacionTimers) {
-                stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
-                stopGameState.calificacionTimers = [];
-            }
-            // Limpiar confeti si está activo
-            const confActivo = document.getElementById('confetti-active');
-            if (confActivo && confActivo.parentNode) confActivo.parentNode.removeChild(confActivo);
-            document.getElementById('modal-win').classList.remove('active');
-            document.getElementById('tictactoe-window').classList.remove('active', 'jugando');
-            document.getElementById('stop-window').classList.remove('active', 'jugando');
-            document.getElementById('quiz-window').classList.remove('active', 'jugando');
-            document.getElementById('pantalla-chat').classList.remove('jugando');
-            document.getElementById('stopScoreboard').classList.remove('visible');
+            // Usar el mismo flujo de salida con countdown (notifica al oponente y muestra 3s)
+            salirAlMenuJuegos();
         }
 
         let tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
@@ -5570,59 +5562,38 @@ window.cerrarJuegoWindow = function() {
                     _tttMostrarCountdownRevancha((payload && payload.nombre) ? payload.nombre : nombre);
                     break;
                 case 'rematch_request':
-                    // Si yo también estaba "esperando respuesta" (ambos pulsaron a la vez),
-                    // usamos el timestamp para decidir: el de mayor ts es el "solicitante" real.
-                    // El de menor ts cierra su notify y pasa a mostrar el modal de aceptar/rechazar.
-                    if (document.getElementById('modal-game-notify').classList.contains('active')) {
-                        // Ambos pidieron a la vez: comparar timestamps
-                        const miTs = window._tttMiRematchTs || 0;
-                        const suTs = (payload && payload.ts) ? payload.ts : 0;
-                        if (miTs >= suTs) {
-                            // Yo soy el "solicitante", ignoro su request (él procesará el mío)
-                            return;
-                        } else {
-                            // Él tiene mayor ts, yo cedo: cierro mi "esperando" y muestro aceptar/rechazar
-                            _hideNotify();
-                        }
-                    }
+                    // Legacy (sesiones anteriores) — tratar como rematch_instant
+                    if (_tttCdTimer) return;
                     document.getElementById('modal-win').classList.remove('active');
-                    _showNotify('🎮', `¡Revancha!`, `${nombre} quiere jugar de nuevo. ¿Aceptas?`,
-                        [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
-                            _tttClearSignal();
-                            _tttSendSignal('rematch_accepted');
-                            _tttDoRematch();
-                        }},
-                        { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
-                            _tttClearSignal();
-                            _tttSendSignal('rematch_declined');
-                            _tttResetCompleto();
-                            salirAlMenuJuegos();
-                        }}]
-                    );
+                    _hideNotify();
+                    _tttClearSignal();
+                    _tttMostrarCountdownRevancha(nombre);
                     break;
                 case 'rematch_accepted':
+                    // Legacy — ignorar, ya no se usa este flujo
                     _hideNotify();
                     _tttClearSignal();
-                    _tttDoRematch();
                     break;
                 case 'rematch_declined':
+                    // Legacy — ignorar, ya no se usa este flujo
                     _hideNotify();
                     _tttClearSignal();
-                    _tttResetCompleto();
-                    _showNotify('😔', 'Revancha rechazada', `${nombre} ha decidido no jugar de nuevo.`,
-                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
-                        () => salirAlMenuJuegos()
-                    );
                     break;
-                case 'player_left':
+                case 'player_exit_cd':
+                    // El oponente presionó Salir → mostrar countdown de 3s y luego ir al menú
                     _tttDetachListener();
                     _tttClearSignal();
                     clearInterval(timerIntervalo);
-                    document.getElementById('modal-win').classList.remove('active');
-                    _showNotify('🚪', `${nombre} salió`, `${nombre} ha abandonado el juego. Serás llevado al menú.`,
-                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
-                        () => salirAlMenuJuegos() // auto-acción tras 4s
-                    );
+                    juegoActivoTicTacToe = false;
+                    _tttMostrarCountdownSalida((payload && payload.nombre) ? payload.nombre : nombre);
+                    break;
+                case 'player_left':
+                    // Legacy — tratar igual que exit countdown
+                    _tttDetachListener();
+                    _tttClearSignal();
+                    clearInterval(timerIntervalo);
+                    juegoActivoTicTacToe = false;
+                    _tttMostrarCountdownSalida(nombre);
                     break;
                 case 'prize_chosen':
                     const premio = payload.premio || '?';
@@ -5635,16 +5606,12 @@ window.cerrarJuegoWindow = function() {
                     premiosJuego.tictactoe.oponente = premio;
                     actualizarLobbyTicTacToe();
                     break;
-                case 'left_games': // salió de la ventana de juegos con ✕
+                case 'left_games': // Legacy — tratar como exit countdown
                     _tttDetachListener();
                     _tttClearSignal();
                     clearInterval(timerIntervalo);
-                    document.getElementById('modal-win').classList.remove('active');
-                    _showNotify('🚪', `${nombre} cerró los juegos`,
-                        `${nombre} salió de la ventana de juegos. Tú también serás llevado al menú de juegos.`,
-                        [{ label: 'Entendido', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
-                        () => salirAlMenuJuegos()
-                    );
+                    juegoActivoTicTacToe = false;
+                    _tttMostrarCountdownSalida(nombre);
                     break;
 
                 // ── Revancha Stop ──
@@ -6467,38 +6434,39 @@ window.cerrarJuegoWindow = function() {
         }
 
         function salirAlMenuJuegos(silencioso) {
-            // Cierra solo la ventana del juego actual y vuelve al menú de juegos (games-panel).
-            // NO cierra la plataforma de juegos. Solo la ✕ de la ventana principal lo hace.
-            // Notificar al oponente que salimos (a menos que sea acción silenciosa/interna)
-            if (!silencioso && juegoActivoTicTacToe) {
-                _tttSendSignal('player_left');
+            // Si ya hay un countdown de salida corriendo, no duplicar
+            if (window._tttExitCdTimer) return;
+            // Notificar al oponente con señal de salida (a menos que sea acción silenciosa/interna)
+            if (!silencioso && (juegoActivoTicTacToe || document.getElementById('tictactoe-window').classList.contains('active'))) {
+                _tttSendSignal('player_exit_cd', { nombre: capitalizarNombre(usuarioActual) });
             }
+            // Mostrar countdown de salida en el solicitante
+            _tttMostrarCountdownSalida(capitalizarNombre(usuarioActual));
+        }
+
+        function _ejecutarSalidaReal() {
+            // Limpieza completa — se llama después del countdown de salida
             clearInterval(timerIntervalo);
             juegoActivoTicTacToe = false;
             _tttDetachListener();
-            // Cancelar countdown de revancha si estaba activo
             if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
             document.getElementById('modal-rematch-cd').classList.remove('active');
             if (stopGameState && stopGameState.calificacionTimers) {
                 stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
                 stopGameState.calificacionTimers = [];
             }
-            // Limpiar confeti si está activo
             const confActivo = document.getElementById('confetti-active');
             if (confActivo && confActivo.parentNode) confActivo.parentNode.removeChild(confActivo);
-            // Cerrar el modal de ganador
             document.getElementById('modal-win').classList.remove('active');
-            // Cerrar las ventanas de juego pero NO el games-panel
+            _hideNotify();
             document.getElementById('tictactoe-window').classList.remove('active', 'jugando');
             document.getElementById('stop-window').classList.remove('active', 'jugando');
             document.getElementById('quiz-window').classList.remove('active', 'jugando');
             document.getElementById('pantalla-chat').classList.remove('jugando');
             document.getElementById('stopScoreboard').classList.remove('visible');
-            // Resetear todos los estados al volver al menú (nueva sesión)
             if (stopGameState) {
                 stopGameState.historicoTotal = { [usuarioActual]: 0, 'Oponente': 0 };
             }
-            // Limpiar puntajes y premios de todos los juegos
             premiosJuego.tictactoe.mi = null; premiosJuego.tictactoe.oponente = null;
             premiosJuego.stop.mi = null; premiosJuego.stop.oponente = null;
             premiosJuego.quiz.mi = null; premiosJuego.quiz.oponente = null;
@@ -6506,9 +6474,40 @@ window.cerrarJuegoWindow = function() {
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             iniciadorTicTacToe = 'X'; tttModoRondas = false; tttRondaActual = 1;
             quizGameState.puntajes = { mi: 0, oponente: 0 }; quizGameState.preguntaActual = 0;
-            _tttLimpiarFirebase(); // limpiar datos del tablero en Firebase
-            // Asegurar que el games-panel siga visible
+            _tttLimpiarFirebase();
+            _tttClearSignal();
             document.getElementById('games-panel').classList.add('active');
+        }
+
+        function _tttMostrarCountdownSalida(nombreQueSale) {
+            if (window._tttExitCdTimer) { clearInterval(window._tttExitCdTimer); window._tttExitCdTimer = null; }
+            // Cancelar cualquier countdown de revancha activo
+            if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
+            document.getElementById('modal-win').classList.remove('active');
+            _hideNotify();
+            const modal = document.getElementById('modal-rematch-cd');
+            const iconEl = document.getElementById('rematch-cd-icon');
+            const msgEl  = document.getElementById('rematch-cd-msg');
+            const numEl  = document.getElementById('rematch-cd-num');
+            modal.classList.add('active', 'exit-mode');
+            modal.classList.remove('active'); // forzar re-animación
+            void modal.offsetWidth;
+            modal.classList.add('active');
+            iconEl.textContent = '🚪';
+            msgEl.textContent  = `${nombreQueSale} salió del juego`;
+            let secs = 3;
+            numEl.textContent = secs;
+            window._tttExitCdTimer = setInterval(() => {
+                secs--;
+                numEl.textContent = secs;
+                if (secs <= 0) {
+                    clearInterval(window._tttExitCdTimer);
+                    window._tttExitCdTimer = null;
+                    modal.classList.remove('active', 'exit-mode');
+                    iconEl.textContent = '🔄'; // restaurar icono para próximo uso
+                    _ejecutarSalidaReal();
+                }
+            }, 1000);
         }
 
         function reiniciarTicTacToe() {
