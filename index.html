@@ -1804,6 +1804,60 @@
         }
 
         /* ===== MODAL GANAR ===== */
+        /* ── Modal de notificación de juego (revancha / salida / premio) ── */
+        .modal-game-notify {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #0d1b2a 0%, #1b2a3b 100%);
+            border: 2px solid #0088cc;
+            border-radius: 20px;
+            padding: 32px 28px;
+            z-index: 1010;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 0 40px rgba(0,136,204,0.45);
+            animation: notifyPop 0.4s cubic-bezier(.175,.885,.32,1.275);
+        }
+        .modal-game-notify.active { display: block; }
+        @keyframes notifyPop {
+            0% { transform: translate(-50%,-60%) scale(0.7); opacity: 0; }
+            100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
+        }
+        .notify-icon { font-size: 52px; margin-bottom: 10px; }
+        .notify-title {
+            color: #e0e0e0; font-size: 20px; font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .notify-msg {
+            color: #90b4cc; font-size: 14px; margin-bottom: 22px; line-height: 1.5;
+        }
+        .notify-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn-notify-accept {
+            background: linear-gradient(135deg, #0088cc, #005f99);
+            color: #fff; border: none; padding: 10px 24px;
+            border-radius: 24px; font-size: 14px; font-weight: bold;
+            cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0,136,204,0.4);
+        }
+        .btn-notify-accept:hover { background: linear-gradient(135deg,#0077b6,#004e7c); transform: translateY(-1px); }
+        .btn-notify-decline {
+            background: transparent; color: #aaa;
+            border: 1px solid #444; padding: 10px 24px;
+            border-radius: 24px; font-size: 14px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-notify-decline:hover { background: rgba(255,255,255,0.05); color: #ccc; }
+        .btn-notify-ok {
+            background: linear-gradient(135deg, #2d6a4f, #1b4332);
+            color: #fff; border: none; padding: 10px 28px;
+            border-radius: 24px; font-size: 14px; font-weight: bold;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-notify-ok:hover { transform: translateY(-1px); }
+
         .modal-win {
             display: none;
             position: fixed;
@@ -3290,6 +3344,14 @@
         </div>
     </div>
 
+    <!-- MODAL NOTIFICACIÓN DE JUEGO (rival salió / revancha / premio) -->
+    <div class="modal-game-notify" id="modal-game-notify">
+        <div class="notify-icon" id="notify-icon">🎮</div>
+        <div class="notify-title" id="notify-title">Notificación</div>
+        <div class="notify-msg" id="notify-msg"></div>
+        <div class="notify-buttons" id="notify-buttons"></div>
+    </div>
+
     <!-- MODAL GANAR TICTACTOE / STOP (con premio y confeti) -->
     <div class="modal-win" id="modal-win">
         <div class="win-trophy" id="win-trophy">🏆</div>
@@ -3637,7 +3699,9 @@ window.irInicio = function() {
     if (_invitesListener) { _invitesListener(); _invitesListener = null; }
     if (_gameStartListener) { _gameStartListener(); _gameStartListener = null; }
     _tttDetachListener();
+    _tttClearSignal().catch(()=>{});
     clearInterval(timerIntervalo);
+    juegoActivoTicTacToe = false;
     _miInviteEnVuelo = false;
     _yoEstoyListoParaIniciar = false;
     _juegoSyncEnCurso = null;
@@ -4606,9 +4670,14 @@ window.cerrarJuegoWindow = function() {
         function mostrarTicTacToe() {
             document.getElementById('tictactoe-window').classList.add('active', 'jugando');
             document.getElementById('pantalla-chat').classList.add('jugando');
-            // Resetear premios para esta partida
+            // Reset completo: premios, victorias, tablero, estado
             premiosJuego.tictactoe.mi = null;
             premiosJuego.tictactoe.oponente = null;
+            victorias[usuarioActual] = 0;
+            victorias['Oponente'] = 0;
+            tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
+            juegoActivoTicTacToe = false;
+            iniciadorTicTacToe = 'X';
             // Mostrar título dinámico con nombres
             actualizarTituloTicTacToe();
             // Mostrar lobby; ocultar tablero/info/score
@@ -4618,7 +4687,7 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('game-score').style.display = 'none';
             // Ocultar indicador de ronda
             document.getElementById('ttt-round-indicator').classList.remove('visible');
-            // Resetear botón Iniciar (en caso de venir de espera previa)
+            // Resetear botón Iniciar
             const btnIni = document.getElementById('btn-iniciar-ttt');
             btnIni.disabled = false;
             btnIni.textContent = '▶ Iniciar partida';
@@ -4626,6 +4695,8 @@ window.cerrarJuegoWindow = function() {
             tttModoRondas = false;
             tttRondaActual = 1;
             actualizarLobbyTicTacToe();
+            // Escuchar señales del oponente mientras estamos en el lobby
+            _tttAttachSignalListener();
         }
 
         function capitalizarNombre(nombre) {
@@ -4694,6 +4765,10 @@ window.cerrarJuegoWindow = function() {
             tttModoRondas = hayPremio;
             tttRondaActual = 1;
             tttTotalRondas = 3;
+            // Reset victorias y tablero al entrar (limpio siempre)
+            victorias[usuarioActual] = 0;
+            victorias['Oponente'] = 0;
+            tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
 
             // Ocultar lobby, mostrar tablero
             document.getElementById('tictactoe-lobby').classList.add('hidden');
@@ -5359,7 +5434,12 @@ window.cerrarJuegoWindow = function() {
         }
 
         function cerrarJuegoWindow() {
+            // Notificar al oponente que cerramos la ventana de juegos
+            if (juegoActivoTicTacToe || document.getElementById('tictactoe-window').classList.contains('active')) {
+                _tttSendSignal('left_games');
+            }
             clearInterval(timerIntervalo);
+            juegoActivoTicTacToe = false;
             _tttDetachListener();
             // Limpiar timers pendientes de la simulación de Stop
             if (stopGameState && stopGameState.calificacionTimers) {
@@ -5392,13 +5472,155 @@ window.cerrarJuegoWindow = function() {
 
 
 
-        // ── TTT Firebase helpers ──────────────────────────────────────────
-        function _tttRef() {
-            return ref(db, `gameData/${salaActualKey}/ttt`);
-        }
+        // ══════════════════════════════════════════════════════════════════
+        // TTT Firebase helpers + sistema de notificaciones entre jugadores
+        // ══════════════════════════════════════════════════════════════════
+
+        // ── Refs ──
+        function _tttRef()        { return ref(db, `gameData/${salaActualKey}/ttt`); }
+        function _tttSignalRef()  { return ref(db, `gameData/${salaActualKey}/tttSignal`); }
+
+        // ── Detach listeners ──
+        let _tttSignalListener = null;
         function _tttDetachListener() {
-            if (_tttListener) { _tttListener(); _tttListener = null; }
+            if (_tttListener)       { _tttListener();       _tttListener = null; }
+            if (_tttSignalListener) { _tttSignalListener(); _tttSignalListener = null; }
         }
+
+        // ── Señalización: un jugador envía evento al otro ──
+        async function _tttSendSignal(tipo, payload) {
+            if (!salaActualKey) return;
+            try {
+                await set(_tttSignalRef(), { tipo, payload: payload || {}, de: usuarioActual, ts: Date.now() });
+            } catch(e) { console.warn('[TTT] signal error:', e); }
+        }
+        async function _tttClearSignal() {
+            if (!salaActualKey) return;
+            try { await remove(_tttSignalRef()); } catch(e) {}
+        }
+
+        // ── Escuchar señales del oponente ──
+        function _tttAttachSignalListener() {
+            if (_tttSignalListener) { _tttSignalListener(); _tttSignalListener = null; }
+            if (!salaActualKey) return;
+            _tttSignalListener = onValue(_tttSignalRef(), (snap) => {
+                const data = snap.val();
+                if (!data || data.de === usuarioActual) return; // ignorar mis propias señales
+                _tttHandleSignal(data.tipo, data.payload, data.de);
+            });
+        }
+
+        function _tttHandleSignal(tipo, payload, de) {
+            const nombre = capitalizarNombre(de);
+            switch(tipo) {
+                case 'rematch_request':
+                    _showNotify('🎮', `¡Revancha!`, `${nombre} quiere jugar de nuevo. ¿Aceptas?`,
+                        [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
+                            _tttClearSignal();
+                            _tttSendSignal('rematch_accepted');
+                            _tttDoRematch();
+                        }},
+                        { label: 'Rechazar', cls: 'btn-notify-decline', cb: () => {
+                            _tttClearSignal();
+                            _tttSendSignal('rematch_declined');
+                            salirAlMenuJuegos();
+                        }}]
+                    );
+                    break;
+                case 'rematch_accepted':
+                    _hideNotify();
+                    _tttClearSignal();
+                    _tttDoRematch();
+                    break;
+                case 'rematch_declined':
+                    _hideNotify();
+                    _tttClearSignal();
+                    _showNotify('😔', 'Sin revancha', `${nombre} no quiere jugar de nuevo.`,
+                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}]
+                    );
+                    break;
+                case 'player_left':
+                    _tttDetachListener();
+                    _tttClearSignal();
+                    clearInterval(timerIntervalo);
+                    document.getElementById('modal-win').classList.remove('active');
+                    _showNotify('🚪', `${nombre} salió`, `${nombre} ha abandonado el juego. Serás llevado al menú.`,
+                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
+                        () => salirAlMenuJuegos() // auto-acción tras 4s
+                    );
+                    break;
+                case 'prize_chosen':
+                    const premio = payload.premio || '?';
+                    _showNotify('🎁', '¡Premio elegido!',
+                        `${nombre} quiere jugar con premio: <b style="color:#ffd700">${premio}</b><br><br>Puedes elegir el tuyo también (opcional), o simplemente inicia la partida. Si alguien eligió premio, habrá 3 rondas.`,
+                        [{ label: '🏆 Elegir mi premio', cls: 'btn-notify-accept', cb: () => { _hideNotify(); abrirSeleccionPremio('tictactoe'); }},
+                         { label: 'Solo jugar', cls: 'btn-notify-decline', cb: () => { _hideNotify(); }}]
+                    );
+                    // Guardar el premio del oponente localmente
+                    premiosJuego.tictactoe.oponente = premio;
+                    actualizarLobbyTicTacToe();
+                    break;
+                case 'left_games': // salió de la ventana de juegos con ✕
+                    _tttDetachListener();
+                    _tttClearSignal();
+                    clearInterval(timerIntervalo);
+                    document.getElementById('modal-win').classList.remove('active');
+                    _showNotify('🚪', `${nombre} cerró los juegos`,
+                        `${nombre} salió de la ventana de juegos. Tú también serás llevado al menú de juegos.`,
+                        [{ label: 'Entendido', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
+                        () => salirAlMenuJuegos()
+                    );
+                    break;
+            }
+        }
+
+        // ── Helper visual de notificaciones ──
+        function _showNotify(icon, title, msg, buttons, autoAction) {
+            document.getElementById('notify-icon').textContent = icon;
+            document.getElementById('notify-title').textContent = title;
+            document.getElementById('notify-msg').innerHTML = msg;
+            const btns = document.getElementById('notify-buttons');
+            btns.innerHTML = '';
+            (buttons || []).forEach(b => {
+                const el = document.createElement('button');
+                el.className = b.cls;
+                el.textContent = b.label;
+                el.onclick = b.cb;
+                btns.appendChild(el);
+            });
+            document.getElementById('modal-game-notify').classList.add('active');
+            if (autoAction) {
+                setTimeout(() => {
+                    if (document.getElementById('modal-game-notify').classList.contains('active')) {
+                        _hideNotify();
+                        autoAction();
+                    }
+                }, 4500);
+            }
+        }
+        function _hideNotify() {
+            document.getElementById('modal-game-notify').classList.remove('active');
+        }
+
+        // ── Revancha real: limpiar estado anterior y volver al lobby ──
+        function _tttDoRematch() {
+            _hideNotify();
+            clearInterval(timerIntervalo);
+            _tttDetachListener();
+            _tttLimpiarFirebase().then(() => {
+                // Reset completo: tablero, victorias, premios, rondas
+                tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
+                victorias[usuarioActual] = 0;
+                victorias['Oponente'] = 0;
+                iniciadorTicTacToe = 'X';
+                tttModoRondas = false;
+                tttRondaActual = 1;
+                document.getElementById('modal-win').classList.remove('active');
+                mostrarTicTacToe();
+                _tttAttachSignalListener(); // re-escuchar señales en el lobby
+            });
+        }
+
         function _tttAttachListener() {
             _tttDetachListener();
             _tttListener = onValue(_tttRef(), (snap) => {
@@ -5504,16 +5726,16 @@ window.cerrarJuegoWindow = function() {
         function inicializarJuegoTicTacToe() {
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             turnoTicTacToe = iniciadorTicTacToe;
-            // Determinar símbolo local: el que inicia la partida es 'X'
-            // Si yo inicié (soy el host de la sala) → X, sino → O
-            // Usamos comparación de nombres para consistencia entre ambos clientes
-            const soyHost = usuarioActual < (oponenteActual || '~'); // orden lexicográfico estable
+            // Determinar símbolo local estable entre ambos clientes
+            const soyHost = usuarioActual < (oponenteActual || '~');
             _tttMiSimbolo = soyHost ? 'X' : 'O';
             esJugadorActual = (iniciadorTicTacToe === _tttMiSimbolo);
             juegoActivoTicTacToe = true;
             tiempoRestante = 5;
 
             if (timerIntervalo) clearInterval(timerIntervalo);
+            // Siempre escuchar señales mientras se está en el juego
+            _tttAttachSignalListener();
             _tttAttachListener();
 
             document.getElementById('players-info').style.display = 'flex';
@@ -5522,8 +5744,7 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('player1-name').textContent = capitalizarNombre(usuarioActual);
             document.getElementById('player2-name').textContent = nombreOponente();
 
-            victorias[usuarioActual] = victorias[usuarioActual] || 0;
-            victorias['Oponente'] = victorias['Oponente'] || 0;
+            // victorias ya inicializadas en entrarAlJuegoTicTacToe
 
             actualizarInfoJugadores();
             renderizarTablero();
@@ -5782,16 +6003,34 @@ window.cerrarJuegoWindow = function() {
             const roundEl = document.getElementById('ttt-round-indicator');
             roundEl.textContent = `RONDA ${tttRondaActual} / ${tttTotalRondas}`;
             iniciadorTicTacToe = iniciadorTicTacToe === 'X' ? 'O' : 'X';
+            // Limpiar tablero antes de la siguiente ronda
+            tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             _tttLimpiarFirebase().then(() => inicializarJuegoTicTacToe());
         }
 
         function nuevaPartidaTicTacToe() {
-            // Reinicia toda la partida: vuelve al lobby
+            // Reinicia toda la partida: pide revancha al oponente
             document.getElementById('modal-win').classList.remove('active');
             clearInterval(timerIntervalo);
             _tttDetachListener();
             _tttLimpiarFirebase();
-            mostrarTicTacToe();
+            // Reset limpio de TODO el estado
+            tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
+            victorias[usuarioActual] = 0;
+            victorias['Oponente'] = 0;
+            iniciadorTicTacToe = 'X';
+            tttModoRondas = false;
+            tttRondaActual = 1;
+            premiosJuego.tictactoe.mi = null;
+            premiosJuego.tictactoe.oponente = null;
+            _tttSendSignal('rematch_request');
+            _showNotify('⏳', 'Esperando respuesta...', `Solicitaste jugar de nuevo. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
+                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
+                    _hideNotify();
+                    _tttClearSignal();
+                    salirAlMenuJuegos();
+                }}]
+            );
         }
 
         // ===== PREMIOS =====
@@ -5839,14 +6078,14 @@ window.cerrarJuegoWindow = function() {
             }
             // Guardar mi premio
             premiosJuego[juegoSeleccionandoPremio].mi = premioFinal;
-            // Simular que el oponente también elige uno (aleatorio entre las opciones predefinidas)
-            const opcionesOponente = ['Un café ☕', 'Entrada de cine 🎬', 'Una torta 🎂', 'Un helado 🍦', 'Un abrazo 🤗'];
-            premiosJuego[juegoSeleccionandoPremio].oponente = opcionesOponente[Math.floor(Math.random() * opcionesOponente.length)];
+            // El premio del oponente se establecerá cuando él responda la notificación
+            // (si no lo elige, queda null y el modo rondas se activa igual porque al menos uno eligió)
 
             document.getElementById('modal-premio').classList.remove('active');
 
-            // Actualizar la UI según el juego
+            // Notificar al oponente que elegimos premio (solo TicTacToe por ahora)
             if (juegoSeleccionandoPremio === 'tictactoe') {
+                _tttSendSignal('prize_chosen', { premio: premioFinal });
                 actualizarLobbyTicTacToe();
             } else if (juegoSeleccionandoPremio === 'stop') {
                 actualizarLobbyStop();
@@ -6051,10 +6290,15 @@ window.cerrarJuegoWindow = function() {
             iniciarJuegoStop(true);
         }
 
-        function salirAlMenuJuegos() {
+        function salirAlMenuJuegos(silencioso) {
             // Cierra solo la ventana del juego actual y vuelve al menú de juegos (games-panel).
             // NO cierra la plataforma de juegos. Solo la ✕ de la ventana principal lo hace.
+            // Notificar al oponente que salimos (a menos que sea acción silenciosa/interna)
+            if (!silencioso && juegoActivoTicTacToe) {
+                _tttSendSignal('player_left');
+            }
             clearInterval(timerIntervalo);
+            juegoActivoTicTacToe = false;
             _tttDetachListener();
             if (stopGameState && stopGameState.calificacionTimers) {
                 stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
@@ -6080,13 +6324,16 @@ window.cerrarJuegoWindow = function() {
         }
 
         function reiniciarTicTacToe() {
+            // Pedir revancha al oponente (no iniciar directamente)
             document.getElementById('modal-win').classList.remove('active');
-            clearInterval(timerIntervalo);
-            _tttDetachListener();
-            _tttLimpiarFirebase().then(() => {
-                iniciadorTicTacToe = iniciadorTicTacToe === 'X' ? 'O' : 'X';
-                inicializarJuegoTicTacToe();
-            });
+            _tttSendSignal('rematch_request');
+            _showNotify('⏳', 'Esperando respuesta...', `Solicitaste jugar de nuevo. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
+                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
+                    _hideNotify();
+                    _tttClearSignal();
+                    salirAlMenuJuegos();
+                }}]
+            );
         }
 
         function abrirModalImagen(src) {
