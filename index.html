@@ -145,6 +145,10 @@
             height: 40px;
             background: #ffffff;
             margin: 0 16px;
+            display: none; /* oculto por defecto; solo se muestra cuando hay chat activo */
+        }
+        .header.chat-on .header-divider {
+            display: block;
         }
 
         .header-chat-info {
@@ -2503,43 +2507,42 @@
             .game-content { padding: 8px; font-size: 13px; }
             .game-header { padding: 8px; }
             .game-title { font-size: 13px; }
-            .header-divider { display: none; }
             .sala-card { padding: 14px; }
             /* ===== CHAT EN MODO SPLIT (cuando se juega): compacto y estético ===== */
             .screen-chat.jugando .burbuja {
                 max-width: 95%;
-                font-size: 11px;
-                padding: 7px 11px;
-                border-radius: 14px;
-                line-height: 1.35;
+                font-size: 10.5px;
+                padding: 6px 9px;
+                border-radius: 12px;
+                line-height: 1.3;
             }
             .screen-chat.jugando .mensaje.propio .burbuja { border-bottom-right-radius: 4px; }
             .screen-chat.jugando .mensaje.otro   .burbuja { border-bottom-left-radius: 4px;  }
-            .screen-chat.jugando .msg-sender { font-size: 9.5px; margin-bottom: 2px; }
-            .screen-chat.jugando .msg-time   { font-size: 9px;  margin-top: 2px;   }
+            .screen-chat.jugando .msg-sender { font-size: 9px; margin-bottom: 1px; }
+            .screen-chat.jugando .msg-time   { font-size: 8.5px; margin-top: 1px;   }
             .screen-chat.jugando .input-area {
-                padding: 5px 6px;
-                gap: 4px;
+                padding: 4px 5px;
+                gap: 3px;
                 align-items: center;
             }
             .screen-chat.jugando .btn-multimedia,
             .screen-chat.jugando .btn-enviar {
-                width: 30px;
-                height: 30px;
-                min-width: 30px;
-                min-height: 30px;
-                font-size: 12px;
+                width: 28px;
+                height: 28px;
+                min-width: 28px;
+                min-height: 28px;
+                font-size: 11px;
                 flex-shrink: 0;
                 padding: 0;
                 border-radius: 50%;
             }
             .screen-chat.jugando .input-msg {
-                font-size: 11.5px;
-                padding: 6px 10px;
-                min-height: 30px;
-                border-radius: 18px;
+                font-size: 11px;
+                padding: 5px 9px;
+                min-height: 28px;
+                border-radius: 16px;
             }
-            .screen-chat.jugando .msg-imagen { width: 90px; height: 90px; }
+            .screen-chat.jugando .msg-imagen { width: 80px; height: 80px; }
             /* ===== TICTACTOE EN SPLIT: tablero se autoescala perfectamente ===== */
             .tictactoe-board {
                 max-width: 100% !important;
@@ -2547,7 +2550,7 @@
                 gap: 4px;
             }
             .game-window.jugando .tictactoe-board {
-                max-width: 92% !important;
+                max-width: 90% !important;
                 margin-left: auto;
                 margin-right: auto;
             }
@@ -2555,52 +2558,68 @@
                 width: 100%;
                 height: auto;
                 aspect-ratio: 1 / 1;
-                font-size: 22px;
+                font-size: 20px;
                 min-width: 0;
                 min-height: 0;
             }
             /* ===== STOP EN SPLIT: tabla más compacta ===== */
-            .game-window.jugando .stop-table { font-size: 9.5px; }
+            .game-window.jugando .stop-table { font-size: 9px; }
             .game-window.jugando .stop-table th,
-            .game-window.jugando .stop-table td { padding: 4px 2px; }
-            .game-window.jugando .letter-circle {
-                width: 72px !important;
-                height: 72px !important;
-                font-size: 32px !important;
+            .game-window.jugando .stop-table td { padding: 3px 2px; }
+            .game-window.jugando .stop-input {
+                font-size: 9.5px !important;
+                padding: 2px 3px !important;
+                min-height: 0 !important;
             }
-            .game-window.jugando .stop-title { font-size: 20px; margin-bottom: 10px; }
-            .game-window.jugando .stop-letter-display { font-size: 12px; }
-            /* ===== BOTONES DEL LOBBY: en split, menos elípticos y más estéticos ===== */
+            .game-window.jugando .letter-circle {
+                width: 60px !important;
+                height: 60px !important;
+                font-size: 26px !important;
+            }
+            .game-window.jugando .stop-title { font-size: 17px; margin-bottom: 6px; }
+            .game-window.jugando .stop-letter-display { font-size: 11px; }
+            /* ===== BOTONES DEL LOBBY: en split, menos elípticos (más cuadrados/compactos) ===== */
             .game-window.jugando .btn-lobby,
-            .game-window.jugando .btn-begin {
-                padding: 8px 10px;
-                font-size: 12px;
-                border-radius: 8px;
+            .game-window.jugando .btn-begin,
+            .game-window.jugando .btn-stop-game {
+                padding: 7px 9px;
+                font-size: 11.5px;
+                border-radius: 6px;
                 max-width: 100%;
+                width: 100%;
             }
             .game-window.jugando .lobby-info {
-                font-size: 11px;
+                font-size: 10.5px;
                 line-height: 1.3;
             }
             .game-window.jugando .lobby-prize-status {
-                font-size: 11px;
-                padding: 6px 8px;
+                font-size: 10.5px;
+                padding: 5px 7px;
+                border-radius: 6px;
             }
             /* Info de jugadores y marcador del juego: compactos en split */
-            .game-window.jugando .players-info { padding: 6px; gap: 6px; }
-            .game-window.jugando .player-info { font-size: 11px; }
-            .game-window.jugando .player-name { font-size: 11px; }
-            .game-window.jugando .player-marker { font-size: 16px; }
-            .game-window.jugando .game-score { font-size: 11px; padding: 4px; }
-            .game-window.jugando .round-indicator { font-size: 11px; padding: 4px 8px; }
+            .game-window.jugando .players-info { padding: 5px; gap: 5px; }
+            .game-window.jugando .player-info { font-size: 10.5px; }
+            .game-window.jugando .player-name { font-size: 10.5px; }
+            .game-window.jugando .player-marker { font-size: 14px; }
+            .game-window.jugando .game-score { font-size: 10.5px; padding: 4px; }
+            .game-window.jugando .round-indicator { font-size: 10.5px; padding: 3px 7px; }
             /* Marcador del Stop en split */
-            .game-window.jugando .stop-scoreboard { padding: 4px 6px; gap: 4px; }
-            .game-window.jugando .sb-name  { font-size: 10.5px; }
-            .game-window.jugando .sb-score { font-size: 14px;   }
-            .game-window.jugando .sb-divider { font-size: 11px; }
+            .game-window.jugando .stop-scoreboard { padding: 3px 5px; gap: 4px; }
+            .game-window.jugando .sb-name  { font-size: 10px; }
+            .game-window.jugando .sb-score { font-size: 13px;   }
+            .game-window.jugando .sb-divider { font-size: 10px; }
             /* Quiz en split */
-            .game-window.jugando .quiz-question { font-size: 13px; padding: 8px; }
-            .game-window.jugando .quiz-option   { font-size: 12px; padding: 8px 10px; }
+            .game-window.jugando .quiz-question { font-size: 12px; padding: 7px; }
+            .game-window.jugando .quiz-option   { font-size: 11px; padding: 7px 9px; border-radius: 6px; }
+            .game-window.jugando .quiz-option-btn { padding: 7px 9px; font-size: 11px; border-radius: 6px; }
+            .game-window.jugando .quiz-option-letter { font-size: 11px; }
+            .game-window.jugando .game-content { padding: 6px; font-size: 11px; }
+            .game-window.jugando .game-header { padding: 6px 8px; }
+            .game-window.jugando .game-title { font-size: 12px; }
+            /* Modales más compactos en split */
+            .game-window.jugando .modal-win-content,
+            .game-window.jugando .modal-wait-content { padding: 18px 14px; }
         }
 
         @media (max-width: 400px) {
@@ -2629,7 +2648,7 @@
             align-items: center;
             gap: 6px;
             transition: all 0.2s;
-            margin-left: 12px;
+            margin-left: auto;
             white-space: nowrap;
             flex-shrink: 0;
         }
@@ -3618,6 +3637,8 @@ window.irInicio = function() {
     if (mensajesListener) { mensajesListener(); mensajesListener = null; }
     if (_invitesListener) { _invitesListener(); _invitesListener = null; }
     if (_gameStartListener) { _gameStartListener(); _gameStartListener = null; }
+    _tttDetachListener();
+    clearInterval(timerIntervalo);
     _miInviteEnVuelo = false;
     _yoEstoyListoParaIniciar = false;
     _juegoSyncEnCurso = null;
@@ -3637,6 +3658,7 @@ window.irInicio = function() {
     borrarTokenDeSala().catch(()=>{});
     salaActual = null; salaActualKey = null; usuarioActual = null;
     document.getElementById('header-chat-info').classList.remove('active');
+    document.querySelector('.header').classList.remove('chat-on');
     mostrarPantalla('pantalla-inicio');
 };
 
@@ -3775,6 +3797,7 @@ window.guardarNombreUsuario = function() {
     document.getElementById('header-username').textContent = usuarioActual.toUpperCase();
     document.getElementById('header-roomname').textContent = salaActual.nombre;
     document.getElementById('header-chat-info').classList.add('active');
+    document.querySelector('.header').classList.add('chat-on');
     document.getElementById('nombre-sala').textContent = salaActual.nombre;
     document.getElementById('input-mensaje').focus();
     escucharMensajes();
@@ -5284,6 +5307,7 @@ window.cerrarJuegoWindow = function() {
 
         function cerrarJuegoWindow() {
             clearInterval(timerIntervalo);
+            _tttDetachListener();
             // Limpiar timers pendientes de la simulación de Stop
             if (stopGameState && stopGameState.calificacionTimers) {
                 stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
@@ -5305,6 +5329,8 @@ window.cerrarJuegoWindow = function() {
         let iniciadorTicTacToe = 'X';
         let juegoActivoTicTacToe = false;
         let esJugadorActual = true;
+        let _tttListener = null; // Firebase realtime listener para sincronización
+        let _tttMiSimbolo = 'X'; // Símbolo asignado al jugador local
 
         let tiempoRestante = 5;
         let timerIntervalo = null;
@@ -5313,14 +5339,122 @@ window.cerrarJuegoWindow = function() {
 
 
 
+        // ── TTT Firebase helpers ──────────────────────────────────────────
+        function _tttRef() {
+            return ref(db, `gameData/${salaActualKey}/ttt`);
+        }
+        function _tttDetachListener() {
+            if (_tttListener) { _tttListener(); _tttListener = null; }
+        }
+        function _tttAttachListener() {
+            _tttDetachListener();
+            _tttListener = onValue(_tttRef(), (snap) => {
+                const data = snap.val();
+                if (!data) return;
+                // Ignorar si la última jugada fue nuestra (ya la aplicamos localmente)
+                if (data.ultimoJugador === usuarioActual) return;
+                // Aplicar estado del oponente
+                tableroTicTacToe = data.tablero || tableroTicTacToe;
+                turnoTicTacToe = data.turno;
+                esJugadorActual = (turnoTicTacToe === _tttMiSimbolo);
+                renderizarTablero();
+                actualizarInfoJugadores();
+                // Verificar fin de juego desde el estado recibido
+                if (data.estado === 'ganador') {
+                    if (!juegoActivoTicTacToe) return;
+                    juegoActivoTicTacToe = false;
+                    clearInterval(timerIntervalo);
+                    // El oponente ganó esta ronda
+                    victorias['Oponente'] = (victorias['Oponente'] || 0) + 1;
+                    actualizarPuntuacion();
+                    _tttMostrarOponenteGano();
+                } else if (data.estado === 'empate') {
+                    if (!juegoActivoTicTacToe) return;
+                    juegoActivoTicTacToe = false;
+                    clearInterval(timerIntervalo);
+                    _tttMostrarEmpateRecibido();
+                } else {
+                    // Jugada normal recibida: reiniciar timer
+                    iniciarTimer();
+                }
+            });
+        }
+        async function _tttEscribirJugada(nuevoTablero, nuevoTurno, estado) {
+            if (!salaActualKey) return;
+            try {
+                await set(_tttRef(), {
+                    tablero: nuevoTablero,
+                    turno: nuevoTurno,
+                    ultimoJugador: usuarioActual,
+                    estado: estado || 'jugando',
+                    ts: Date.now()
+                });
+            } catch(e) { console.warn('[TTT] error escribiendo jugada:', e); }
+        }
+        async function _tttLimpiarFirebase() {
+            if (!salaActualKey) return;
+            try { await remove(_tttRef()); } catch(e) {}
+        }
+        function _tttMostrarOponenteGano() {
+            const op = nombreOponente();
+            if (tttModoRondas) {
+                document.getElementById('win-trophy').textContent = '😞';
+                document.getElementById('win-title').textContent = `${op} ganó la ronda ${tttRondaActual}`;
+                document.getElementById('win-message').textContent =
+                    `${capitalizarNombre(usuarioActual)}: ${victorias[usuarioActual] || 0} | ${op}: ${victorias['Oponente'] || 0}`;
+                document.getElementById('win-prize-box').style.display = 'none';
+                if (tttRondaActual >= tttTotalRondas) { mostrarGanadorFinalTicTacToe(); return; }
+                document.getElementById('btn-play-again-win').style.display = '';
+                document.getElementById('btn-play-again-win').textContent = `Siguiente ronda (${tttRondaActual + 1}/${tttTotalRondas})`;
+                document.getElementById('btn-play-again-win').onclick = siguienteRondaTicTacToe;
+                document.getElementById('modal-win').classList.add('active');
+            } else {
+                document.getElementById('win-trophy').textContent = '😞';
+                document.getElementById('win-title').textContent = `¡${op} ganó!`;
+                document.getElementById('win-message').textContent =
+                    `${capitalizarNombre(usuarioActual)}: ${victorias[usuarioActual] || 0} | ${op}: ${victorias['Oponente'] || 0}`;
+                document.getElementById('win-prize-box').style.display = 'none';
+                document.getElementById('btn-play-again-win').style.display = '';
+                document.getElementById('btn-play-again-win').textContent = 'Jugar de Nuevo';
+                document.getElementById('btn-play-again-win').onclick = reiniciarTicTacToe;
+                document.getElementById('modal-win').classList.add('active');
+            }
+        }
+        function _tttMostrarEmpateRecibido() {
+            if (tttModoRondas) {
+                const yo = capitalizarNombre(usuarioActual);
+                const op = nombreOponente();
+                document.getElementById('win-trophy').textContent = '🤝';
+                document.getElementById('win-title').textContent = `Empate en la ronda ${tttRondaActual}`;
+                document.getElementById('win-message').textContent =
+                    `${yo}: ${victorias[usuarioActual] || 0} | ${op}: ${victorias['Oponente'] || 0}`;
+                document.getElementById('win-prize-box').style.display = 'none';
+                if (tttRondaActual >= tttTotalRondas) { mostrarGanadorFinalTicTacToe(); return; }
+                document.getElementById('btn-play-again-win').style.display = '';
+                document.getElementById('btn-play-again-win').textContent = `Siguiente ronda (${tttRondaActual + 1}/${tttTotalRondas})`;
+                document.getElementById('btn-play-again-win').onclick = siguienteRondaTicTacToe;
+                document.getElementById('modal-win').classList.add('active');
+            } else {
+                document.getElementById('modal-win').classList.remove('active');
+                alert('¡Empate!');
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────
+
         function inicializarJuegoTicTacToe() {
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             turnoTicTacToe = iniciadorTicTacToe;
-            esJugadorActual = (iniciadorTicTacToe === 'X');
+            // Determinar símbolo local: el que inicia la partida es 'X'
+            // Si yo inicié (soy el host de la sala) → X, sino → O
+            // Usamos comparación de nombres para consistencia entre ambos clientes
+            const soyHost = usuarioActual < (oponenteActual || '~'); // orden lexicográfico estable
+            _tttMiSimbolo = soyHost ? 'X' : 'O';
+            esJugadorActual = (iniciadorTicTacToe === _tttMiSimbolo);
             juegoActivoTicTacToe = true;
             tiempoRestante = 5;
 
             if (timerIntervalo) clearInterval(timerIntervalo);
+            _tttAttachListener();
 
             document.getElementById('players-info').style.display = 'flex';
             document.getElementById('game-score').style.display = 'block';
@@ -5364,11 +5498,15 @@ window.cerrarJuegoWindow = function() {
             }
         }
 
-        function cambiarTurno() {
-            turnoTicTacToe = turnoTicTacToe === 'X' ? 'O' : 'X';
-            esJugadorActual = !esJugadorActual;
+        async function cambiarTurno() {
+            // Solo el jugador cuyo turno expiró escribe en Firebase
+            if (!esJugadorActual || !juegoActivoTicTacToe) return;
+            const siguienteTurno = turnoTicTacToe === 'X' ? 'O' : 'X';
+            turnoTicTacToe = siguienteTurno;
+            esJugadorActual = false;
             actualizarInfoJugadores();
             renderizarTablero();
+            await _tttEscribirJugada(tableroTicTacToe, siguienteTurno, 'jugando');
             iniciarTimer();
         }
 
@@ -5407,26 +5545,30 @@ window.cerrarJuegoWindow = function() {
             }).join('');
         }
 
-        function jugarTicTacToe(idx) {
+        async function jugarTicTacToe(idx) {
             if (!esJugadorActual || tableroTicTacToe[idx] !== '' || !juegoActivoTicTacToe) return;
 
             tableroTicTacToe[idx] = turnoTicTacToe;
+            // Render local inmediato para sensación de respuesta rápida
+            renderizarTablero();
+            clearInterval(timerIntervalo);
 
             const ganador = verificarGanadorTicTacToe();
             if (ganador) {
                 juegoActivoTicTacToe = false;
-                clearInterval(timerIntervalo);
                 victorias[usuarioActual]++;
                 actualizarPuntuacion();
+                const siguienteTurno = turnoTicTacToe === 'X' ? 'O' : 'X';
+                await _tttEscribirJugada(tableroTicTacToe, siguienteTurno, 'ganador');
                 mostrarModalGanar();
                 return;
             }
 
             if (tableroTicTacToe.every(c => c !== '')) {
                 juegoActivoTicTacToe = false;
-                clearInterval(timerIntervalo);
+                const siguienteTurno = turnoTicTacToe === 'X' ? 'O' : 'X';
+                await _tttEscribirJugada(tableroTicTacToe, siguienteTurno, 'empate');
                 if (tttModoRondas) {
-                    // Empate de ronda: igual cuenta como ronda jugada, avanzar
                     const yo = capitalizarNombre(usuarioActual);
                     const op = nombreOponente();
                     document.getElementById('win-trophy').textContent = '🤝';
@@ -5449,7 +5591,13 @@ window.cerrarJuegoWindow = function() {
                 return;
             }
 
-            cambiarTurno();
+            // Jugada normal: cambiar turno y publicar en Firebase
+            const siguienteTurno = turnoTicTacToe === 'X' ? 'O' : 'X';
+            await _tttEscribirJugada(tableroTicTacToe, siguienteTurno, 'jugando');
+            turnoTicTacToe = siguienteTurno;
+            esJugadorActual = false;
+            actualizarInfoJugadores();
+            iniciarTimer();
         }
 
         function verificarGanadorTicTacToe() {
@@ -5562,17 +5710,20 @@ window.cerrarJuegoWindow = function() {
         function siguienteRondaTicTacToe() {
             document.getElementById('modal-win').classList.remove('active');
             clearInterval(timerIntervalo);
+            _tttDetachListener();
             tttRondaActual++;
             const roundEl = document.getElementById('ttt-round-indicator');
             roundEl.textContent = `RONDA ${tttRondaActual} / ${tttTotalRondas}`;
             iniciadorTicTacToe = iniciadorTicTacToe === 'X' ? 'O' : 'X';
-            inicializarJuegoTicTacToe();
+            _tttLimpiarFirebase().then(() => inicializarJuegoTicTacToe());
         }
 
         function nuevaPartidaTicTacToe() {
             // Reinicia toda la partida: vuelve al lobby
             document.getElementById('modal-win').classList.remove('active');
             clearInterval(timerIntervalo);
+            _tttDetachListener();
+            _tttLimpiarFirebase();
             mostrarTicTacToe();
         }
 
@@ -5837,6 +5988,7 @@ window.cerrarJuegoWindow = function() {
             // Cierra solo la ventana del juego actual y vuelve al menú de juegos (games-panel).
             // NO cierra la plataforma de juegos. Solo la ✕ de la ventana principal lo hace.
             clearInterval(timerIntervalo);
+            _tttDetachListener();
             if (stopGameState && stopGameState.calificacionTimers) {
                 stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
                 stopGameState.calificacionTimers = [];
@@ -5863,8 +6015,11 @@ window.cerrarJuegoWindow = function() {
         function reiniciarTicTacToe() {
             document.getElementById('modal-win').classList.remove('active');
             clearInterval(timerIntervalo);
-            iniciadorTicTacToe = iniciadorTicTacToe === 'X' ? 'O' : 'X';
-            inicializarJuegoTicTacToe();
+            _tttDetachListener();
+            _tttLimpiarFirebase().then(() => {
+                iniciadorTicTacToe = iniciadorTicTacToe === 'X' ? 'O' : 'X';
+                inicializarJuegoTicTacToe();
+            });
         }
 
         function abrirModalImagen(src) {
