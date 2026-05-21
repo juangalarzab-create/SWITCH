@@ -1804,6 +1804,40 @@
         }
 
         /* ===== MODAL GANAR ===== */
+        /* ── Modal countdown revancha instantánea TicTacToe ── */
+        .modal-rematch-cd {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #0d1b2a 0%, #1a2a1a 100%);
+            border: 2px solid #00cc66;
+            border-radius: 20px;
+            padding: 28px 32px;
+            z-index: 1012;
+            text-align: center;
+            max-width: 340px;
+            width: 88%;
+            box-shadow: 0 0 40px rgba(0,204,102,0.4);
+            animation: notifyPop 0.3s cubic-bezier(.175,.885,.32,1.275);
+        }
+        .modal-rematch-cd.active { display: block; }
+        .rematch-cd-icon { font-size: 42px; margin-bottom: 8px; }
+        .rematch-cd-msg {
+            color: #b0d4b0; font-size: 15px; margin-bottom: 16px; line-height: 1.5;
+        }
+        .rematch-cd-num {
+            font-size: 56px; font-weight: 900;
+            color: #00cc66;
+            text-shadow: 0 0 16px rgba(0,204,102,0.7);
+            line-height: 1;
+            animation: cdPulse 1s ease-in-out infinite;
+        }
+        @keyframes cdPulse {
+            0%,100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.12); opacity: 0.85; }
+        }
+
         /* ── Modal de notificación de juego (revancha / salida / premio) ── */
         .modal-game-notify {
             display: none;
@@ -3352,6 +3386,13 @@
         <div class="notify-buttons" id="notify-buttons"></div>
     </div>
 
+    <!-- MODAL COUNTDOWN REVANCHA INSTANTÁNEA TICTACTOE -->
+    <div class="modal-rematch-cd" id="modal-rematch-cd">
+        <div class="rematch-cd-icon">🔄</div>
+        <div class="rematch-cd-msg" id="rematch-cd-msg">¡Nueva partida!</div>
+        <div class="rematch-cd-num" id="rematch-cd-num">3</div>
+    </div>
+
     <!-- MODAL GANAR TICTACTOE / STOP (con premio y confeti) -->
     <div class="modal-win" id="modal-win">
         <div class="win-trophy" id="win-trophy">🏆</div>
@@ -4670,6 +4711,9 @@ window.cerrarJuegoWindow = function() {
         function mostrarTicTacToe() {
             document.getElementById('tictactoe-window').classList.add('active', 'jugando');
             document.getElementById('pantalla-chat').classList.add('jugando');
+            // Cancelar countdown de revancha si estaba corriendo
+            if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
+            document.getElementById('modal-rematch-cd').classList.remove('active');
             // Reset completo: premios, victorias, tablero, estado
             premiosJuego.tictactoe.mi = null;
             premiosJuego.tictactoe.oponente = null;
@@ -5465,6 +5509,7 @@ window.cerrarJuegoWindow = function() {
         let esJugadorActual = true;
         let _tttListener = null; // Firebase realtime listener para sincronización
         let _tttMiSimbolo = 'X'; // Símbolo asignado al jugador local
+        let _tttCdTimer = null;  // Timer del countdown de revancha instantánea
 
         let tiempoRestante = 5;
         let timerIntervalo = null;
@@ -5514,6 +5559,16 @@ window.cerrarJuegoWindow = function() {
         function _tttHandleSignal(tipo, payload, de) {
             const nombre = capitalizarNombre(de);
             switch(tipo) {
+                case 'rematch_instant':
+                    // Revancha sin confirmación: arrancar countdown en el receptor.
+                    // Si el receptor ya lanzó su propio countdown (ambos pulsaron a la vez),
+                    // ignorar para no reiniciar el timer ya en curso.
+                    if (_tttCdTimer) return; // ya hay countdown corriendo
+                    document.getElementById('modal-win').classList.remove('active');
+                    _hideNotify();
+                    _tttClearSignal();
+                    _tttMostrarCountdownRevancha((payload && payload.nombre) ? payload.nombre : nombre);
+                    break;
                 case 'rematch_request':
                     // Si yo también estaba "esperando respuesta" (ambos pulsaron a la vez),
                     // usamos el timestamp para decidir: el de mayor ts es el "solicitante" real.
@@ -6421,6 +6476,9 @@ window.cerrarJuegoWindow = function() {
             clearInterval(timerIntervalo);
             juegoActivoTicTacToe = false;
             _tttDetachListener();
+            // Cancelar countdown de revancha si estaba activo
+            if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
+            document.getElementById('modal-rematch-cd').classList.remove('active');
             if (stopGameState && stopGameState.calificacionTimers) {
                 stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
                 stopGameState.calificacionTimers = [];
@@ -6454,22 +6512,52 @@ window.cerrarJuegoWindow = function() {
         }
 
         function reiniciarTicTacToe() {
-            // Pedir revancha al oponente (no iniciar directamente)
+            // Modo libre (sin premios): revancha instantánea con countdown de 3s.
+            // El primero que presione inicia el countdown en ambos jugadores.
             document.getElementById('modal-win').classList.remove('active');
-            // Incluir timestamp propio para resolver colisión (si ambos pulsan a la vez,
-            // el de mayor ts queda como "solicitante" y el otro recibe el modal).
-            const miTs = Date.now();
-            window._tttMiRematchTs = miTs;
-            _tttSendSignal('rematch_request', { ts: miTs });
-            _showNotify('⏳', 'Esperando respuesta...', `Solicitaste jugar de nuevo. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
-                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
-                    _hideNotify();
-                    _tttClearSignal();
-                    // Limpiar datos del juego y volver al menú
-                    _tttResetCompleto();
-                    salirAlMenuJuegos();
-                }}]
-            );
+            _hideNotify();
+            const solicitante = capitalizarNombre(usuarioActual);
+            // Enviar señal al oponente con nombre del solicitante
+            _tttSendSignal('rematch_instant', { nombre: solicitante });
+            // Mostrar countdown en el solicitante también
+            _tttMostrarCountdownRevancha(solicitante);
+        }
+
+        function _tttMostrarCountdownRevancha(nombreSolicitante) {
+            // Cancelar cualquier countdown previo
+            if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
+            // Limpiar tablero y modal-win
+            document.getElementById('modal-win').classList.remove('active');
+            // Mostrar el modal de countdown
+            const modal = document.getElementById('modal-rematch-cd');
+            const msgEl = document.getElementById('rematch-cd-msg');
+            const numEl = document.getElementById('rematch-cd-num');
+            msgEl.textContent = `${nombreSolicitante} quiere jugar de nuevo`;
+            let secs = 3;
+            numEl.textContent = secs;
+            modal.classList.add('active');
+            _tttCdTimer = setInterval(() => {
+                secs--;
+                numEl.textContent = secs;
+                if (secs <= 0) {
+                    clearInterval(_tttCdTimer);
+                    _tttCdTimer = null;
+                    modal.classList.remove('active');
+                    _tttArrancarNuevoJuegoLibre();
+                }
+            }, 1000);
+        }
+
+        function _tttArrancarNuevoJuegoLibre() {
+            // Reinicia el tablero manteniendo la puntuación acumulada.
+            // NO resetea victorias — siguen sumando.
+            clearInterval(timerIntervalo);
+            _tttDetachListener();
+            tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
+            iniciadorTicTacToe = iniciadorTicTacToe === 'X' ? 'O' : 'X'; // alternar quién empieza
+            _tttLimpiarFirebase().then(() => {
+                inicializarJuegoTicTacToe();
+            });
         }
 
         function _tttResetCompleto() {
