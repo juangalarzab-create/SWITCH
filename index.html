@@ -652,6 +652,8 @@
             border: 1px solid #444;
             width: 44px;
             height: 44px;
+            min-width: 44px;
+            min-height: 44px;
             border-radius: 50%;
             cursor: pointer;
             font-size: 18px;
@@ -659,6 +661,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
+            padding: 0;
         }
 
         .btn-multimedia:hover {
@@ -691,6 +695,8 @@
             border: none;
             width: 44px;
             height: 44px;
+            min-width: 44px;
+            min-height: 44px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
@@ -700,6 +706,8 @@
             font-weight: bold;
             transition: all 0.2s;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            padding: 0;
         }
 
         .btn-enviar:hover {
@@ -2486,8 +2494,8 @@
             .modal-content { padding: 20px; }
             .carousel-container { height: 140px; }
             .input-area { padding: 10px; gap: 6px; }
-            .btn-multimedia { width: 38px; height: 38px; font-size: 15px; }
-            .btn-enviar { width: 38px; height: 38px; font-size: 16px; }
+            .btn-multimedia { width: 38px; height: 38px; font-size: 15px; flex-shrink: 0; }
+            .btn-enviar { width: 38px; height: 38px; font-size: 16px; flex-shrink: 0; }
             .admin-panel { max-width: 100%; margin: 0 10px; }
             .modal-admin { padding: 10px; }
             .quiz-result-banner.no-answer-banner { font-size: 13px; padding: 6px 10px; }
@@ -2497,16 +2505,102 @@
             .game-title { font-size: 13px; }
             .header-divider { display: none; }
             .sala-card { padding: 14px; }
-            /* Burbujas más pequeñas en chat cuando se juega */
-            .screen-chat.jugando .burbuja { max-width: 95%; font-size: 12px; }
-            .screen-chat.jugando .input-area { padding: 6px; gap: 4px; }
+            /* ===== CHAT EN MODO SPLIT (cuando se juega): compacto y estético ===== */
+            .screen-chat.jugando .burbuja {
+                max-width: 95%;
+                font-size: 11px;
+                padding: 7px 11px;
+                border-radius: 14px;
+                line-height: 1.35;
+            }
+            .screen-chat.jugando .mensaje.propio .burbuja { border-bottom-right-radius: 4px; }
+            .screen-chat.jugando .mensaje.otro   .burbuja { border-bottom-left-radius: 4px;  }
+            .screen-chat.jugando .msg-sender { font-size: 9.5px; margin-bottom: 2px; }
+            .screen-chat.jugando .msg-time   { font-size: 9px;  margin-top: 2px;   }
+            .screen-chat.jugando .input-area {
+                padding: 5px 6px;
+                gap: 4px;
+                align-items: center;
+            }
             .screen-chat.jugando .btn-multimedia,
-            .screen-chat.jugando .btn-enviar { width: 32px; height: 32px; font-size: 13px; }
-            .screen-chat.jugando .input-msg { font-size: 12px; padding: 8px; }
-            .screen-chat.jugando .msg-imagen { width: 100px; height: 100px; }
-            /* Tablero/contenido del juego se autoescala en móvil */
-            .tictactoe-board { max-width: 100% !important; }
-            .stop-table { font-size: 10px; }
+            .screen-chat.jugando .btn-enviar {
+                width: 30px;
+                height: 30px;
+                min-width: 30px;
+                min-height: 30px;
+                font-size: 12px;
+                flex-shrink: 0;
+                padding: 0;
+                border-radius: 50%;
+            }
+            .screen-chat.jugando .input-msg {
+                font-size: 11.5px;
+                padding: 6px 10px;
+                min-height: 30px;
+                border-radius: 18px;
+            }
+            .screen-chat.jugando .msg-imagen { width: 90px; height: 90px; }
+            /* ===== TICTACTOE EN SPLIT: tablero se autoescala perfectamente ===== */
+            .tictactoe-board {
+                max-width: 100% !important;
+                width: 100%;
+                gap: 4px;
+            }
+            .game-window.jugando .tictactoe-board {
+                max-width: 92% !important;
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .game-window.jugando .tictactoe-cell {
+                width: 100%;
+                height: auto;
+                aspect-ratio: 1 / 1;
+                font-size: 22px;
+                min-width: 0;
+                min-height: 0;
+            }
+            /* ===== STOP EN SPLIT: tabla más compacta ===== */
+            .game-window.jugando .stop-table { font-size: 9.5px; }
+            .game-window.jugando .stop-table th,
+            .game-window.jugando .stop-table td { padding: 4px 2px; }
+            .game-window.jugando .letter-circle {
+                width: 72px !important;
+                height: 72px !important;
+                font-size: 32px !important;
+            }
+            .game-window.jugando .stop-title { font-size: 20px; margin-bottom: 10px; }
+            .game-window.jugando .stop-letter-display { font-size: 12px; }
+            /* ===== BOTONES DEL LOBBY: en split, menos elípticos y más estéticos ===== */
+            .game-window.jugando .btn-lobby,
+            .game-window.jugando .btn-begin {
+                padding: 8px 10px;
+                font-size: 12px;
+                border-radius: 8px;
+                max-width: 100%;
+            }
+            .game-window.jugando .lobby-info {
+                font-size: 11px;
+                line-height: 1.3;
+            }
+            .game-window.jugando .lobby-prize-status {
+                font-size: 11px;
+                padding: 6px 8px;
+            }
+            /* Info de jugadores y marcador del juego: compactos en split */
+            .game-window.jugando .players-info { padding: 6px; gap: 6px; }
+            .game-window.jugando .player-info { font-size: 11px; }
+            .game-window.jugando .player-name { font-size: 11px; }
+            .game-window.jugando .player-marker { font-size: 16px; }
+            .game-window.jugando .game-score { font-size: 11px; padding: 4px; }
+            .game-window.jugando .round-indicator { font-size: 11px; padding: 4px 8px; }
+            /* Marcador del Stop en split */
+            .game-window.jugando .stop-scoreboard { padding: 4px 6px; gap: 4px; }
+            .game-window.jugando .sb-name  { font-size: 10.5px; }
+            .game-window.jugando .sb-score { font-size: 14px;   }
+            .game-window.jugando .sb-divider { font-size: 11px; }
+            /* Quiz en split */
+            .game-window.jugando .quiz-question { font-size: 13px; padding: 8px; }
+            .game-window.jugando .quiz-option   { font-size: 12px; padding: 8px 10px; }
         }
 
         @media (max-width: 400px) {
@@ -2520,32 +2614,35 @@
             .inicio-footer { padding: 8px 10px; }
         }
 
-        /* ===== PWA INSTALL BUTTON ===== */
+        /* ===== PWA INSTALL BUTTON (en cabecera, lado derecho) ===== */
         .pwa-install-btn {
             display: none;
-            position: fixed;
-            top: 14px;
-            right: 14px;
-            background: #0088cc;
+            background: linear-gradient(135deg, #0088cc, #005f99);
             color: #fff;
-            border: 2px solid #fff;
-            padding: 8px 14px;
-            border-radius: 24px;
-            font-size: 13px;
+            border: 2px solid #ffffff;
+            padding: 7px 14px;
+            border-radius: 22px;
+            font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-            z-index: 9998;
+            box-shadow: 0 2px 8px rgba(0, 136, 204, 0.45);
             align-items: center;
             gap: 6px;
             transition: all 0.2s;
+            margin-left: 12px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         .pwa-install-btn.show { display: inline-flex; }
-        .pwa-install-btn:hover { background: #0077b6; transform: translateY(-2px); }
-        .pwa-install-btn i { font-size: 14px; }
+        .pwa-install-btn:hover { background: linear-gradient(135deg, #0077b6, #004e7c); transform: translateY(-1px); }
+        .pwa-install-btn i { font-size: 12px; }
         @media (max-width: 600px) {
-            .pwa-install-btn { top: 10px; right: 10px; padding: 6px 10px; font-size: 11px; }
+            .pwa-install-btn { padding: 5px 10px; font-size: 11px; gap: 4px; margin-left: 8px; }
             .pwa-install-btn i { font-size: 11px; }
+            .pwa-install-text { display: none; } /* solo ícono en móviles pequeños */
+        }
+        @media (max-width: 400px) {
+            .pwa-install-btn { padding: 5px 8px; }
         }
 
         /* Loading spinner */
@@ -2710,6 +2807,10 @@
                 </div>
                 <button class="btn-home-header" onclick="irInicio()" title="Ir a Inicio"><i class="fas fa-home"></i></button>
             </div>
+            <!-- Botón Instalar app (PWA) — solo si NO está instalada -->
+            <button class="pwa-install-btn" id="pwa-install-btn" onclick="instalarPWA()" title="Instalar como aplicación">
+                <i class="fas fa-download"></i><span class="pwa-install-text">Instalar</span>
+            </button>
         </div>
 
         <div class="main">
@@ -2900,7 +3001,7 @@
                 </div>
                 <div class="sb-divider">vs</div>
                 <div class="sb-player sb-other">
-                    <div class="sb-name" id="sbOtherName">Oponente</div>
+                    <div class="sb-name" id="sbOtherName">Rival</div>
                     <div class="sb-score" id="sbOtherScore">0</div>
                 </div>
             </div>
@@ -2980,13 +3081,13 @@
                         </thead>
                         <tbody id="miCuadroBody"></tbody>
                     </table>
-                    <div class="cuadro-propio-nota">Tu oponente está calificando tus respuestas…</div>
+                    <div class="cuadro-propio-nota">Tu rival está calificando tus respuestas…</div>
                 </div>
 
                 <!-- CUADRO DEL OPONENTE (interactivo) -->
                 <div class="cuadro-jugador cuadro-oponente">
                     <div class="cuadro-header">
-                        <span class="cuadro-titulo" id="oponenteNombreCalif">Oponente</span>
+                        <span class="cuadro-titulo" id="oponenteNombreCalif">Rival</span>
                         <span class="cuadro-puntaje">Puntaje:<span class="puntaje-valor" id="oponentePuntajeCalif">—</span></span>
                     </div>
                     <table class="calificacion-table">
@@ -3063,7 +3164,7 @@
                 </div>
                 <div class="quiz-sb-divider">vs</div>
                 <div class="quiz-sb-player quiz-sb-other">
-                    <div class="quiz-sb-name" id="quizSbOtherName">Oponente</div>
+                    <div class="quiz-sb-name" id="quizSbOtherName">Rival</div>
                     <div class="quiz-sb-score" id="quizSbOtherScore">0</div>
                 </div>
             </div>
@@ -3102,7 +3203,7 @@
                         <div id="quizP1Status">Esperando...</div>
                     </div>
                     <div class="quiz-player-status" id="quizStatusP2">
-                        <div class="qps-name" id="quizP2Name">Oponente</div>
+                        <div class="qps-name" id="quizP2Name">Rival</div>
                         <div id="quizP2Status">Esperando...</div>
                     </div>
                 </div>
@@ -3158,7 +3259,7 @@
     <div class="modal-wait" id="modal-wait">
         <div class="modal-wait-content">
             <div class="modal-wait-spinner"></div>
-            <div class="modal-wait-title" id="modal-wait-title">Esperando al oponente...</div>
+            <div class="modal-wait-title" id="modal-wait-title">Esperando al rival...</div>
             <div class="modal-wait-msg" id="modal-wait-msg">Aguarda a que el otro jugador confirme para comenzar la partida.</div>
         </div>
     </div>
@@ -3220,11 +3321,6 @@
         <div class="loading-spinner"></div>
         <div class="loading-text" id="loading-text">Conectando...</div>
     </div>
-
-    <!-- PWA Install Button -->
-    <button class="pwa-install-btn" id="pwa-install-btn" onclick="instalarPWA()">
-        <i class="fas fa-download"></i> Instalar app
-    </button>
 
     <!-- Toast -->
     <div class="toast" id="toast"></div>
@@ -3521,7 +3617,12 @@ window.irInicio = function() {
     // Detach previous listeners
     if (mensajesListener) { mensajesListener(); mensajesListener = null; }
     if (_invitesListener) { _invitesListener(); _invitesListener = null; }
+    if (_gameStartListener) { _gameStartListener(); _gameStartListener = null; }
     _miInviteEnVuelo = false;
+    _yoEstoyListoParaIniciar = false;
+    _juegoSyncEnCurso = null;
+    _gameStartHandlerEntradaHecha = false;
+    oponenteActual = null;
     // Cerrar cualquier ventana de juego y modal de invitación abierto
     try {
         ['tictactoe-window','stop-window','quiz-window'].forEach(id => {
@@ -3530,6 +3631,7 @@ window.irInicio = function() {
         });
         document.getElementById('pantalla-chat').classList.remove('jugando');
         document.getElementById('modal-game-invite').classList.remove('active');
+        document.getElementById('modal-wait').classList.remove('active');
     } catch(e) {}
     // Borrar el token FCM de esta sala (no queremos recibir notificaciones de una sala que ya dejamos)
     borrarTokenDeSala().catch(()=>{});
@@ -4131,6 +4233,139 @@ let premiosJuego = { tictactoe: { mi: null, oponente: null }, stop: { mi: null, 
 let tttModoRondas = false, tttRondaActual = 1, tttTotalRondas = 3;
 let victorias = {};
 
+// Nombre real del otro usuario (rival) — se actualiza al enviar/aceptar invitación
+let oponenteActual = null;
+function nombreOponente() {
+    return capitalizarNombre(oponenteActual || 'Oponente');
+}
+
+// ============================================================
+// SINCRONIZACIÓN DE INICIO DE PARTIDA (entre usuarios, vía Firebase)
+// gameStart/{salaKey} = { juego, ready: { usuario1: hora, usuario2: hora }, horaMs }
+// Cuando AMBOS usuarios marcan "ready", ambos entran al juego en simultáneo.
+// ============================================================
+let _gameStartListener = null;
+let _yoEstoyListoParaIniciar = false;
+let _juegoSyncEnCurso = null;
+let _gameStartHandlerEntradaHecha = false;
+
+async function _marcarListoParaIniciar(juego) {
+    if (!salaActualKey || !usuarioActual) return false;
+    _yoEstoyListoParaIniciar = true;
+    _juegoSyncEnCurso = juego;
+    _gameStartHandlerEntradaHecha = false;
+    try {
+        // Escribir mi "ready" bajo el nodo del juego
+        await set(ref(db, `gameStart/${salaActualKey}/ready/${usuarioActual}`), Date.now());
+        await update(ref(db, `gameStart/${salaActualKey}`), { juego, horaMs: Date.now() });
+        return true;
+    } catch (e) {
+        console.warn('[GameStart] error:', e);
+        return false;
+    }
+}
+
+async function _cancelarListoParaIniciar() {
+    _yoEstoyListoParaIniciar = false;
+    _juegoSyncEnCurso = null;
+    if (!salaActualKey || !usuarioActual) return;
+    try {
+        await remove(ref(db, `gameStart/${salaActualKey}/ready/${usuarioActual}`));
+    } catch(e) {}
+}
+
+async function _limpiarSyncInicio() {
+    _yoEstoyListoParaIniciar = false;
+    _juegoSyncEnCurso = null;
+    _gameStartHandlerEntradaHecha = false;
+    if (!salaActualKey) return;
+    try { await remove(ref(db, `gameStart/${salaActualKey}`)); } catch(e) {}
+}
+
+function _escucharSincronizacionInicio() {
+    if (!salaActualKey) return;
+    if (_gameStartListener) { _gameStartListener(); _gameStartListener = null; }
+    const r = ref(db, `gameStart/${salaActualKey}`);
+    _gameStartListener = onValue(r, (snap) => {
+        const data = snap.val();
+        if (!data) {
+            // Se limpió el nodo: ocultar modal de espera si lo tenía abierto
+            const mw = document.getElementById('modal-wait');
+            if (mw && mw.classList.contains('active') && !_juegoSyncEnCurso) {
+                mw.classList.remove('active');
+            }
+            return;
+        }
+        const ready = data.ready || {};
+        const usuariosListos = Object.keys(ready);
+        const juego = data.juego || _juegoSyncEnCurso;
+
+        // CASO A: El OTRO usuario marcó "listo" y yo NO he marcado todavía
+        //         -> Mostrarle un aviso: "X está esperando que inicies"
+        const otroListo = usuariosListos.find(u => u !== usuarioActual);
+        if (otroListo && !ready[usuarioActual] && !_yoEstoyListoParaIniciar) {
+            // Guardar nombre del rival como oponente si aún no estaba
+            if (!oponenteActual) oponenteActual = otroListo;
+            // Mostrar aviso solo si tengo la ventana de juego abierta
+            const algunaVentanaJuegoActiva =
+                document.getElementById('tictactoe-window').classList.contains('active') ||
+                document.getElementById('stop-window').classList.contains('active') ||
+                document.getElementById('quiz-window').classList.contains('active');
+            if (algunaVentanaJuegoActiva) {
+                _mostrarAvisoRivalEsperando(otroListo, juego);
+            } else {
+                // Si todavía no estoy en la ventana de juego, mostrar un toast
+                try { showToast(`⏳ ${capitalizarNombre(otroListo)} te está esperando para jugar ${_nombreJuego(juego)}`); } catch(e) {}
+            }
+        }
+
+        // CASO B: Ambos están listos -> Entrar al juego
+        if (usuariosListos.length >= 2 && ready[usuarioActual] && !_gameStartHandlerEntradaHecha) {
+            _gameStartHandlerEntradaHecha = true;
+            // Asegurar nombre del oponente
+            const op = usuariosListos.find(u => u !== usuarioActual);
+            if (op) oponenteActual = op;
+            // Ocultar modal de espera y avisos
+            try { document.getElementById('modal-wait').classList.remove('active'); } catch(e) {}
+            _ocultarAvisoRivalEsperando();
+            // Entrar al juego según el tipo
+            _yoEstoyListoParaIniciar = false;
+            if (juego === 'tictactoe') {
+                const btn = document.getElementById('btn-iniciar-ttt');
+                if (btn) { btn.disabled = false; btn.textContent = '▶ Iniciar partida'; }
+                entrarAlJuegoTicTacToe();
+            } else if (juego === 'stop') {
+                const btn = document.getElementById('btn-comenzar-stop');
+                if (btn) { btn.disabled = false; btn.textContent = 'Comenzar'; }
+                iniciarJuegoStop();
+            } else if (juego === 'quiz') {
+                const btn = document.getElementById('btn-comenzar-quiz');
+                if (btn) { btn.disabled = false; btn.textContent = 'Comenzar'; }
+                iniciarPartidaQuizReal();
+            }
+            // Después de un breve momento, limpiar el nodo gameStart
+            setTimeout(() => { _limpiarSyncInicio(); }, 1500);
+        }
+    });
+}
+
+function _mostrarAvisoRivalEsperando(nombre, juego) {
+    const t = document.getElementById('modal-wait-title');
+    const m = document.getElementById('modal-wait-msg');
+    const modal = document.getElementById('modal-wait');
+    if (t) t.textContent = `⏳ ${capitalizarNombre(nombre)} está esperando que inicies`;
+    if (m) m.textContent = `${capitalizarNombre(nombre)} ya pulsó Iniciar partida. Pulsa el botón de iniciar para comenzar a jugar ${_nombreJuego(juego)} juntos.`;
+    if (modal) modal.classList.add('active');
+    // Auto-ocultar el aviso a los 6 segundos para no estorbar (el botón Iniciar sigue ahí)
+    if (window._avisoRivalTimer) clearTimeout(window._avisoRivalTimer);
+    window._avisoRivalTimer = setTimeout(() => {
+        if (modal && !_yoEstoyListoParaIniciar) modal.classList.remove('active');
+    }, 6000);
+}
+function _ocultarAvisoRivalEsperando() {
+    if (window._avisoRivalTimer) clearTimeout(window._avisoRivalTimer);
+}
+
 window.abrirJuegos = function() { document.getElementById('games-panel').classList.add('active'); };
 window.cerrarJuegos = function() { document.getElementById('games-panel').classList.remove('active'); };
 
@@ -4175,6 +4410,8 @@ async function _enviarInvitacionJuego(juego) {
 function escucharInvitacionesJuego() {
     if (!salaActualKey) return;
     if (_invitesListener) { _invitesListener(); _invitesListener = null; }
+    // También arrancar la escucha de sincronización de inicio
+    _escucharSincronizacionInicio();
     // Marcar como ya vista cualquier invitación previa a este momento, para
     // que al entrar no se dispare un modal con una invitación vieja.
     _ultimoInviteHoraMs = Date.now();
@@ -4190,8 +4427,10 @@ function escucharInvitacionesJuego() {
             const modal = document.getElementById('modal-game-invite');
             if (!modal.classList.contains('active')) {
                 juegoActual = inv.juego;
+                // Guardar el nombre real del que me invitó como oponente
+                oponenteActual = inv.deUsuario;
                 document.getElementById('invite-game-title').textContent =
-                    `${inv.deUsuario} te invita a jugar ${_nombreJuego(inv.juego)}. ¿Aceptas?`;
+                    `${capitalizarNombre(inv.deUsuario)} te invita a jugar ${_nombreJuego(inv.juego)}. ¿Aceptas?`;
                 modal.classList.add('active');
                 try { reproducirSonidoMsg(); } catch(e) {}
             }
@@ -4201,6 +4440,8 @@ function escucharInvitacionesJuego() {
         if (inv.estado === 'accepted' && inv.deUsuario === usuarioActual && _miInviteEnVuelo) {
             _miInviteEnVuelo = false;
             hideLoading();
+            // Capturar el nombre real del que aceptó como oponente
+            if (inv.aUsuario) oponenteActual = inv.aUsuario;
             _entrarAJuego(inv.juego);
             _ultimoInviteHoraMs = inv.horaMs || _ultimoInviteHoraMs;
         }
@@ -4210,6 +4451,7 @@ function escucharInvitacionesJuego() {
             hideLoading();
             alert('❌ El otro usuario rechazó la invitación.');
             juegoActual = null;
+            oponenteActual = null;
             _ultimoInviteHoraMs = inv.horaMs || _ultimoInviteHoraMs;
         }
     });
@@ -4247,7 +4489,12 @@ window.aceptarJuego = async function() {
     if (!salaActualKey) return;
     try {
         // Marcamos accepted en Firebase para que el invitador entre también
-        await update(ref(db, `gameInvites/${salaActualKey}`), { estado: 'accepted' });
+        // y pasamos también nuestro nombre como aUsuario (acceptor)
+        await update(ref(db, `gameInvites/${salaActualKey}`), {
+            estado: 'accepted',
+            aUsuario: usuarioActual,
+            horaMs: Date.now()
+        });
     } catch (e) { console.warn('[Invite] update accepted:', e); }
     if (juegoActual === 'tictactoe') {
         pushMensaje({ usuario: 'Sistema', texto: '✅ ' + usuarioActual + ' aceptó jugar TicTacToe', tipo: 'texto' });
@@ -4313,7 +4560,7 @@ window.cerrarJuegoWindow = function() {
 
         function actualizarTituloTicTacToe() {
             const yo = capitalizarNombre(usuarioActual || 'Tú');
-            const op = capitalizarNombre('Oponente');
+            const op = nombreOponente();
             const titleEl = document.getElementById('tictactoe-title');
             if (titleEl) titleEl.textContent = `${yo} Vs ${op}`;
         }
@@ -4327,33 +4574,39 @@ window.cerrarJuegoWindow = function() {
                 ? `🎁 Tu premio: <span class="ready">${miPremio}</span>`
                 : `🎁 Tu premio: <span class="pending">sin elegir (opcional)</span>`;
             opEl.innerHTML = opPremio
-                ? `🎁 Premio del oponente: <span class="ready">${opPremio}</span>`
-                : `🎁 Premio del oponente: <span class="pending">sin elegir (opcional)</span>`;
+                ? `🎁 Premio de ${nombreOponente()}: <span class="ready">${opPremio}</span>`
+                : `🎁 Premio de ${nombreOponente()}: <span class="pending">sin elegir (opcional)</span>`;
             // El botón Iniciar SIEMPRE está habilitado: jugar con o sin premio es válido
             document.getElementById('btn-iniciar-ttt').disabled = false;
         }
 
         function iniciarPartidaTicTacToe() {
-            // Ahora se puede iniciar SIN premios. Pero antes de entrar al juego,
-            // se simula la espera de que el oponente también confirme.
-            // Deshabilitar el botón para evitar doble clic
+            // Esperar a que el OTRO usuario también pulse Iniciar (sincronización real vía Firebase).
             const btn = document.getElementById('btn-iniciar-ttt');
             btn.disabled = true;
-            btn.textContent = '⏳ Esperando al oponente...';
+            btn.textContent = '⏳ Esperando al rival...';
 
             // Mostrar modal de espera
-            document.getElementById('modal-wait-title').textContent = 'Esperando al oponente...';
-            document.getElementById('modal-wait-msg').textContent = 'Aguarda a que el otro jugador confirme para iniciar la partida de TicTacToe.';
+            const opLabel = oponenteActual ? capitalizarNombre(oponenteActual) : 'el otro jugador';
+            document.getElementById('modal-wait-title').textContent = `Esperando a ${opLabel}...`;
+            document.getElementById('modal-wait-msg').textContent = `Aguarda a que ${opLabel} también pulse Iniciar para comenzar la partida de TicTacToe.`;
             document.getElementById('modal-wait').classList.add('active');
 
-            // Simular que el oponente confirma (entre 1.2s y 2.5s)
-            const delay = 1200 + Math.random() * 1300;
-            setTimeout(() => {
-                document.getElementById('modal-wait').classList.remove('active');
-                btn.textContent = '▶ Iniciar partida';
-                btn.disabled = false;
-                entrarAlJuegoTicTacToe();
-            }, delay);
+            // Marcar mi "ready" en Firebase. Cuando AMBOS estén listos, el listener
+            // _escucharSincronizacionInicio() llamará a entrarAlJuegoTicTacToe() automáticamente.
+            _marcarListoParaIniciar('tictactoe');
+
+            // Timeout de seguridad: si nadie del otro lado responde en 60s, cancelar.
+            if (window._tttSyncTimeout) clearTimeout(window._tttSyncTimeout);
+            window._tttSyncTimeout = setTimeout(async () => {
+                if (_yoEstoyListoParaIniciar && _juegoSyncEnCurso === 'tictactoe' && !_gameStartHandlerEntradaHecha) {
+                    await _cancelarListoParaIniciar();
+                    document.getElementById('modal-wait').classList.remove('active');
+                    btn.disabled = false;
+                    btn.textContent = '▶ Iniciar partida';
+                    alert('⏱️ El otro jugador no pulsó Iniciar a tiempo. Inténtalo de nuevo.');
+                }
+            }, 60000);
         }
 
         function entrarAlJuegoTicTacToe() {
@@ -4447,25 +4700,30 @@ window.cerrarJuegoWindow = function() {
         };
 
         function iniciarPartidaStop() {
-            // Nueva función: espera la confirmación del oponente antes de comenzar.
-            // Se puede comenzar con o sin premios.
+            // Sincronización real con Firebase: esperar a que el otro usuario también pulse "Comenzar".
             const btn = document.getElementById('btn-comenzar-stop');
             btn.disabled = true;
-            btn.textContent = '⏳ Esperando al oponente...';
+            btn.textContent = '⏳ Esperando al rival...';
 
             // Mostrar modal de espera
-            document.getElementById('modal-wait-title').textContent = 'Esperando al oponente...';
-            document.getElementById('modal-wait-msg').textContent = 'Aguarda a que el otro jugador confirme para iniciar la partida de Stop.';
+            const opLabel = oponenteActual ? capitalizarNombre(oponenteActual) : 'el otro jugador';
+            document.getElementById('modal-wait-title').textContent = `Esperando a ${opLabel}...`;
+            document.getElementById('modal-wait-msg').textContent = `Aguarda a que ${opLabel} también pulse Comenzar para iniciar la partida de Stop.`;
             document.getElementById('modal-wait').classList.add('active');
 
-            // Simular que el oponente confirma (entre 1.2s y 2.5s)
-            const delay = 1200 + Math.random() * 1300;
-            setTimeout(() => {
-                document.getElementById('modal-wait').classList.remove('active');
-                btn.textContent = 'Comenzar';
-                btn.disabled = false;
-                iniciarJuegoStop();
-            }, delay);
+            _marcarListoParaIniciar('stop');
+
+            // Timeout de seguridad
+            if (window._stopSyncTimeout) clearTimeout(window._stopSyncTimeout);
+            window._stopSyncTimeout = setTimeout(async () => {
+                if (_yoEstoyListoParaIniciar && _juegoSyncEnCurso === 'stop' && !_gameStartHandlerEntradaHecha) {
+                    await _cancelarListoParaIniciar();
+                    document.getElementById('modal-wait').classList.remove('active');
+                    btn.disabled = false;
+                    btn.textContent = 'Comenzar';
+                    alert('⏱️ El otro jugador no pulsó Comenzar a tiempo. Inténtalo de nuevo.');
+                }
+            }, 60000);
         }
 
         function iniciarJuegoStop(esRevancha = false) {
@@ -4525,7 +4783,7 @@ window.cerrarJuegoWindow = function() {
         function actualizarScoreboard() {
             const miNombre = usuarioActual || 'Tú';
             document.getElementById('sbMyName').textContent = miNombre;
-            document.getElementById('sbOtherName').textContent = 'Oponente';
+            document.getElementById('sbOtherName').textContent = nombreOponente();
             document.getElementById('sbMyScore').textContent = stopGameState.puntajeAcumulado[usuarioActual] || 0;
             document.getElementById('sbOtherScore').textContent = stopGameState.puntajeAcumulado['Oponente'] || 0;
         }
@@ -4651,7 +4909,7 @@ window.cerrarJuegoWindow = function() {
 
             // Mostrar nombres
             document.getElementById('miNombreCalif').textContent = (usuarioActual || 'Tú') + ' (tú)';
-            document.getElementById('oponenteNombreCalif').textContent = 'Oponente';
+            document.getElementById('oponenteNombreCalif').textContent = nombreOponente();
 
             // Resetear puntajes de la ronda en pantalla
             document.getElementById('miPuntajeCalif').textContent = '—';
@@ -4919,7 +5177,7 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('stop-juego').classList.remove('active');
             document.getElementById('stop-resultados').classList.add('active');
             document.getElementById('resultPlayer1').textContent = usuarioActual;
-            document.getElementById('resultPlayer2').textContent = 'Oponente';
+            document.getElementById('resultPlayer2').textContent = nombreOponente();
             document.getElementById('resultScore1').textContent = stopGameState.playerScores[usuarioActual];
             document.getElementById('resultScore2').textContent = stopGameState.playerScores['Oponente'];
 
@@ -5068,7 +5326,7 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('game-score').style.display = 'block';
 
             document.getElementById('player1-name').textContent = capitalizarNombre(usuarioActual);
-            document.getElementById('player2-name').textContent = capitalizarNombre('Oponente');
+            document.getElementById('player2-name').textContent = nombreOponente();
 
             victorias[usuarioActual] = victorias[usuarioActual] || 0;
             victorias['Oponente'] = victorias['Oponente'] || 0;
@@ -5102,7 +5360,7 @@ window.cerrarJuegoWindow = function() {
             if (turnoTicTacToe === 'X') {
                 p1.textContent = capitalizarNombre(usuarioActual) + ` (${tiempoRestante}s)`;
             } else {
-                p2.textContent = capitalizarNombre('Oponente') + ` (${tiempoRestante}s)`;
+                p2.textContent = nombreOponente() + ` (${tiempoRestante}s)`;
             }
         }
 
@@ -5134,7 +5392,7 @@ window.cerrarJuegoWindow = function() {
         }
 
         function actualizarPuntuacion() {
-            const score = `${capitalizarNombre(usuarioActual)}: ${victorias[usuarioActual] || 0} | ${capitalizarNombre('Oponente')}: ${victorias['Oponente'] || 0}`;
+            const score = `${capitalizarNombre(usuarioActual)}: ${victorias[usuarioActual] || 0} | ${nombreOponente()}: ${victorias['Oponente'] || 0}`;
             document.getElementById('game-score').textContent = score;
         }
 
@@ -5170,7 +5428,7 @@ window.cerrarJuegoWindow = function() {
                 if (tttModoRondas) {
                     // Empate de ronda: igual cuenta como ronda jugada, avanzar
                     const yo = capitalizarNombre(usuarioActual);
-                    const op = capitalizarNombre('Oponente');
+                    const op = nombreOponente();
                     document.getElementById('win-trophy').textContent = '🤝';
                     document.getElementById('win-title').textContent = `Empate en la ronda ${tttRondaActual}`;
                     document.getElementById('win-message').textContent =
@@ -5215,7 +5473,7 @@ window.cerrarJuegoWindow = function() {
             // El jugador actual (usuarioActual) ganó esta ronda
             const yo = capitalizarNombre(usuarioActual);
             const miPremio = premiosJuego.tictactoe.mi;
-            const op = capitalizarNombre('Oponente');
+            const op = nombreOponente();
 
             // MODO RONDAS (con premio): verificar si terminaron las 3 rondas
             if (tttModoRondas) {
@@ -5254,7 +5512,7 @@ window.cerrarJuegoWindow = function() {
 
         function mostrarGanadorFinalTicTacToe() {
             const yo = capitalizarNombre(usuarioActual);
-            const op = capitalizarNombre('Oponente');
+            const op = nombreOponente();
             const miScore = victorias[usuarioActual] || 0;
             const opScore = victorias['Oponente'] || 0;
             const miPremio = premiosJuego.tictactoe.mi;
@@ -5390,8 +5648,8 @@ window.cerrarJuegoWindow = function() {
                 ? `🎁 Tu premio: <span class="ready">${mi}</span>`
                 : `🎁 Tu premio: <span class="pending">sin elegir (opcional)</span>`;
             opEl.innerHTML = op
-                ? `🎁 Premio del oponente: <span class="ready">${op}</span>`
-                : `🎁 Premio del oponente: <span class="pending">sin elegir (opcional)</span>`;
+                ? `🎁 Premio de ${nombreOponente()}: <span class="ready">${op}</span>`
+                : `🎁 Premio de ${nombreOponente()}: <span class="pending">sin elegir (opcional)</span>`;
             // El botón Comenzar SIEMPRE está habilitado: con o sin premio se puede jugar
             const btn = document.getElementById('btn-comenzar-stop');
             btn.disabled = false;
@@ -5459,7 +5717,7 @@ window.cerrarJuegoWindow = function() {
             const miScore = stopGameState.puntajeAcumulado[usuarioActual] || 0;
             const opScore = stopGameState.puntajeAcumulado['Oponente'] || 0;
             const yo = capitalizarNombre(usuarioActual);
-            const op = capitalizarNombre('Oponente');
+            const op = nombreOponente();
 
             // Sumar los puntos de esta partida al HISTÓRICO TOTAL (todas las rondas de todas las partidas)
             if (typeof stopGameState.historicoTotal[usuarioActual] !== 'number') {
@@ -5726,24 +5984,37 @@ window.cerrarJuegoWindow = function() {
                 ? `🎁 Tu premio: <span class="ready">${mi}</span>`
                 : `🎁 Tu premio: <span class="pending">sin elegir (opcional)</span>`;
             document.getElementById('quiz-lobby-oponente-premio').innerHTML = op
-                ? `🎁 Premio del oponente: <span class="ready">${op}</span>`
-                : `🎁 Premio del oponente: <span class="pending">sin elegir (opcional)</span>`;
+                ? `🎁 Premio de ${nombreOponente()}: <span class="ready">${op}</span>`
+                : `🎁 Premio de ${nombreOponente()}: <span class="pending">sin elegir (opcional)</span>`;
         }
 
         function iniciarPartidaQuiz() {
+            // Sincronización real con Firebase: esperar a que el otro usuario también pulse "Comenzar".
             const btn = document.getElementById('btn-comenzar-quiz');
             btn.disabled = true;
-            btn.textContent = '⏳ Esperando al oponente...';
-            document.getElementById('modal-wait-title').textContent = 'Esperando al oponente...';
-            document.getElementById('modal-wait-msg').textContent = 'Aguarda a que el otro jugador confirme para iniciar el Quiz.';
+            btn.textContent = '⏳ Esperando al rival...';
+            const opLabel = oponenteActual ? capitalizarNombre(oponenteActual) : 'el otro jugador';
+            document.getElementById('modal-wait-title').textContent = `Esperando a ${opLabel}...`;
+            document.getElementById('modal-wait-msg').textContent = `Aguarda a que ${opLabel} también pulse Comenzar para iniciar el Quiz.`;
             document.getElementById('modal-wait').classList.add('active');
-            const delay = 1200 + Math.random() * 1300;
-            setTimeout(() => {
-                document.getElementById('modal-wait').classList.remove('active');
-                btn.textContent = 'Comenzar';
-                btn.disabled = false;
-                arrancarQuiz();
-            }, delay);
+
+            _marcarListoParaIniciar('quiz');
+
+            if (window._quizSyncTimeout) clearTimeout(window._quizSyncTimeout);
+            window._quizSyncTimeout = setTimeout(async () => {
+                if (_yoEstoyListoParaIniciar && _juegoSyncEnCurso === 'quiz' && !_gameStartHandlerEntradaHecha) {
+                    await _cancelarListoParaIniciar();
+                    document.getElementById('modal-wait').classList.remove('active');
+                    btn.disabled = false;
+                    btn.textContent = 'Comenzar';
+                    alert('⏱️ El otro jugador no pulsó Comenzar a tiempo. Inténtalo de nuevo.');
+                }
+            }, 60000);
+        }
+
+        // Función llamada por el listener de sincronización cuando AMBOS están listos para Quiz
+        function iniciarPartidaQuizReal() {
+            arrancarQuiz();
         }
 
         function mezclarArray(arr) {
@@ -5783,13 +6054,13 @@ window.cerrarJuegoWindow = function() {
         function actualizarScoreboardQuiz() {
             const yo = capitalizarNombre(usuarioActual) || 'Tú';
             document.getElementById('quizSbMyName').textContent = yo;
-            document.getElementById('quizSbOtherName').textContent = 'Oponente';
+            document.getElementById('quizSbOtherName').textContent = nombreOponente();
             document.getElementById('quizSbMyScore').textContent = quizGameState.puntajes.mi;
             document.getElementById('quizSbOtherScore').textContent = quizGameState.puntajes.oponente;
 
             // Nombres en la vista de pregunta
             document.getElementById('quizP1Name').textContent = yo;
-            document.getElementById('quizP2Name').textContent = 'Oponente';
+            document.getElementById('quizP2Name').textContent = nombreOponente();
         }
 
         function mostrarPreguntaQuiz() {
@@ -5982,7 +6253,7 @@ window.cerrarJuegoWindow = function() {
             const miScore = quizGameState.puntajes.mi;
             const opScore = quizGameState.puntajes.oponente;
             const yo = capitalizarNombre(usuarioActual) || 'Tú';
-            const op = 'Oponente';
+            const op = nombreOponente();
 
             const msgPartida = `Esta partida: ${yo} ${miScore} — ${op} ${opScore}`;
 
@@ -6121,12 +6392,19 @@ window.cerrarJuegoWindow = function() {
                 || window.navigator.standalone === true;
         }
 
+        function _mostrarBotonInstalarSiAplica() {
+            if (!_installBtn) return;
+            if (_appIsInstalled()) {
+                _installBtn.classList.remove('show');
+            } else {
+                _installBtn.classList.add('show');
+            }
+        }
+
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             _deferredInstallPrompt = e;
-            if (_installBtn && !_appIsInstalled()) {
-                _installBtn.classList.add('show');
-            }
+            _mostrarBotonInstalarSiAplica();
         });
 
         window.instalarPWA = async function() {
@@ -6158,18 +6436,18 @@ window.cerrarJuegoWindow = function() {
             _deferredInstallPrompt = null;
         });
 
-        // Si no es instalable (ya instalada o iOS) ocultar tras carga…
-        // …pero en iOS mostrar el botón igual para dar instrucciones.
+        // Mostrar el botón siempre que la app NO esté instalada (en cualquier navegador
+        // o plataforma). Si el navegador NO soporta beforeinstallprompt o aún no lo ha
+        // disparado, el botón mostrará las instrucciones manuales al usuario.
         window.addEventListener('load', () => {
-            const ua = navigator.userAgent || '';
-            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-            if (_appIsInstalled()) {
-                if (_installBtn) _installBtn.classList.remove('show');
-            } else if (isIOS && _installBtn) {
-                // iOS no dispara beforeinstallprompt: mostramos el botón siempre
-                _installBtn.classList.add('show');
-            }
+            _mostrarBotonInstalarSiAplica();
         });
+        // También revisar si cambia el modo (por ejemplo al instalar)
+        if (window.matchMedia) {
+            try {
+                window.matchMedia('(display-mode: standalone)').addEventListener('change', _mostrarBotonInstalarSiAplica);
+            } catch(e) {}
+        }
 
         // ============================================================
         // PWA — Registro del Service Worker general (caché / offline)
