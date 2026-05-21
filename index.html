@@ -115,6 +115,7 @@
         .container {
             width: 100%;
             height: 100vh;
+            height: 100dvh; /* altura dinámica: respeta barra URL/navegación en móvil */
             display: flex;
             flex-direction: column;
         }
@@ -2143,6 +2144,7 @@
             z-index: 1002;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
 
         .modal-imagen.active {
@@ -2150,17 +2152,30 @@
         }
 
         .modal-imagen-content {
-            max-width: 90%;
-            max-height: 90vh;
-            border-radius: 12px;
             position: relative;
+            max-width: 100%;
+            max-height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .modal-imagen img {
-            width: 100%;
-            height: 100%;
+            max-width: 90vw;
+            max-height: 85vh;
+            width: auto;
+            height: auto;
             object-fit: contain;
             border-radius: 12px;
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .modal-imagen { padding: 10px; }
+            .modal-imagen img {
+                max-width: 95vw;
+                max-height: 80vh;
+            }
         }
 
         .btn-close-imagen {
@@ -2433,18 +2448,34 @@
                 gap: 12px;
             }
             .header h1 { font-size: 18px; }
+            .header { padding: 10px 14px; }
+            .inicio-search { padding: 10px 12px; }
+            .search-input { padding: 10px 12px; font-size: 13px; }
+            .inicio-footer { padding: 10px 12px; }
+            .btn-crear-sala { padding: 12px; font-size: 15px; }
             .form-crear { padding: 24px 16px; }
-            .game-window {
-                width: 100vw !important;
-                height: 100vh !important;
-                right: 0 !important; left: 0 !important;
-                top: 0 !important; bottom: 0 !important;
+            /* JUEGOS EN MÓVIL: al lado del chat (50/50), no a pantalla completa */
+            .game-window.jugando {
+                width: 50% !important;
+                height: 100% !important;
+                right: 0 !important;
+                left: auto !important;
+                top: 0 !important;
+                bottom: auto !important;
                 border-radius: 0 !important;
-                z-index: 2000 !important;
+                border-left: 2px solid #ffffff !important;
+                position: fixed !important;
+                z-index: 800 !important;
             }
             .screen-chat.jugando {
-                width: 100% !important;
-                display: none !important;
+                width: 50% !important;
+                display: flex !important;
+                position: fixed !important;
+                left: 0 !important;
+                top: 0 !important;
+                height: 100% !important;
+                z-index: 799 !important;
+                border-right: 2px solid #ffffff !important;
             }
             .games-panel {
                 width: 100vw;
@@ -2461,9 +2492,21 @@
             .modal-admin { padding: 10px; }
             .quiz-result-banner.no-answer-banner { font-size: 13px; padding: 6px 10px; }
             .stop-table th, .stop-table td { padding: 6px 4px; font-size: 11px; }
-            .game-content { padding: 12px; }
+            .game-content { padding: 8px; font-size: 13px; }
+            .game-header { padding: 8px; }
+            .game-title { font-size: 13px; }
             .header-divider { display: none; }
             .sala-card { padding: 14px; }
+            /* Burbujas más pequeñas en chat cuando se juega */
+            .screen-chat.jugando .burbuja { max-width: 95%; font-size: 12px; }
+            .screen-chat.jugando .input-area { padding: 6px; gap: 4px; }
+            .screen-chat.jugando .btn-multimedia,
+            .screen-chat.jugando .btn-enviar { width: 32px; height: 32px; font-size: 13px; }
+            .screen-chat.jugando .input-msg { font-size: 12px; padding: 8px; }
+            .screen-chat.jugando .msg-imagen { width: 100px; height: 100px; }
+            /* Tablero/contenido del juego se autoescala en móvil */
+            .tictactoe-board { max-width: 100% !important; }
+            .stop-table { font-size: 10px; }
         }
 
         @media (max-width: 400px) {
@@ -2471,7 +2514,38 @@
             .salas-container { padding: 8px; }
             .burbuja { max-width: 90%; font-size: 13px; }
             .input-msg { font-size: 13px; }
-            .carousel-container { height: 110px; }
+            .carousel-container { height: 90px; }
+            .header { padding: 8px 12px; }
+            .inicio-search { padding: 8px 10px; }
+            .inicio-footer { padding: 8px 10px; }
+        }
+
+        /* ===== PWA INSTALL BUTTON ===== */
+        .pwa-install-btn {
+            display: none;
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            background: #0088cc;
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 8px 14px;
+            border-radius: 24px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+            z-index: 9998;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+        .pwa-install-btn.show { display: inline-flex; }
+        .pwa-install-btn:hover { background: #0077b6; transform: translateY(-2px); }
+        .pwa-install-btn i { font-size: 14px; }
+        @media (max-width: 600px) {
+            .pwa-install-btn { top: 10px; right: 10px; padding: 6px 10px; font-size: 11px; }
+            .pwa-install-btn i { font-size: 11px; }
         }
 
         /* Loading spinner */
@@ -3147,6 +3221,11 @@
         <div class="loading-text" id="loading-text">Conectando...</div>
     </div>
 
+    <!-- PWA Install Button -->
+    <button class="pwa-install-btn" id="pwa-install-btn" onclick="instalarPWA()">
+        <i class="fas fa-download"></i> Instalar app
+    </button>
+
     <!-- Toast -->
     <div class="toast" id="toast"></div>
 
@@ -3441,6 +3520,17 @@ function mostrarPantalla(id) {
 window.irInicio = function() {
     // Detach previous listeners
     if (mensajesListener) { mensajesListener(); mensajesListener = null; }
+    if (_invitesListener) { _invitesListener(); _invitesListener = null; }
+    _miInviteEnVuelo = false;
+    // Cerrar cualquier ventana de juego y modal de invitación abierto
+    try {
+        ['tictactoe-window','stop-window','quiz-window'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active','jugando');
+        });
+        document.getElementById('pantalla-chat').classList.remove('jugando');
+        document.getElementById('modal-game-invite').classList.remove('active');
+    } catch(e) {}
     // Borrar el token FCM de esta sala (no queremos recibir notificaciones de una sala que ya dejamos)
     borrarTokenDeSala().catch(()=>{});
     salaActual = null; salaActualKey = null; usuarioActual = null;
@@ -3586,6 +3676,8 @@ window.guardarNombreUsuario = function() {
     document.getElementById('nombre-sala').textContent = salaActual.nombre;
     document.getElementById('input-mensaje').focus();
     escucharMensajes();
+    // Escuchar invitaciones de juego en tiempo real para esta sala
+    escucharInvitacionesJuego();
     // Pedir permiso y registrar token FCM para esta sala
     pedirPermisoYRegistrarToken();
 };
@@ -4042,27 +4134,121 @@ let victorias = {};
 window.abrirJuegos = function() { document.getElementById('games-panel').classList.add('active'); };
 window.cerrarJuegos = function() { document.getElementById('games-panel').classList.remove('active'); };
 
-window.iniciarTicTacToe = function() {
-    juegoActual = 'tictactoe';
-    document.getElementById('invite-game-title').textContent = '¿Deseas jugar TicTacToe?';
-    document.getElementById('modal-game-invite').classList.add('active');
-    cerrarJuegos();
-};
-window.iniciarStop = function() {
-    juegoActual = 'stop';
-    document.getElementById('invite-game-title').textContent = '¿Deseas jugar Stop?';
-    document.getElementById('modal-game-invite').classList.add('active');
-    cerrarJuegos();
-};
-window.iniciarQuiz = function() {
-    juegoActual = 'quiz';
-    document.getElementById('invite-game-title').textContent = '¿Deseas jugar Quiz?';
-    document.getElementById('modal-game-invite').classList.add('active');
-    cerrarJuegos();
-};
+// ============================================================
+// INVITACIONES DE JUEGO EN TIEMPO REAL (entre usuarios)
+// ============================================================
+// gameInvites/{salaKey} = { juego, deUsuario, estado: 'pending'|'accepted'|'rejected', horaMs }
+let _invitesListener = null;
+let _ultimoInviteHoraMs = 0;
+let _miInviteEnVuelo = false; // true si yo soy el invitador esperando respuesta
 
-window.aceptarJuego = function() {
+function _nombreJuego(g) {
+    return g === 'tictactoe' ? 'TicTacToe' : g === 'stop' ? 'Stop' : g === 'quiz' ? 'Quiz' : g;
+}
+
+function _entrarAJuego(juego) {
+    juegoActual = juego;
+    if (juego === 'tictactoe') mostrarTicTacToe();
+    else if (juego === 'stop') mostrarStop();
+    else if (juego === 'quiz') iniciarQuiz();
+}
+
+async function _enviarInvitacionJuego(juego) {
+    if (!salaActualKey || !usuarioActual) {
+        alert('⚠️ Debes estar en una sala para invitar a jugar');
+        return false;
+    }
+    try {
+        await set(ref(db, `gameInvites/${salaActualKey}`), {
+            juego,
+            deUsuario: usuarioActual,
+            estado: 'pending',
+            horaMs: Date.now()
+        });
+        return true;
+    } catch (e) {
+        alert('❌ Error al enviar invitación: ' + e.message);
+        return false;
+    }
+}
+
+function escucharInvitacionesJuego() {
+    if (!salaActualKey) return;
+    if (_invitesListener) { _invitesListener(); _invitesListener = null; }
+    // Marcar como ya vista cualquier invitación previa a este momento, para
+    // que al entrar no se dispare un modal con una invitación vieja.
+    _ultimoInviteHoraMs = Date.now();
+    const invRef = ref(db, `gameInvites/${salaActualKey}`);
+    _invitesListener = onValue(invRef, (snap) => {
+        const inv = snap.val();
+        if (!inv) return;
+        const esNueva = inv.horaMs && inv.horaMs > _ultimoInviteHoraMs;
+
+        // Invitación PENDING — soy receptor (no fui yo quien la envió)
+        if (inv.estado === 'pending' && inv.deUsuario !== usuarioActual && esNueva) {
+            // No volver a abrir si ya está abierta
+            const modal = document.getElementById('modal-game-invite');
+            if (!modal.classList.contains('active')) {
+                juegoActual = inv.juego;
+                document.getElementById('invite-game-title').textContent =
+                    `${inv.deUsuario} te invita a jugar ${_nombreJuego(inv.juego)}. ¿Aceptas?`;
+                modal.classList.add('active');
+                try { reproducirSonidoMsg(); } catch(e) {}
+            }
+            _ultimoInviteHoraMs = inv.horaMs;
+        }
+        // ACCEPTED — soy el invitador
+        if (inv.estado === 'accepted' && inv.deUsuario === usuarioActual && _miInviteEnVuelo) {
+            _miInviteEnVuelo = false;
+            hideLoading();
+            _entrarAJuego(inv.juego);
+            _ultimoInviteHoraMs = inv.horaMs || _ultimoInviteHoraMs;
+        }
+        // REJECTED — soy el invitador
+        if (inv.estado === 'rejected' && inv.deUsuario === usuarioActual && _miInviteEnVuelo) {
+            _miInviteEnVuelo = false;
+            hideLoading();
+            alert('❌ El otro usuario rechazó la invitación.');
+            juegoActual = null;
+            _ultimoInviteHoraMs = inv.horaMs || _ultimoInviteHoraMs;
+        }
+    });
+}
+
+async function _iniciarInvitacion(juego) {
+    cerrarJuegos();
+    if (!salaActualKey || !usuarioActual) {
+        alert('⚠️ Debes estar en una sala para jugar');
+        return;
+    }
+    juegoActual = juego;
+    _miInviteEnVuelo = true;
+    showLoading('Esperando respuesta del otro usuario...');
+    const ok = await _enviarInvitacionJuego(juego);
+    if (!ok) { _miInviteEnVuelo = false; hideLoading(); return; }
+    pushMensaje({ usuario: 'Sistema', texto: `🎮 ${usuarioActual} invitó a jugar ${_nombreJuego(juego)}`, tipo: 'texto' });
+    // Timeout: si nadie responde en 60s, cancelar
+    setTimeout(async () => {
+        if (_miInviteEnVuelo) {
+            _miInviteEnVuelo = false;
+            hideLoading();
+            try { await remove(ref(db, `gameInvites/${salaActualKey}`)); } catch(e){}
+            alert('⏱️ Nadie aceptó la invitación.');
+        }
+    }, 60000);
+}
+
+window.iniciarTicTacToe = function() { _iniciarInvitacion('tictactoe'); };
+window.iniciarStop      = function() { _iniciarInvitacion('stop'); };
+window.iniciarQuiz      = function() { _iniciarInvitacion('quiz'); };
+
+window.aceptarJuego = async function() {
     document.getElementById('modal-game-invite').classList.remove('active');
+    if (!salaActualKey) return;
+    try {
+        // Marcamos accepted en Firebase para que el invitador entre también
+        await update(ref(db, `gameInvites/${salaActualKey}`), { estado: 'accepted' });
+    } catch (e) { console.warn('[Invite] update accepted:', e); }
     if (juegoActual === 'tictactoe') {
         pushMensaje({ usuario: 'Sistema', texto: '✅ ' + usuarioActual + ' aceptó jugar TicTacToe', tipo: 'texto' });
         mostrarTicTacToe();
@@ -4075,8 +4261,13 @@ window.aceptarJuego = function() {
     }
 };
 
-window.rechazarJuego = function() {
+window.rechazarJuego = async function() {
     document.getElementById('modal-game-invite').classList.remove('active');
+    if (salaActualKey) {
+        try {
+            await update(ref(db, `gameInvites/${salaActualKey}`), { estado: 'rejected' });
+        } catch (e) { console.warn('[Invite] update rejected:', e); }
+    }
     pushMensaje({ usuario: 'Sistema', texto: '❌ ' + usuarioActual + ' rechazó la invitación', tipo: 'texto' });
     juegoActual = null;
 };
@@ -5917,6 +6108,67 @@ window.cerrarJuegoWindow = function() {
             });
 
             console.log('✅ SWITCH App con Firebase iniciada');
+        });
+
+        // ============================================================
+        // PWA — Botón "Instalar app" (beforeinstallprompt)
+        // ============================================================
+        let _deferredInstallPrompt = null;
+        const _installBtn = document.getElementById('pwa-install-btn');
+
+        function _appIsInstalled() {
+            return window.matchMedia('(display-mode: standalone)').matches
+                || window.navigator.standalone === true;
+        }
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            _deferredInstallPrompt = e;
+            if (_installBtn && !_appIsInstalled()) {
+                _installBtn.classList.add('show');
+            }
+        });
+
+        window.instalarPWA = async function() {
+            // iOS no soporta beforeinstallprompt: damos instrucciones
+            const ua = navigator.userAgent || '';
+            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+            if (!_deferredInstallPrompt) {
+                if (isIOS) {
+                    alert('Para instalar en iPhone/iPad:\n\n1) Toca el botón Compartir (cuadrado con flecha hacia arriba)\n2) Elige "Agregar a pantalla de inicio"');
+                } else {
+                    alert('Para instalar la app:\n\n• En Chrome/Edge Android: menú ⋮ → "Instalar aplicación" o "Agregar a pantalla de inicio".\n• En PC: ícono de instalar a la derecha de la barra de direcciones.');
+                }
+                return;
+            }
+            try {
+                _deferredInstallPrompt.prompt();
+                const choice = await _deferredInstallPrompt.userChoice;
+                if (choice && choice.outcome === 'accepted') {
+                    if (_installBtn) _installBtn.classList.remove('show');
+                }
+                _deferredInstallPrompt = null;
+            } catch (err) {
+                console.warn('[PWA] install error:', err);
+            }
+        };
+
+        window.addEventListener('appinstalled', () => {
+            if (_installBtn) _installBtn.classList.remove('show');
+            _deferredInstallPrompt = null;
+        });
+
+        // Si no es instalable (ya instalada o iOS) ocultar tras carga…
+        // …pero en iOS mostrar el botón igual para dar instrucciones.
+        window.addEventListener('load', () => {
+            const ua = navigator.userAgent || '';
+            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+            if (_appIsInstalled()) {
+                if (_installBtn) _installBtn.classList.remove('show');
+            } else if (isIOS && _installBtn) {
+                // iOS no dispara beforeinstallprompt: mostramos el botón siempre
+                _installBtn.classList.add('show');
+            }
         });
 
         // ============================================================
