@@ -5556,10 +5556,14 @@ window.cerrarJuegoWindow = function() {
             _tttSignalListener = onValue(_tttSignalRef(), (snap) => {
                 const data = snap.val();
                 if (!data || data.de === usuarioActual) return; // ignorar mis propias señales
-                // Ignorar señales ya procesadas (mismo timestamp) para evitar
+                // Señales de salida: siempre procesar, nunca bloquear por timestamp.
+                // Señales de revancha: ignorar si ya se procesó este mismo ts para evitar
                 // que onValue re-dispare la señal al re-adjuntar el listener.
-                if (data.ts && data.ts <= _tttLastSignalTs) return;
-                _tttLastSignalTs = data.ts || Date.now();
+                const esSalida = (data.tipo === 'player_exit_cd' || data.tipo === 'player_left' || data.tipo === 'left_games');
+                if (!esSalida) {
+                    if (data.ts && data.ts <= _tttLastSignalTs) return;
+                    _tttLastSignalTs = data.ts || Date.now();
+                }
                 _tttHandleSignal(data.tipo, data.payload, data.de);
             });
         }
@@ -6469,7 +6473,10 @@ window.cerrarJuegoWindow = function() {
             juegoActivoTicTacToe = false;
             _tttDetachListener();
             if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
-            document.getElementById('modal-rematch-cd').classList.remove('active');
+            if (window._tttExitCdTimer) { clearInterval(window._tttExitCdTimer); window._tttExitCdTimer = null; }
+            _tttLastSignalTs = 0; // limpiar guard de señales al salir completamente
+            document.getElementById('modal-rematch-cd').classList.remove('active', 'exit-mode');
+            document.getElementById('rematch-cd-icon').textContent = '🔄'; // restaurar icono
             if (stopGameState && stopGameState.calificacionTimers) {
                 stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
                 stopGameState.calificacionTimers = [];
@@ -6508,10 +6515,10 @@ window.cerrarJuegoWindow = function() {
             const iconEl = document.getElementById('rematch-cd-icon');
             const msgEl  = document.getElementById('rematch-cd-msg');
             const numEl  = document.getElementById('rematch-cd-num');
-            modal.classList.add('active', 'exit-mode');
-            modal.classList.remove('active'); // forzar re-animación
+            // Forzar re-animación limpia: quitar todo primero, forzar reflow, luego añadir
+            modal.classList.remove('active', 'exit-mode');
             void modal.offsetWidth;
-            modal.classList.add('active');
+            modal.classList.add('active', 'exit-mode');
             iconEl.textContent = '🚪';
             msgEl.textContent  = `${nombreQueSale} salió del juego`;
             let secs = 3;
@@ -6563,8 +6570,14 @@ window.cerrarJuegoWindow = function() {
                 if (secs <= 0) {
                     clearInterval(_tttCdTimer);
                     _tttCdTimer = null;
-                    modal.classList.remove('active');
-                    _tttArrancarNuevoJuegoLibre();
+                    modal.classList.remove('active'); // ocultar ANTES de arrancar
+                    try {
+                        _tttArrancarNuevoJuegoLibre();
+                    } catch(e) {
+                        console.error('[TTT] Error arrancando nuevo juego:', e);
+                        // Si falla, al menos llevar al menú en lugar de congelarse
+                        _ejecutarSalidaReal();
+                    }
                 }
             }, 1000);
         }
