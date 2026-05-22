@@ -5174,12 +5174,28 @@ window.cerrarJuegoWindow = function() {
         }
 
         function iniciarRonda() {
-            // Evitar doble clic mientras gira
+            // Evitar doble clic mientras gira o ya hay juego activo
             if (stopGameState.isSpinning || stopGameState.isGameRunning) return;
 
             stopGameState.roundCount++;
             stopGameState.isSpinning = true;
 
+            // Publicar en Firebase INMEDIATAMENTE para que el oponente empiece a girar también
+            set(_stopGameRef(), {
+                spinStart: true,
+                spinBy: usuarioActual,
+                letter: null,
+                spinDone: false,
+                stopped: false,
+                stoppedBy: null,
+                ts: Date.now()
+            }).catch(() => {});
+
+            _ejecutarSpinLocal(true); // true = soy el iniciador, yo publico la letra final
+        }
+
+        // Ejecuta la animación de giro localmente y, si esIniciador=true, publica la letra al terminar
+        function _ejecutarSpinLocal(esIniciador) {
             // Ocultar hint
             const hint = document.getElementById('stopCircleHint');
             if (hint) hint.classList.add('hidden');
@@ -5190,19 +5206,29 @@ window.cerrarJuegoWindow = function() {
             letterCircle.classList.remove('letter-circle-clickable');
             document.getElementById('btnStopGame').disabled = true;
 
-            // Agregar nueva fila a la tabla con inputs DESHABILITADOS
+            // Agregar nueva fila a la tabla con inputs DESHABILITADOS (solo si no existe ya)
             const tbody = document.getElementById('stopTableBody');
-            const newRow = document.createElement('tr');
-            newRow.id = `stopRow${stopGameState.roundCount}`;
-            newRow.innerHTML = `
-                <td><input type="text" class="stop-input" data-col="0" disabled autocomplete="off" spellcheck="false"></td>
-                <td><input type="text" class="stop-input" data-col="1" disabled autocomplete="off" spellcheck="false"></td>
-                <td><input type="text" class="stop-input" data-col="2" disabled autocomplete="off" spellcheck="false"></td>
-                <td><input type="text" class="stop-input" data-col="3" disabled autocomplete="off" spellcheck="false"></td>
-                <td><input type="text" class="stop-input" data-col="4" disabled autocomplete="off" spellcheck="false"></td>
-            `;
-            tbody.appendChild(newRow);
-            newRow.style.display = '';
+            let newRow = document.getElementById(`stopRow${stopGameState.roundCount}`);
+            if (!newRow) {
+                newRow = document.createElement('tr');
+                newRow.id = `stopRow${stopGameState.roundCount}`;
+                newRow.innerHTML = `
+                    <td><input type="text" class="stop-input" data-col="0" disabled autocomplete="off" spellcheck="false"></td>
+                    <td><input type="text" class="stop-input" data-col="1" disabled autocomplete="off" spellcheck="false"></td>
+                    <td><input type="text" class="stop-input" data-col="2" disabled autocomplete="off" spellcheck="false"></td>
+                    <td><input type="text" class="stop-input" data-col="3" disabled autocomplete="off" spellcheck="false"></td>
+                    <td><input type="text" class="stop-input" data-col="4" disabled autocomplete="off" spellcheck="false"></td>
+                `;
+                tbody.appendChild(newRow);
+                newRow.style.display = '';
+                // Bloquear pegar y copiar
+                newRow.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('paste', e => e.preventDefault());
+                    input.addEventListener('copy', e => e.preventDefault());
+                    input.addEventListener('cut', e => e.preventDefault());
+                    input.addEventListener('contextmenu', e => e.preventDefault());
+                });
+            }
 
             // Deshabilitar todas las filas previas
             const allRows = tbody.querySelectorAll('tr');
@@ -5211,50 +5237,46 @@ window.cerrarJuegoWindow = function() {
             }
 
             const currentInputs = newRow.querySelectorAll('input');
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-            // Bloquear pegar y copiar en los inputs actuales
-            currentInputs.forEach(input => {
-                input.addEventListener('paste', e => e.preventDefault());
-                input.addEventListener('copy', e => e.preventDefault());
-                input.addEventListener('cut', e => e.preventDefault());
-                input.addEventListener('contextmenu', e => e.preventDefault());
-            });
-
-            // Girar el círculo
-            letterCircle.classList.add('spinning');
+            if (window._stopSpinInterval) { clearInterval(window._stopSpinInterval); window._stopSpinInterval = null; }
 
             let spins = 0;
             window._stopSpinInterval = setInterval(() => {
-                const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
                 letterCircle.textContent = letters[Math.floor(Math.random() * letters.length)];
                 spins++;
 
                 if (spins > 30) {
                     clearInterval(window._stopSpinInterval);
                     window._stopSpinInterval = null;
+
+                    const letraFinal = esIniciador
+                        ? letters[Math.floor(Math.random() * letters.length)] // letra aleatoria definitiva
+                        : letterCircle.textContent; // el no-iniciador la recibirá por Firebase, esto es temporal
+
+                    letterCircle.textContent = letraFinal;
                     letterCircle.classList.remove('spinning', 'no-click');
-                    const letraFinal = letterCircle.textContent;
-                    stopGameState.currentLetter = letraFinal;
                     stopGameState.isSpinning = false;
-                    stopGameState.isGameRunning = true;
-                    document.getElementById('stopLetterDisplay').textContent = `Letra: ${letraFinal}`;
-                    document.getElementById('btnStopGame').disabled = false;
 
-                    // Publicar letra en Firebase para que el oponente la reciba en tiempo real
-                    set(_stopGameRef(), {
-                        letter: letraFinal,
-                        spinDone: true,
-                        spinBy: usuarioActual,
-                        stopped: false,
-                        stoppedBy: null,
-                        ts: Date.now()
-                    }).catch(() => {});
+                    if (esIniciador) {
+                        // Publicar letra final para ambos jugadores
+                        stopGameState.currentLetter = letraFinal;
+                        stopGameState.isGameRunning = true;
+                        document.getElementById('stopLetterDisplay').textContent = `Letra: ${letraFinal}`;
+                        document.getElementById('btnStopGame').disabled = false;
+                        currentInputs.forEach(inp => { inp.disabled = false; });
+                        currentInputs[0].focus();
 
-                    // Habilitar los inputs DE LA RONDA ACTUAL ahora que salió la letra
-                    currentInputs.forEach(input => {
-                        input.disabled = false;
-                    });
-                    currentInputs[0].focus();
+                        set(_stopGameRef(), {
+                            letter: letraFinal,
+                            spinDone: true,
+                            spinBy: usuarioActual,
+                            stopped: false,
+                            stoppedBy: null,
+                            ts: Date.now()
+                        }).catch(() => {});
+                    }
+                    // Si no es iniciador, la letra real llegará por Firebase listener (spinDone)
                 }
             }, 100);
         }
@@ -5333,6 +5355,8 @@ window.cerrarJuegoWindow = function() {
 
             // ── Escuchar las palabras del oponente en Firebase ──
             _escucharPalabrasOponenteCalif();
+            // ── Escuchar el veredicto del oponente sobre mis palabras (para puntaje en tiempo real) ──
+            _escucharVeredictoMisPalabras();
         }
 
         // Listener Firebase para las palabras del oponente en la vista de calificación
@@ -5353,77 +5377,6 @@ window.cerrarJuegoWindow = function() {
 
         function _detachStopCalifListener() {
             if (_stopCalifListener) { _stopCalifListener(); _stopCalifListener = null; }
-        }
-
-        function simularCalificacionDelOponente() {
-            // Limpiar cualquier timer previo
-            stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
-            stopGameState.calificacionTimers = [];
-
-            // Recopilar celdas mías con palabra (las "—" se ignoran)
-            const todasMisCeldas = Array.from(
-                document.querySelectorAll('#miCuadroBody td')
-            );
-            const celdasConPalabra = todasMisCeldas.filter(td =>
-                td.textContent && td.textContent !== '—'
-            );
-
-            // Decidir aleatoriamente cuáles serán marcadas como malas (~30% por celda)
-            const aMarcar = celdasConPalabra.filter(() => Math.random() < 0.3);
-            // Mezclar el orden para que se marquen en orden aleatorio
-            aMarcar.sort(() => Math.random() - 0.5);
-
-            // Marcar progresivamente con retrasos aleatorios (sensación de tiempo real)
-            let delay = 800;
-            aMarcar.forEach(td => {
-                const t = setTimeout(() => {
-                    td.classList.add('marcada-mal');
-                }, delay);
-                stopGameState.calificacionTimers.push(t);
-                delay += 600 + Math.random() * 800;
-            });
-
-            // Tras un retraso final, "el oponente presiona Calificar" y aparece mi puntaje
-            const finalT = setTimeout(() => {
-                autoCalificarMisRespuestas();
-            }, delay + 900);
-            stopGameState.calificacionTimers.push(finalT);
-        }
-
-        function autoCalificarMisRespuestas() {
-            // Suma 50 por cada palabra mía no marcada como mala
-            const celdas = document.querySelectorAll('#miCuadroBody td');
-            let puntaje = 0;
-            celdas.forEach(td => {
-                const tieneTexto = td.textContent && td.textContent !== '—';
-                if (tieneTexto && !td.classList.contains('marcada-mal')) {
-                    puntaje += 50;
-                }
-            });
-            stopGameState.miPuntajeRonda = puntaje;
-            document.getElementById('miPuntajeCalif').textContent = puntaje;
-        }
-
-        function generarPalabrasOponenteSimuladas(numRondas) {
-            // Genera palabras simuladas del oponente desde el diccionario.
-            // Esto solo es para que la simulación de calificación sea demostrable;
-            // cuando exista backend en tiempo real, estas vendrán del otro cliente.
-            const categorias = ['nombres', 'paises', 'profesiones', 'frutas', 'objetos'];
-            const rondas = [];
-            for (let i = 0; i < numRondas; i++) {
-                const fila = [];
-                categorias.forEach(cat => {
-                    const lista = stopPalabrasValidas[cat] || [];
-                    // 75% de probabilidad de llenar la celda
-                    if (Math.random() > 0.25 && lista.length > 0) {
-                        fila.push(lista[Math.floor(Math.random() * lista.length)]);
-                    } else {
-                        fila.push('');
-                    }
-                });
-                rondas.push(fila);
-            }
-            return rondas;
         }
 
         function renderizarCuadroPropio(palabras) {
@@ -5793,7 +5746,16 @@ window.cerrarJuegoWindow = function() {
                 const data = snap.val();
                 if (!data) return;
 
-                // ── Sync letra: cuando el oponente terminó de girar ──
+                // ── Sync SPIN START: el oponente pulsó el círculo → arrancar animación local ──
+                if (data.spinStart && !data.spinDone && data.spinBy !== usuarioActual) {
+                    if (!stopGameState.isSpinning && !stopGameState.isGameRunning) {
+                        stopGameState.roundCount++;
+                        stopGameState.isSpinning = true;
+                        _ejecutarSpinLocal(false); // no soy el iniciador: no publico letra
+                    }
+                }
+
+                // ── Sync SPIN DONE: el iniciador publicó la letra final ──
                 if (data.letter && data.spinDone && data.spinBy !== usuarioActual) {
                     const letterCircle = document.getElementById('letterCircle');
                     if (letterCircle) {
@@ -6873,9 +6835,11 @@ window.cerrarJuegoWindow = function() {
         function salirAlMenuJuegos(silencioso) {
             // Si ya hay un countdown de salida corriendo, no duplicar
             if (window._tttExitCdTimer) return;
-            // Notificar al oponente siempre que la ventana de tictactoe esté activa
-            const tttActivo = document.getElementById('tictactoe-window').classList.contains('active');
-            if (!silencioso && tttActivo) {
+            // Notificar al oponente si cualquier ventana de juego está activa
+            const juegoActivo = document.getElementById('tictactoe-window').classList.contains('active')
+                || document.getElementById('stop-window').classList.contains('active')
+                || document.getElementById('quiz-window').classList.contains('active');
+            if (!silencioso && juegoActivo) {
                 _tttSendSignal('player_exit_cd', { nombre: capitalizarNombre(usuarioActual) });
             }
             // Mostrar countdown de salida rojo en el solicitante
