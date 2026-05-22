@@ -1849,6 +1849,61 @@
             50% { transform: scale(1.12); opacity: 0.85; }
         }
 
+        /* ── Alerta vistosa de premio elegido ── */
+        #ttt-premio-alert {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(0.7);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 2px solid #ffd700;
+            border-radius: 20px;
+            padding: 28px 36px;
+            z-index: 1020;
+            text-align: center;
+            max-width: 320px;
+            width: 88%;
+            box-shadow: 0 0 50px rgba(255,215,0,0.5), 0 0 100px rgba(255,215,0,0.15);
+            opacity: 0;
+            pointer-events: none;
+            transition: none;
+        }
+        #ttt-premio-alert.ttt-premio-alert-show {
+            animation: premioAlertaEntrar 0.4s cubic-bezier(.175,.885,.32,1.275) forwards;
+        }
+        #ttt-premio-alert.ttt-premio-alert-hide {
+            animation: premioAlertaSalir 0.4s ease-in forwards;
+        }
+        @keyframes premioAlertaEntrar {
+            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes premioAlertaSalir {
+            0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        }
+        .ttt-premio-alert-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            animation: premioIconoPulse 0.6s ease-in-out infinite alternate;
+        }
+        @keyframes premioIconoPulse {
+            0%   { transform: scale(1) rotate(-5deg); }
+            100% { transform: scale(1.15) rotate(5deg); }
+        }
+        .ttt-premio-alert-title {
+            color: #e0e0e0;
+            font-size: 14px;
+            margin-bottom: 10px;
+            opacity: 0.85;
+        }
+        .ttt-premio-alert-premio {
+            color: #ffd700;
+            font-size: 22px;
+            font-weight: 900;
+            text-shadow: 0 0 12px rgba(255,215,0,0.6);
+            letter-spacing: 0.5px;
+        }
+
         /* ── Modal de notificación de juego (revancha / salida / premio) ── */
         .modal-game-notify {
             display: none;
@@ -5559,7 +5614,7 @@ window.cerrarJuegoWindow = function() {
                 // Señales de salida: siempre procesar, nunca bloquear por timestamp.
                 // Señales de revancha: ignorar si ya se procesó este mismo ts para evitar
                 // que onValue re-dispare la señal al re-adjuntar el listener.
-                const esSalida = (data.tipo === 'player_exit_cd' || data.tipo === 'player_left' || data.tipo === 'left_games' || data.tipo === 'next_round');
+                const esSalida = (data.tipo === 'player_exit_cd' || data.tipo === 'player_left' || data.tipo === 'left_games');
                 if (!esSalida) {
                     if (data.ts && data.ts <= _tttLastSignalTs) return;
                     _tttLastSignalTs = data.ts || Date.now();
@@ -5594,7 +5649,8 @@ window.cerrarJuegoWindow = function() {
                     if (window._tttNextRoundEnCurso) return; // ya procesando, ignorar duplicado
                     document.getElementById('modal-win').classList.remove('active');
                     _hideNotify();
-                    _ejecutarSiguienteRonda();
+                    // Usar ronda destino del payload para sincronía perfecta
+                    _ejecutarSiguienteRonda(payload && typeof payload.ronda === 'number' ? payload.ronda : undefined);
                     break;
                 case 'rematch_request':
                     // Legacy (sesiones anteriores) — tratar como rematch_instant
@@ -5631,10 +5687,11 @@ window.cerrarJuegoWindow = function() {
                     break;
                 case 'prize_chosen':
                     const premio = payload.premio || '?';
-                    // Guardar el premio del oponente y actualizar lobby — sin modal de aviso.
-                    // El lobby ya muestra visualmente qué premio eligió cada jugador.
+                    // Guardar el premio del oponente y actualizar lobby
                     premiosJuego.tictactoe.oponente = premio;
                     actualizarLobbyTicTacToe();
+                    // Mostrar alerta vistosa que se va sola en 3s
+                    _tttMostrarAlertaPremio(nombre, premio);
                     break;
                 case 'left_games': // Legacy — tratar como exit countdown
                     _tttDetachListener();
@@ -5776,11 +5833,16 @@ window.cerrarJuegoWindow = function() {
             // Antes se llamaba a _tttDetachListener() que mataba también _tttSignalListener,
             // por eso el modal de revancha (3s) no aparecía al oponente.
             if (_tttListener) { _tttListener(); _tttListener = null; }
+            // Capturar el ts de ronda activo en el momento de adjuntar el listener
+            const rondaTsAlAdjuntar = window._tttRondaTs || 0;
             _tttListener = onValue(_tttRef(), (snap) => {
                 const data = snap.val();
                 if (!data) return;
                 // Ignorar si la última jugada fue nuestra (ya la aplicamos localmente)
                 if (data.ultimoJugador === usuarioActual) return;
+                // Ignorar estados de rondas anteriores: si el nodo Firebase tiene un ts
+                // anterior al momento en que iniciamos esta ronda, es estado residual.
+                if (data.ts && data.ts < rondaTsAlAdjuntar) return;
                 // Aplicar estado del oponente
                 tableroTicTacToe = data.tablero || tableroTicTacToe;
                 turnoTicTacToe = data.turno;
@@ -5885,6 +5947,9 @@ window.cerrarJuegoWindow = function() {
             esJugadorActual = (iniciadorTicTacToe === _tttMiSimbolo);
             juegoActivoTicTacToe = true;
             tiempoRestante = 5;
+            // Marcar el timestamp de inicio de esta ronda — el listener ignorará
+            // cualquier estado Firebase con ts anterior a este momento.
+            if (!window._tttRondaTs) window._tttRondaTs = Date.now();
 
             if (timerIntervalo) clearInterval(timerIntervalo);
             // Siempre escuchar señales mientras se está en el juego
@@ -6151,19 +6216,28 @@ window.cerrarJuegoWindow = function() {
         async function siguienteRondaTicTacToe() {
             // Notificar al oponente y esperar confirmación de escritura en Firebase
             // ANTES de ejecutar localmente — así el receptor ya tiene la señal.
+            // Enviamos la ronda DESTINO en el payload para que ambos usen el mismo número fijo.
             _tttAttachSignalListener();
-            await _tttSendSignal('next_round', {});
-            _ejecutarSiguienteRonda();
+            const rondaDestino = tttRondaActual + 1;
+            await _tttSendSignal('next_round', { ronda: rondaDestino });
+            _ejecutarSiguienteRonda(rondaDestino);
         }
 
-        function _ejecutarSiguienteRonda() {
+        function _ejecutarSiguienteRonda(rondaDestino) {
             if (window._tttNextRoundEnCurso) return; // evitar doble ejecución
             window._tttNextRoundEnCurso = true;
             document.getElementById('modal-win').classList.remove('active');
             _hideNotify();
             clearInterval(timerIntervalo);
             _tttDetachGameListenerOnly();
-            tttRondaActual++;
+            // Usar número de ronda fijo del payload — nunca ++ para evitar acumulación
+            if (typeof rondaDestino === 'number' && rondaDestino > tttRondaActual) {
+                tttRondaActual = rondaDestino;
+            } else if (typeof rondaDestino !== 'number') {
+                tttRondaActual++; // fallback si no hay payload (no debería ocurrir)
+            }
+            // Guardar el timestamp de esta ronda para ignorar estados Firebase de rondas previas
+            window._tttRondaTs = Date.now();
             const roundEl = document.getElementById('ttt-round-indicator');
             roundEl.textContent = `RONDA ${tttRondaActual} / ${tttTotalRondas}`;
             roundEl.classList.add('visible');
@@ -6199,6 +6273,28 @@ window.cerrarJuegoWindow = function() {
             // para que el receptor la reciba al mismo tiempo que empieza el countdown.
             await _tttSendSignal('rematch_instant', { nombre: solicitante, volverLobby: true });
             _tttMostrarCountdownRevancha(solicitante);
+        }
+
+        function _tttMostrarAlertaPremio(nombreOp, premioElegido) {
+            // Crear o reutilizar el elemento de alerta de premio
+            let alerta = document.getElementById('ttt-premio-alert');
+            if (!alerta) {
+                alerta = document.createElement('div');
+                alerta.id = 'ttt-premio-alert';
+                document.body.appendChild(alerta);
+            }
+            alerta.innerHTML = `
+                <div class="ttt-premio-alert-icon">🎁</div>
+                <div class="ttt-premio-alert-title">${nombreOp} eligió su premio</div>
+                <div class="ttt-premio-alert-premio">${premioElegido}</div>
+            `;
+            alerta.classList.remove('ttt-premio-alert-hide');
+            alerta.classList.add('ttt-premio-alert-show');
+            if (alerta._autoHideTimer) clearTimeout(alerta._autoHideTimer);
+            alerta._autoHideTimer = setTimeout(() => {
+                alerta.classList.remove('ttt-premio-alert-show');
+                alerta.classList.add('ttt-premio-alert-hide');
+            }, 3000);
         }
 
         // ===== PREMIOS =====
@@ -6498,6 +6594,7 @@ window.cerrarJuegoWindow = function() {
             if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
             if (window._tttExitCdTimer) { clearInterval(window._tttExitCdTimer); window._tttExitCdTimer = null; }
             _tttLastSignalTs = Date.now(); // evitar señales residuales en nuevo juego
+            window._tttRondaTs = 0; // resetear guard de timestamp de ronda
             _tttVolverAlLobby = false;
             window._tttNextRoundEnCurso = false;
             document.getElementById('modal-rematch-cd').classList.remove('active', 'exit-mode');
