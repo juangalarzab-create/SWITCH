@@ -650,6 +650,72 @@
             align-items: center;
         }
 
+        /* ===== BARRA DE EMOJIS RÁPIDOS (arriba del input) ===== */
+        .emoji-bar {
+            display: flex;
+            gap: 4px;
+            padding: 6px 10px;
+            background: #1a1a1a;
+            border-top: 1px solid #2a2a2a;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #444 transparent;
+            -webkit-overflow-scrolling: touch;
+        }
+        .emoji-bar::-webkit-scrollbar {
+            height: 4px;
+        }
+        .emoji-bar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .emoji-bar::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        .emoji-quick-btn {
+            background: #2a2a2a;
+            border: 1px solid #3a3a3a;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: all 0.15s;
+            padding: 0;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .emoji-quick-btn:hover {
+            background: #3a3a3a;
+            border-color: #555;
+            transform: scale(1.08);
+        }
+        .emoji-quick-btn:active {
+            transform: scale(0.92);
+        }
+        @media (max-width: 480px) {
+            .emoji-bar { padding: 5px 8px; gap: 3px; }
+            .emoji-quick-btn { width: 34px; height: 34px; min-width: 34px; min-height: 34px; font-size: 18px; }
+        }
+        /* Cuando se está jugando (modo split), compactar la barra */
+        .screen-chat.jugando .emoji-bar {
+            padding: 3px 6px;
+            gap: 2px;
+        }
+        .screen-chat.jugando .emoji-quick-btn {
+            width: 26px;
+            height: 26px;
+            min-width: 26px;
+            min-height: 26px;
+            font-size: 14px;
+        }
+
         .btn-multimedia {
             background: #2a2a2a;
             color: #888;
@@ -3031,11 +3097,33 @@
                     <div style="width: 60px; display: none;"></div>
                 </div>
                 <div class="mensajes-area" id="mensajes"></div>
+                <div class="emoji-bar" id="emoji-bar">
+                    <button type="button" class="emoji-quick-btn" data-emoji="😂">😂</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="❤️">❤️</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="😍">😍</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="🤣">🤣</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="🥰">🥰</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="😘">😘</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="😊">😊</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="👍">👍</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="🙏">🙏</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="🔥">🔥</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="😎">😎</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="😅">😅</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="😭">😭</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="😢">😢</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="🥺">🥺</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="🤔">🤔</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="👏">👏</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="💕">💕</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="✨">✨</button>
+                    <button type="button" class="emoji-quick-btn" data-emoji="😁">😁</button>
+                </div>
                 <div class="input-area">
-                    <button class="btn-multimedia" onclick="abrirGaleria()" title="Enviar imagen">🖼️</button>
-                    <button class="btn-multimedia" onclick="abrirJuegos()" title="Juegos">🎮</button>
+                    <button class="btn-multimedia" onclick="abrirGaleria()" title="Enviar imagen"><i class="fas fa-image"></i></button>
+                    <button class="btn-multimedia" onclick="abrirJuegos()" title="Juegos"><i class="fas fa-gamepad"></i></button>
                     <input type="text" class="input-msg" id="input-mensaje" placeholder="Escribe un mensaje..." onkeypress="if(event.key==='Enter') enviarMensaje()">
-                    <button class="btn-enviar" id="btn-enviar-smart" title="Enviar o grabar audio">🎙️</button>
+                    <button class="btn-enviar" id="btn-enviar-smart" title="Enviar o grabar audio"><i class="fas fa-microphone"></i></button>
                 </div>
             </div>
         </div>
@@ -3939,12 +4027,30 @@ window.cerrarModalBorrar = function() {
     salaSeleccionada = null; salaSeleccionadaKey = null;
 };
 
+// Borra TODA la huella de una sala en Firebase: sala, mensajes, tokens push,
+// invitaciones de juegos, gameStart y gameData (tictactoe/stop/quiz).
+// No deja ningún rastro relacionado a la sala.
+async function _borrarSalaCompleta(key) {
+    if (!key) return;
+    const rutas = [
+        `salas/${key}`,
+        `mensajes/${key}`,
+        `tokens/${key}`,
+        `gameInvites/${key}`,
+        `gameStart/${key}`,
+        `gameData/${key}`
+    ];
+    // Usamos allSettled para que si alguna ruta no existe o falla, las demás igual se borren
+    await Promise.allSettled(rutas.map(r => remove(ref(db, r))));
+}
+
 window.confirmarBorrarSala = function() {
     const pwd  = document.getElementById('input-password-borrar').value;
     const sala = salaSeleccionada;
+    const key  = salaSeleccionadaKey;
     if (!sala) return;
     if (pwd === sala.password) {
-        remove(ref(db, `salas/${salaSeleccionadaKey}`))
+        _borrarSalaCompleta(key)
             .then(() => { showToast('🗑️ Sala eliminada'); cerrarModalBorrar(); })
             .catch(() => showToast('❌ Error al borrar sala'));
     } else {
@@ -4219,6 +4325,23 @@ window.enviarMensaje = async function() {
     }
 };
 
+// ── Barra de emojis rápidos: al pulsar uno se envía automáticamente ──
+(function _initEmojiQuickBar() {
+    const bar = document.getElementById('emoji-bar');
+    if (!bar) return;
+    bar.addEventListener('click', async (e) => {
+        const btn = e.target.closest('.emoji-quick-btn');
+        if (!btn) return;
+        const emoji = btn.dataset.emoji;
+        if (!emoji || !usuarioActual) return;
+        try {
+            await pushMensaje({ usuario: usuarioActual, texto: emoji, tipo: 'texto' });
+        } catch(err) {
+            showToast('❌ Error al enviar emoji');
+        }
+    });
+})();
+
 // ============================================================
 // MULTIMEDIA - Telegram para archivos
 // ============================================================
@@ -4298,7 +4421,7 @@ let audioStream;
     function _updateIcon() {
         const hasText = input.value.trim().length > 0;
         if (hasText) {
-            btn.textContent = '➤';
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i>';
             btn.title = 'Enviar mensaje';
             // Limpiar eventos de grabación si los hubiera
             btn.onmousedown = null;
@@ -4307,7 +4430,7 @@ let audioStream;
             btn.ontouchend = null;
             btn.onclick = () => enviarMensaje();
         } else {
-            btn.textContent = '🎙️';
+            btn.innerHTML = '<i class="fas fa-microphone"></i>';
             btn.title = 'Mantén para grabar audio';
             btn.onclick = null;
             btn.onmousedown = (e) => { e.preventDefault(); _iniciarGrabacion(); };
@@ -4349,7 +4472,7 @@ async function _iniciarGrabacion() {
 
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
     mediaRecorder.onstop = async () => {
-        if (btn) { btn.classList.remove('recording-btn'); btn.textContent = '🎙️'; }
+        if (btn) { btn.classList.remove('recording-btn'); btn.innerHTML = '<i class="fas fa-microphone"></i>'; }
         if (!audioChunks.length) { audioStream.getTracks().forEach(t => t.stop()); return; }
         const audioBlob = new Blob(audioChunks, { type: mime || 'audio/webm' });
         showLoading('Subiendo audio...');
@@ -4367,7 +4490,7 @@ async function _iniciarGrabacion() {
 
     mediaRecorder.start();
     isRecording = true;
-    if (btn) { btn.classList.add('recording-btn'); btn.textContent = '⏹️'; }
+    if (btn) { btn.classList.add('recording-btn'); btn.innerHTML = '<i class="fas fa-stop"></i>'; }
     showToast('🔴 Grabando... suelta para enviar');
 }
 
@@ -4435,11 +4558,9 @@ window.adminEliminarSala = function(key) {
     const sala = salas.find(s => s._key === key);
     if (!sala) return;
     if (!confirm(`¿Eliminar la sala "${sala.nombre}"?`)) return;
-    Promise.all([
-        remove(ref(db, `salas/${key}`)),
-        remove(ref(db, `mensajes/${key}`))
-    ]).then(() => { showToast('🗑️ Sala eliminada'); renderAdminSalas(); })
-      .catch(() => showToast('❌ Error al eliminar'));
+    _borrarSalaCompleta(key)
+        .then(() => { showToast('🗑️ Sala eliminada'); renderAdminSalas(); })
+        .catch(() => showToast('❌ Error al eliminar'));
 };
 
 window.adminToggleBloqueo = function(key) {
@@ -6624,7 +6745,8 @@ window.cerrarJuegoWindow = function() {
             quizGameState.puntajes = { mi: 0, oponente: 0 }; quizGameState.preguntaActual = 0;
             _tttLimpiarFirebase();
             _tttClearSignal();
-            document.getElementById('games-panel').classList.add('active');
+            // Salir → volver al chat principal (NO al menú de juegos)
+            document.getElementById('games-panel').classList.remove('active');
         }
 
         function _tttMostrarCountdownSalida(nombreQueSale) {
