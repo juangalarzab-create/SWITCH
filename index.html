@@ -5109,6 +5109,9 @@ window.cerrarJuegoWindow = function() {
 
         function iniciarJuegoStop(esRevancha = false) {
             _tttAttachSignalListener(); // escuchar señales (revancha, salida) durante Stop
+            // Limpiar nodo Firebase del juego Stop y adjuntar listener en tiempo real
+            remove(_stopGameRef()).catch(() => {});
+            _attachStopGameListener();
             // Determinar si hay premio (de alguno de los dos jugadores)
             const hayPremio = !!(premiosJuego.stop.mi || premiosJuego.stop.oponente);
 
@@ -5221,19 +5224,31 @@ window.cerrarJuegoWindow = function() {
             letterCircle.classList.add('spinning');
 
             let spins = 0;
-            const spinInterval = setInterval(() => {
+            window._stopSpinInterval = setInterval(() => {
                 const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
                 letterCircle.textContent = letters[Math.floor(Math.random() * letters.length)];
                 spins++;
 
                 if (spins > 30) {
-                    clearInterval(spinInterval);
+                    clearInterval(window._stopSpinInterval);
+                    window._stopSpinInterval = null;
                     letterCircle.classList.remove('spinning', 'no-click');
-                    stopGameState.currentLetter = letterCircle.textContent;
+                    const letraFinal = letterCircle.textContent;
+                    stopGameState.currentLetter = letraFinal;
                     stopGameState.isSpinning = false;
                     stopGameState.isGameRunning = true;
-                    document.getElementById('stopLetterDisplay').textContent = `Letra: ${stopGameState.currentLetter}`;
+                    document.getElementById('stopLetterDisplay').textContent = `Letra: ${letraFinal}`;
                     document.getElementById('btnStopGame').disabled = false;
+
+                    // Publicar letra en Firebase para que el oponente la reciba en tiempo real
+                    set(_stopGameRef(), {
+                        letter: letraFinal,
+                        spinDone: true,
+                        spinBy: usuarioActual,
+                        stopped: false,
+                        stoppedBy: null,
+                        ts: Date.now()
+                    }).catch(() => {});
 
                     // Habilitar los inputs DE LA RONDA ACTUAL ahora que salió la letra
                     currentInputs.forEach(input => {
@@ -5253,6 +5268,16 @@ window.cerrarJuegoWindow = function() {
                 stopCircle.classList.add('no-click');
                 stopCircle.classList.remove('letter-circle-clickable');
             }
+
+            // Publicar señal STOP en Firebase para bloquear inputs del oponente en tiempo real
+            set(_stopGameRef(), {
+                letter: stopGameState.currentLetter,
+                spinDone: true,
+                spinBy: usuarioActual,
+                stopped: true,
+                stoppedBy: usuarioActual,
+                ts: Date.now()
+            }).catch(() => {});
 
             // Bloquear TODOS los inputs (simulando bloqueo en tiempo real para ambos jugadores)
             document.querySelectorAll('#stopTableBody .stop-input').forEach(input => input.disabled = true);
@@ -5692,6 +5717,59 @@ window.cerrarJuegoWindow = function() {
         // ── Refs ──
         function _tttRef()        { return ref(db, `gameData/${salaActualKey}/ttt`); }
         function _tttSignalRef()  { return ref(db, `gameData/${salaActualKey}/tttSignal`); }
+        function _stopGameRef()   { return ref(db, `gameData/${salaActualKey}/stopGame`); }
+
+        // ── Stop game Firebase listener ──
+        let _stopGameListener = null;
+        function _attachStopGameListener() {
+            if (_stopGameListener) { _stopGameListener(); _stopGameListener = null; }
+            _stopGameListener = onValue(_stopGameRef(), (snap) => {
+                const data = snap.val();
+                if (!data) return;
+
+                // ── Sync letra: cuando el oponente terminó de girar ──
+                if (data.letter && data.spinDone && data.spinBy !== usuarioActual) {
+                    const letterCircle = document.getElementById('letterCircle');
+                    if (letterCircle) {
+                        if (window._stopSpinInterval) { clearInterval(window._stopSpinInterval); window._stopSpinInterval = null; }
+                        letterCircle.textContent = data.letter;
+                        letterCircle.classList.remove('spinning', 'no-click');
+                    }
+                    stopGameState.currentLetter = data.letter;
+                    stopGameState.isSpinning = false;
+                    stopGameState.isGameRunning = true;
+                    document.getElementById('stopLetterDisplay').textContent = `Letra: ${data.letter}`;
+                    document.getElementById('btnStopGame').disabled = false;
+                    // Habilitar inputs de la última fila
+                    const tbody = document.getElementById('stopTableBody');
+                    const lastRow = tbody.querySelector('tr:last-child');
+                    if (lastRow) {
+                        lastRow.querySelectorAll('.stop-input').forEach(inp => inp.disabled = false);
+                        const firstInput = lastRow.querySelector('input');
+                        if (firstInput) firstInput.focus();
+                    }
+                    // Ocultar hint
+                    const hint = document.getElementById('stopCircleHint');
+                    if (hint) hint.classList.add('hidden');
+                }
+
+                // ── Sync STOP: cuando el oponente presionó STOP ──
+                if (data.stopped && data.stoppedBy !== usuarioActual && stopGameState.isGameRunning) {
+                    stopGameState.isGameRunning = false;
+                    document.getElementById('btnStopGame').disabled = true;
+                    const stopCircle = document.getElementById('letterCircle');
+                    if (stopCircle) {
+                        stopCircle.classList.add('no-click');
+                        stopCircle.classList.remove('letter-circle-clickable');
+                    }
+                    document.querySelectorAll('#stopTableBody .stop-input').forEach(input => input.disabled = true);
+                    mostrarVistaCalificacion();
+                }
+            });
+        }
+        function _detachStopGameListener() {
+            if (_stopGameListener) { _stopGameListener(); _stopGameListener = null; }
+        }
 
         // ── Detach listeners ──
         let _tttSignalListener = null;
@@ -5813,6 +5891,11 @@ window.cerrarJuegoWindow = function() {
                     actualizarLobbyTicTacToe();
                     // Mostrar alerta vistosa que se va sola en 3s
                     _tttMostrarAlertaPremio(nombre, premio);
+                    break;
+                case 'stop_prize_chosen':
+                    premiosJuego.stop.oponente = payload.premio || '?';
+                    actualizarLobbyStop();
+                    _tttMostrarAlertaPremio(nombre, payload.premio || '?');
                     break;
                 case 'left_games': // Legacy — tratar como exit countdown
                     _tttDetachListener();
@@ -6473,6 +6556,7 @@ window.cerrarJuegoWindow = function() {
                 _tttSendSignal('prize_chosen', { premio: premioFinal });
                 actualizarLobbyTicTacToe();
             } else if (juegoSeleccionandoPremio === 'stop') {
+                _tttSendSignal('stop_prize_chosen', { premio: premioFinal });
                 actualizarLobbyStop();
             } else if (juegoSeleccionandoPremio === 'quiz') {
                 actualizarLobbyQuiz();
@@ -6724,6 +6808,8 @@ window.cerrarJuegoWindow = function() {
                 stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
                 stopGameState.calificacionTimers = [];
             }
+            _detachStopGameListener();
+            remove(_stopGameRef()).catch(() => {});
             const confActivo = document.getElementById('confetti-active');
             if (confActivo && confActivo.parentNode) confActivo.parentNode.removeChild(confActivo);
             document.getElementById('modal-win').classList.remove('active');
