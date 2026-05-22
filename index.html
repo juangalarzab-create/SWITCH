@@ -5742,7 +5742,10 @@ window.cerrarJuegoWindow = function() {
         }
 
         function _tttAttachListener() {
-            _tttDetachListener();
+            // FIX: solo desconectar el listener de juego propio, NO el de señales.
+            // Antes se llamaba a _tttDetachListener() que mataba también _tttSignalListener,
+            // por eso el modal de revancha (3s) no aparecía al oponente.
+            if (_tttListener) { _tttListener(); _tttListener = null; }
             _tttListener = onValue(_tttRef(), (snap) => {
                 const data = snap.val();
                 if (!data) return;
@@ -6516,6 +6519,9 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('modal-win').classList.remove('active');
             _hideNotify();
             const solicitante = capitalizarNombre(usuarioActual);
+            // Asegurar que el listener de señales esté activo para que el oponente
+            // también reciba la señal de revancha (defensivo).
+            _tttAttachSignalListener();
             // Enviar señal al oponente con nombre del solicitante
             _tttSendSignal('rematch_instant', { nombre: solicitante });
             // Mostrar countdown en el solicitante también
