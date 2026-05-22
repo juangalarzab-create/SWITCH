@@ -4712,49 +4712,10 @@ window.rechazarJuego = async function() {
 };
 
 window.cerrarJuegoWindow = function() {
-    // X cierra silenciosamente: limpia estado local sin modal de 3s ni notificar oponente.
-    // Cancela todos los timers activos
-    if (typeof _tttCdTimer !== 'undefined' && _tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
-    if (window._tttExitCdTimer) { clearInterval(window._tttExitCdTimer); window._tttExitCdTimer = null; }
-    if (typeof timerIntervalo !== 'undefined') clearInterval(timerIntervalo);
-    // Desconectar listeners de Firebase
-    if (typeof _tttDetachListener === 'function') _tttDetachListener();
-    // Limpiar modales visibles
-    ['modal-win','modal-rematch-cd','modal-premio','modal-wait','modal-game-notify'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove('active','exit-mode');
-    });
-    const icon = document.getElementById('rematch-cd-icon');
-    if (icon) icon.textContent = '🔄';
-    if (typeof _hideNotify === 'function') _hideNotify();
-    // Limpiar estado del juego
-    if (typeof juegoActivoTicTacToe !== 'undefined') juegoActivoTicTacToe = false;
-    if (typeof tableroTicTacToe !== 'undefined') tableroTicTacToe = ['','','','','','','','',''];
-    if (typeof victorias !== 'undefined' && typeof usuarioActual !== 'undefined') {
-        victorias[usuarioActual] = 0; victorias['Oponente'] = 0;
+    // Usar el flujo de salida completo: notifica al oponente con countdown rojo 3s.
+    if (typeof salirAlMenuJuegos === 'function') {
+        salirAlMenuJuegos();
     }
-    if (typeof tttModoRondas !== 'undefined') { tttModoRondas = false; tttRondaActual = 1; }
-    if (typeof premiosJuego !== 'undefined') {
-        premiosJuego.tictactoe.mi = null; premiosJuego.tictactoe.oponente = null;
-        premiosJuego.stop.mi = null; premiosJuego.stop.oponente = null;
-        premiosJuego.quiz.mi = null; premiosJuego.quiz.oponente = null;
-    }
-    if (typeof _tttLastSignalTs !== 'undefined') _tttLastSignalTs = 0;
-    if (typeof _tttVolverAlLobby !== 'undefined') _tttVolverAlLobby = false;
-    if (typeof _tttLimpiarFirebase === 'function') _tttLimpiarFirebase();
-    if (typeof _tttClearSignal === 'function') _tttClearSignal();
-    // Quitar confetti si existe
-    const confetti = document.getElementById('confetti-active');
-    if (confetti && confetti.parentNode) confetti.parentNode.removeChild(confetti);
-    // Cerrar ventanas de juego
-    ['tictactoe-window','stop-window','quiz-window'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove('active','jugando');
-    });
-    document.getElementById('pantalla-chat').classList.remove('jugando');
-    // Volver al menú de juegos
-    const gp = document.getElementById('games-panel');
-    if (gp) gp.classList.add('active');
 };
 
         function mostrarTicTacToe() {
@@ -6187,10 +6148,11 @@ window.cerrarJuegoWindow = function() {
             lanzarConfetti();
         }
 
-        function siguienteRondaTicTacToe() {
-            // Notificar al oponente y ejecutar localmente
+        async function siguienteRondaTicTacToe() {
+            // Notificar al oponente y esperar confirmación de escritura en Firebase
+            // ANTES de ejecutar localmente — así el receptor ya tiene la señal.
             _tttAttachSignalListener();
-            _tttSendSignal('next_round', {});
+            await _tttSendSignal('next_round', {});
             _ejecutarSiguienteRonda();
         }
 
@@ -6213,7 +6175,7 @@ window.cerrarJuegoWindow = function() {
             });
         }
 
-        function nuevaPartidaTicTacToe() {
+        async function nuevaPartidaTicTacToe() {
             // Al terminar las 3 rondas: resetear TODO y lanzar modal 3s en ambos,
             // igual que reiniciarTicTacToe, pero reseteando premios y rondas también.
             document.getElementById('modal-win').classList.remove('active');
@@ -6233,7 +6195,9 @@ window.cerrarJuegoWindow = function() {
             const solicitante = capitalizarNombre(usuarioActual);
             _tttVolverAlLobby = true; // al terminar countdown, ir al lobby para re-elegir premios
             _tttAttachSignalListener();
-            _tttSendSignal('rematch_instant', { nombre: solicitante, volverLobby: true });
+            // Esperar a que la señal llegue a Firebase ANTES de mostrar el countdown,
+            // para que el receptor la reciba al mismo tiempo que empieza el countdown.
+            await _tttSendSignal('rematch_instant', { nombre: solicitante, volverLobby: true });
             _tttMostrarCountdownRevancha(solicitante);
         }
 
@@ -6533,7 +6497,7 @@ window.cerrarJuegoWindow = function() {
             _tttDetachListener();
             if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
             if (window._tttExitCdTimer) { clearInterval(window._tttExitCdTimer); window._tttExitCdTimer = null; }
-            _tttLastSignalTs = 0; // limpiar guard de señales al salir completamente
+            _tttLastSignalTs = Date.now(); // evitar señales residuales en nuevo juego
             _tttVolverAlLobby = false;
             window._tttNextRoundEnCurso = false;
             document.getElementById('modal-rematch-cd').classList.remove('active', 'exit-mode');
@@ -6581,7 +6545,7 @@ window.cerrarJuegoWindow = function() {
             void modal.offsetWidth;
             modal.classList.add('active', 'exit-mode');
             iconEl.textContent = '🚪';
-            msgEl.textContent  = `${nombreQueSale} salió del juego`;
+            msgEl.textContent  = `${nombreQueSale} está saliendo del juego`;
             let secs = 3;
             numEl.textContent = secs;
             window._tttExitCdTimer = setInterval(() => {
@@ -6597,7 +6561,7 @@ window.cerrarJuegoWindow = function() {
             }, 1000);
         }
 
-        function reiniciarTicTacToe() {
+        async function reiniciarTicTacToe() {
             // Modo libre (sin premios): revancha instantánea con countdown de 3s.
             // El primero que presione inicia el countdown en ambos jugadores.
             document.getElementById('modal-win').classList.remove('active');
@@ -6606,8 +6570,8 @@ window.cerrarJuegoWindow = function() {
             // Asegurar que el listener de señales esté activo para que el oponente
             // también reciba la señal de revancha (defensivo).
             _tttAttachSignalListener();
-            // Enviar señal al oponente con nombre del solicitante
-            _tttSendSignal('rematch_instant', { nombre: solicitante });
+            // Esperar a que la señal llegue a Firebase antes de mostrar el countdown
+            await _tttSendSignal('rematch_instant', { nombre: solicitante });
             // Mostrar countdown en el solicitante también
             _tttMostrarCountdownRevancha(solicitante);
         }
