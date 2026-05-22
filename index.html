@@ -5524,6 +5524,12 @@ window.cerrarJuegoWindow = function() {
             if (_tttListener)       { _tttListener();       _tttListener = null; }
             if (_tttSignalListener) { _tttSignalListener(); _tttSignalListener = null; }
         }
+        // Solo desconecta el listener de tablero, NUNCA el de señales.
+        // Usar esto en lugar de _tttDetachListener() cuando se quiere reiniciar
+        // la partida pero seguir escuchando señales del oponente.
+        function _tttDetachGameListenerOnly() {
+            if (_tttListener) { _tttListener(); _tttListener = null; }
+        }
 
         // ── Señalización: un jugador envía evento al otro ──
         async function _tttSendSignal(tipo, payload) {
@@ -5558,7 +5564,8 @@ window.cerrarJuegoWindow = function() {
                     if (_tttCdTimer) return; // ya hay countdown corriendo
                     document.getElementById('modal-win').classList.remove('active');
                     _hideNotify();
-                    _tttClearSignal();
+                    // NO limpiar la señal aquí: limpiarla desde el receptor crea race
+                    // conditions y puede impedir que futuras señales lleguen correctamente.
                     _tttMostrarCountdownRevancha((payload && payload.nombre) ? payload.nombre : nombre);
                     break;
                 case 'rematch_request':
@@ -5566,7 +5573,6 @@ window.cerrarJuegoWindow = function() {
                     if (_tttCdTimer) return;
                     document.getElementById('modal-win').classList.remove('active');
                     _hideNotify();
-                    _tttClearSignal();
                     _tttMostrarCountdownRevancha(nombre);
                     break;
                 case 'rematch_accepted':
@@ -6121,7 +6127,7 @@ window.cerrarJuegoWindow = function() {
         function siguienteRondaTicTacToe() {
             document.getElementById('modal-win').classList.remove('active');
             clearInterval(timerIntervalo);
-            _tttDetachListener();
+            _tttDetachGameListenerOnly();
             tttRondaActual++;
             const roundEl = document.getElementById('ttt-round-indicator');
             roundEl.textContent = `RONDA ${tttRondaActual} / ${tttTotalRondas}`;
@@ -6135,7 +6141,7 @@ window.cerrarJuegoWindow = function() {
             // Reinicia toda la partida: pide revancha al oponente
             document.getElementById('modal-win').classList.remove('active');
             clearInterval(timerIntervalo);
-            _tttDetachListener();
+            _tttDetachGameListenerOnly();
             _tttLimpiarFirebase();
             // Reset limpio de TODO el estado
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
@@ -6556,8 +6562,10 @@ window.cerrarJuegoWindow = function() {
         function _tttArrancarNuevoJuegoLibre() {
             // Reinicia el tablero manteniendo la puntuación acumulada.
             // NO resetea victorias — siguen sumando.
+            // IMPORTANTE: solo desconectar el listener de tablero, NO el de señales,
+            // para que cualquiera de los dos jugadores pueda iniciar la próxima revancha.
             clearInterval(timerIntervalo);
-            _tttDetachListener();
+            _tttDetachGameListenerOnly();
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             iniciadorTicTacToe = iniciadorTicTacToe === 'X' ? 'O' : 'X'; // alternar quién empieza
             _tttLimpiarFirebase().then(() => {
