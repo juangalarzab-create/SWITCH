@@ -705,15 +705,15 @@
         }
         /* Cuando se está jugando (modo split), compactar la barra */
         .screen-chat.jugando .emoji-bar {
-            padding: 3px 6px;
+            padding: 2px 6px;
             gap: 2px;
         }
         .screen-chat.jugando .emoji-quick-btn {
-            width: 26px;
-            height: 26px;
-            min-width: 26px;
-            min-height: 26px;
-            font-size: 14px;
+            width: 24px;
+            height: 24px;
+            min-width: 24px;
+            min-height: 24px;
+            font-size: 13px;
         }
 
         .btn-multimedia {
@@ -1053,26 +1053,51 @@
         }
 
         .game-window.jugando {
-            width: 45%;
-            height: 100vh;
+            width: 100vw;
+            height: 55vh;
             right: 0;
-            left: auto;
+            left: 0;
             top: 0;
             bottom: auto;
             border-radius: 0;
             position: fixed;
             z-index: 800;
-            border-left: 3px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 3px solid rgba(255, 255, 255, 0.3);
+            border-left: none;
         }
 
         .screen-chat.jugando {
-            width: 55%;
+            width: 100vw;
             position: fixed;
             left: 0;
-            top: 0;
-            height: 100vh;
+            top: 55vh;
+            height: 45vh;
             z-index: 799;
-            border-right: 3px solid rgba(255, 255, 255, 0.3);
+            border-right: none;
+            border-top: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        /* ===== AJUSTES HORIZONTAL SPLIT: juego arriba (55vh), chat abajo (45vh) ===== */
+        .game-window.jugando .game-content {
+            padding: 8px 16px;
+            overflow-y: auto;
+        }
+        .game-window.jugando .game-header {
+            padding: 6px 12px;
+        }
+        .game-window.jugando .stop-calificacion-container {
+            padding: 8px;
+        }
+        .game-window.jugando .cuadro-jugador {
+            margin-bottom: 8px;
+        }
+        .game-window.jugando .letter-circle {
+            width: 70px;
+            height: 70px;
+            font-size: 30px;
+        }
+        .game-window.jugando .stop-scoreboard {
+            padding: 4px 8px;
         }
 
         .game-header {
@@ -2686,28 +2711,30 @@
             .inicio-footer { padding: 10px 12px; }
             .btn-crear-sala { padding: 12px; font-size: 15px; }
             .form-crear { padding: 24px 16px; }
-            /* JUEGOS EN MÓVIL: al lado del chat (50/50), no a pantalla completa */
+            /* JUEGOS EN MÓVIL: arriba el juego, abajo el chat */
             .game-window.jugando {
-                width: 50% !important;
-                height: 100% !important;
+                width: 100vw !important;
+                height: 55vh !important;
                 right: 0 !important;
-                left: auto !important;
+                left: 0 !important;
                 top: 0 !important;
                 bottom: auto !important;
                 border-radius: 0 !important;
-                border-left: 2px solid #ffffff !important;
+                border-bottom: 2px solid #ffffff !important;
+                border-left: none !important;
                 position: fixed !important;
                 z-index: 800 !important;
             }
             .screen-chat.jugando {
-                width: 50% !important;
+                width: 100vw !important;
                 display: flex !important;
                 position: fixed !important;
                 left: 0 !important;
-                top: 0 !important;
-                height: 100% !important;
+                top: 55vh !important;
+                height: 45vh !important;
                 z-index: 799 !important;
-                border-right: 2px solid #ffffff !important;
+                border-right: none !important;
+                border-top: 2px solid #ffffff !important;
             }
             .games-panel {
                 width: 100vw;
@@ -5118,8 +5145,10 @@ window.cerrarJuegoWindow = function() {
             stopGameState.roundCount = 0;
             stopGameState.roundData = [];
             stopGameState.playerScores = { [usuarioActual]: 0, 'Oponente': 0 };
-            // Reset de acumulados de la partida actual
-            stopGameState.puntajeAcumulado = { [usuarioActual]: 0, 'Oponente': 0 };
+            // En revancha (jugar de nuevo), conservar los puntajes acumulados para sumar
+            if (!esRevancha) {
+                stopGameState.puntajeAcumulado = { [usuarioActual]: 0, 'Oponente': 0 };
+            }
             stopGameState.miPuntajeRonda = 0;
             stopGameState.oponentePuntajeRonda = 0;
             stopGameState.calificacionTimers = [];
@@ -5355,7 +5384,9 @@ window.cerrarJuegoWindow = function() {
 
             // ── Escuchar las palabras del oponente en Firebase ──
             _escucharPalabrasOponenteCalif();
-            // ── Escuchar el veredicto del oponente sobre mis palabras (para puntaje en tiempo real) ──
+            // ── Escuchar en tiempo real el marcado rojo que el oponente hace sobre mis palabras ──
+            _escucharMarcadoEnTiempoReal();
+            // ── Escuchar el veredicto final del oponente (puntaje) ──
             _escucharVeredictoMisPalabras();
         }
 
@@ -5418,6 +5449,46 @@ window.cerrarJuegoWindow = function() {
 
         function toggleMarcarMal(td) {
             td.classList.toggle('marcada-mal');
+            // Publicar marcado en tiempo real en Firebase para que el oponente lo vea inmediatamente
+            _publicarMarcadoEnTiempoReal();
+        }
+
+        // Publica el estado actual de marcado (en tiempo real, sin puntaje final)
+        function _publicarMarcadoEnTiempoReal() {
+            const celdas = document.querySelectorAll('#oponenteCuadroBody td.palabra-llena');
+            const marcadasMal = [];
+            celdas.forEach((td, idx) => {
+                if (td.classList.contains('marcada-mal')) {
+                    marcadasMal.push(idx);
+                }
+            });
+            const opKey = oponenteActual || 'Oponente';
+            // Publicar solo el marcado (sin puntaje final, sin "calificado")
+            set(ref(db, `gameData/${salaActualKey}/stopCalif/marcado_${opKey}`), {
+                marcadasMal: marcadasMal,
+                ts: Date.now()
+            }).catch(() => {});
+        }
+
+        // Listener en tiempo real del marcado que el oponente está haciendo sobre mis palabras
+        let _stopMarcadoListener = null;
+        function _escucharMarcadoEnTiempoReal() {
+            if (_stopMarcadoListener) { _stopMarcadoListener(); _stopMarcadoListener = null; }
+            const marcadoRef = ref(db, `gameData/${salaActualKey}/stopCalif/marcado_${usuarioActual}`);
+            _stopMarcadoListener = onValue(marcadoRef, (snap) => {
+                const data = snap.val();
+                if (!data) return;
+                const misCeldas = document.querySelectorAll('#miCuadroBody td');
+                const celdasConPalabra = Array.from(misCeldas).filter(td => td.textContent && td.textContent !== '—');
+                // Primero quitar todas las marcas rojas actuales
+                celdasConPalabra.forEach(td => td.classList.remove('marcada-mal'));
+                // Aplicar las marcas actualizadas
+                if (data.marcadasMal && data.marcadasMal.length > 0) {
+                    data.marcadasMal.forEach(idx => {
+                        if (celdasConPalabra[idx]) celdasConPalabra[idx].classList.add('marcada-mal');
+                    });
+                }
+            });
         }
 
         function calificarOponente() {
@@ -5435,20 +5506,18 @@ window.cerrarJuegoWindow = function() {
             stopGameState.oponentePuntajeRonda = puntaje;
             document.getElementById('oponentePuntajeCalif').textContent = puntaje;
 
-            // ── FIREBASE REAL: publicar el veredicto para que el oponente vea su puntaje ──
+            // ── FIREBASE REAL: publicar el veredicto FINAL con puntaje para que el oponente vea su calificación ──
             const opKey = oponenteActual || 'Oponente';
             set(ref(db, `gameData/${salaActualKey}/stopCalif/veredicto_${opKey}`), {
                 puntaje: puntaje,
                 marcadasMal: marcadasMal,
                 calificadoPor: usuarioActual,
                 ts: Date.now()
-            });
-
-            // Escuchar el veredicto del oponente sobre mis palabras (para mostrar mi puntaje real)
-            _escucharVeredictoMisPalabras();
+            }).catch(() => {});
         }
 
-        // Listener Firebase para recibir el veredicto del oponente sobre mis palabras
+        // Listener Firebase para recibir el veredicto FINAL del oponente (puntaje real)
+        // SOLO se muestra el puntaje cuando el oponente presiona "Calificar" (calificadoPor presente)
         let _stopVeredictoListener = null;
         function _escucharVeredictoMisPalabras() {
             if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
@@ -5456,17 +5525,10 @@ window.cerrarJuegoWindow = function() {
             _stopVeredictoListener = onValue(miVeredictoRef, (snap) => {
                 const data = snap.val();
                 if (!data || data.puntaje === undefined) return;
-                if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
+                // Solo mostrar puntaje si el oponente ya presionó Calificar (calificadoPor existe)
+                if (!data.calificadoPor) return;
                 stopGameState.miPuntajeRonda = data.puntaje;
                 document.getElementById('miPuntajeCalif').textContent = data.puntaje;
-                // Marcar visualmente las celdas que el oponente marcó como malas
-                if (data.marcadasMal && data.marcadasMal.length > 0) {
-                    const misCeldas = document.querySelectorAll('#miCuadroBody td');
-                    const celdasConPalabra = Array.from(misCeldas).filter(td => td.textContent && td.textContent !== '—');
-                    data.marcadasMal.forEach(idx => {
-                        if (celdasConPalabra[idx]) celdasConPalabra[idx].classList.add('marcada-mal');
-                    });
-                }
             });
         }
 
@@ -5655,6 +5717,7 @@ window.cerrarJuegoWindow = function() {
 
             // Detach listeners de calificación Firebase
             _detachStopCalifListener();
+            if (_stopMarcadoListener) { _stopMarcadoListener(); _stopMarcadoListener = null; }
             if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
 
             // Si el oponente aún no me calificó (puntaje aún en pantalla), usar 0
@@ -6653,6 +6716,7 @@ window.cerrarJuegoWindow = function() {
             stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
             stopGameState.calificacionTimers = [];
             _detachStopCalifListener();
+            if (_stopMarcadoListener) { _stopMarcadoListener(); _stopMarcadoListener = null; }
             if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
             if (document.getElementById('miPuntajeCalif').textContent === '—') {
                 stopGameState.miPuntajeRonda = 0;
@@ -6811,6 +6875,7 @@ window.cerrarJuegoWindow = function() {
             _hideNotify();
             // Limpiar listeners y nodo de calificación Firebase
             _detachStopCalifListener();
+            if (_stopMarcadoListener) { _stopMarcadoListener(); _stopMarcadoListener = null; }
             if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
             remove(ref(db, `gameData/${salaActualKey}/stopCalif`)).catch(() => {});
             document.getElementById('stop-resultados').classList.remove('active');
@@ -6865,6 +6930,7 @@ window.cerrarJuegoWindow = function() {
             }
             _detachStopGameListener();
             _detachStopCalifListener();
+            if (_stopMarcadoListener) { _stopMarcadoListener(); _stopMarcadoListener = null; }
             if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
             remove(_stopGameRef()).catch(() => {});
             remove(ref(db, `gameData/${salaActualKey}/stopCalif`)).catch(() => {});
