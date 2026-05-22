@@ -3399,7 +3399,7 @@
 
     <!-- MODAL COUNTDOWN REVANCHA INSTANTÁNEA TICTACTOE -->
     <div class="modal-rematch-cd" id="modal-rematch-cd">
-        <div class="rematch-cd-icon">🔄</div>
+        <div class="rematch-cd-icon" id="rematch-cd-icon">🔄</div>
         <div class="rematch-cd-msg" id="rematch-cd-msg">¡Nueva partida!</div>
         <div class="rematch-cd-num" id="rematch-cd-num">3</div>
     </div>
@@ -5598,7 +5598,7 @@ window.cerrarJuegoWindow = function() {
                 // Señales de salida: siempre procesar, nunca bloquear por timestamp.
                 // Señales de revancha: ignorar si ya se procesó este mismo ts para evitar
                 // que onValue re-dispare la señal al re-adjuntar el listener.
-                const esSalida = (data.tipo === 'player_exit_cd' || data.tipo === 'player_left' || data.tipo === 'left_games');
+                const esSalida = (data.tipo === 'player_exit_cd' || data.tipo === 'player_left' || data.tipo === 'left_games' || data.tipo === 'next_round');
                 if (!esSalida) {
                     if (data.ts && data.ts <= _tttLastSignalTs) return;
                     _tttLastSignalTs = data.ts || Date.now();
@@ -5627,6 +5627,13 @@ window.cerrarJuegoWindow = function() {
                         _tttVolverAlLobby = true;
                     }
                     _tttMostrarCountdownRevancha((payload && payload.nombre) ? payload.nombre : nombre);
+                    break;
+                case 'next_round':
+                    // El oponente presionó "Siguiente ronda" — avanzar automáticamente
+                    if (window._tttNextRoundEnCurso) return; // ya procesando, ignorar duplicado
+                    document.getElementById('modal-win').classList.remove('active');
+                    _hideNotify();
+                    _ejecutarSiguienteRonda();
                     break;
                 case 'rematch_request':
                     // Legacy (sesiones anteriores) — tratar como rematch_instant
@@ -6181,16 +6188,29 @@ window.cerrarJuegoWindow = function() {
         }
 
         function siguienteRondaTicTacToe() {
+            // Notificar al oponente y ejecutar localmente
+            _tttAttachSignalListener();
+            _tttSendSignal('next_round', {});
+            _ejecutarSiguienteRonda();
+        }
+
+        function _ejecutarSiguienteRonda() {
+            if (window._tttNextRoundEnCurso) return; // evitar doble ejecución
+            window._tttNextRoundEnCurso = true;
             document.getElementById('modal-win').classList.remove('active');
+            _hideNotify();
             clearInterval(timerIntervalo);
             _tttDetachGameListenerOnly();
             tttRondaActual++;
             const roundEl = document.getElementById('ttt-round-indicator');
             roundEl.textContent = `RONDA ${tttRondaActual} / ${tttTotalRondas}`;
+            roundEl.classList.add('visible');
             iniciadorTicTacToe = iniciadorTicTacToe === 'X' ? 'O' : 'X';
-            // Limpiar tablero antes de la siguiente ronda
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
-            _tttLimpiarFirebase().then(() => inicializarJuegoTicTacToe());
+            _tttLimpiarFirebase().then(() => {
+                window._tttNextRoundEnCurso = false;
+                inicializarJuegoTicTacToe();
+            });
         }
 
         function nuevaPartidaTicTacToe() {
@@ -6497,11 +6517,12 @@ window.cerrarJuegoWindow = function() {
         function salirAlMenuJuegos(silencioso) {
             // Si ya hay un countdown de salida corriendo, no duplicar
             if (window._tttExitCdTimer) return;
-            // Notificar al oponente con señal de salida (a menos que sea acción silenciosa/interna)
-            if (!silencioso && (juegoActivoTicTacToe || document.getElementById('tictactoe-window').classList.contains('active'))) {
+            // Notificar al oponente siempre que la ventana de tictactoe esté activa
+            const tttActivo = document.getElementById('tictactoe-window').classList.contains('active');
+            if (!silencioso && tttActivo) {
                 _tttSendSignal('player_exit_cd', { nombre: capitalizarNombre(usuarioActual) });
             }
-            // Mostrar countdown de salida en el solicitante
+            // Mostrar countdown de salida rojo en el solicitante
             _tttMostrarCountdownSalida(capitalizarNombre(usuarioActual));
         }
 
@@ -6514,6 +6535,7 @@ window.cerrarJuegoWindow = function() {
             if (window._tttExitCdTimer) { clearInterval(window._tttExitCdTimer); window._tttExitCdTimer = null; }
             _tttLastSignalTs = 0; // limpiar guard de señales al salir completamente
             _tttVolverAlLobby = false;
+            window._tttNextRoundEnCurso = false;
             document.getElementById('modal-rematch-cd').classList.remove('active', 'exit-mode');
             document.getElementById('rematch-cd-icon').textContent = '🔄'; // restaurar icono
             if (stopGameState && stopGameState.calificacionTimers) {
@@ -6663,6 +6685,7 @@ window.cerrarJuegoWindow = function() {
             premiosJuego.tictactoe.oponente = null;
             _tttLastSignalTs = 0; // resetear guard de señales para nueva sesión
             _tttVolverAlLobby = false;
+            window._tttNextRoundEnCurso = false;
             _tttLimpiarFirebase();
         }
 
