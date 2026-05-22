@@ -5532,10 +5532,16 @@ window.cerrarJuegoWindow = function() {
         }
 
         // ── Señalización: un jugador envía evento al otro ──
+        let _tttLastSignalTs = 0; // timestamp de la última señal procesada (evita re-disparos)
         async function _tttSendSignal(tipo, payload) {
             if (!salaActualKey) return;
             try {
-                await set(_tttSignalRef(), { tipo, payload: payload || {}, de: usuarioActual, ts: Date.now() });
+                const ts = Date.now();
+                await set(_tttSignalRef(), { tipo, payload: payload || {}, de: usuarioActual, ts });
+                // El emisor limpia la señal después de 4s: suficiente para que el receptor
+                // la procese, pero evita que quede en Firebase y se re-dispare al
+                // re-adjuntar el listener en la siguiente partida.
+                setTimeout(() => _tttClearSignal(), 4000);
             } catch(e) { console.warn('[TTT] signal error:', e); }
         }
         async function _tttClearSignal() {
@@ -5550,6 +5556,10 @@ window.cerrarJuegoWindow = function() {
             _tttSignalListener = onValue(_tttSignalRef(), (snap) => {
                 const data = snap.val();
                 if (!data || data.de === usuarioActual) return; // ignorar mis propias señales
+                // Ignorar señales ya procesadas (mismo timestamp) para evitar
+                // que onValue re-dispare la señal al re-adjuntar el listener.
+                if (data.ts && data.ts <= _tttLastSignalTs) return;
+                _tttLastSignalTs = data.ts || Date.now();
                 _tttHandleSignal(data.tipo, data.payload, data.de);
             });
         }
@@ -6582,6 +6592,7 @@ window.cerrarJuegoWindow = function() {
             tttRondaActual = 1;
             premiosJuego.tictactoe.mi = null;
             premiosJuego.tictactoe.oponente = null;
+            _tttLastSignalTs = 0; // resetear guard de señales para nueva sesión
             _tttLimpiarFirebase();
         }
 
