@@ -1059,7 +1059,7 @@
 
         .game-window.jugando {
             width: 100vw;
-            height: 55vh;
+            height: 50vh;
             right: 0;
             left: 0;
             top: 0;
@@ -1075,8 +1075,8 @@
             width: 100vw;
             position: fixed;
             left: 0;
-            top: 55vh;
-            height: 45vh;
+            top: 50vh;
+            height: 50vh;
             z-index: 799;
             border-right: none;
             border-top: 3px solid rgba(255, 255, 255, 0.3);
@@ -1108,7 +1108,7 @@
             gap: 5px;
         }
 
-        /* ===== AJUSTES HORIZONTAL SPLIT: juego arriba (55vh), chat abajo (45vh) ===== */
+        /* ===== AJUSTES HORIZONTAL SPLIT: juego arriba (50vh), chat abajo (50vh) ===== */
         .game-window.jugando .game-content {
             padding: 8px 16px;
             overflow-y: auto;
@@ -2745,7 +2745,7 @@
             /* JUEGOS EN MÓVIL: arriba el juego, abajo el chat */
             .game-window.jugando {
                 width: 100vw !important;
-                height: 55vh !important;
+                height: 50vh !important;
                 right: 0 !important;
                 left: 0 !important;
                 top: 0 !important;
@@ -2763,8 +2763,8 @@
                 overflow: hidden !important;
                 position: fixed !important;
                 left: 0 !important;
-                top: 55vh !important;
-                height: 45vh !important;
+                top: 50vh !important;
+                height: 50vh !important;
                 z-index: 799 !important;
                 border-right: none !important;
                 border-top: 2px solid #ffffff !important;
@@ -3002,12 +3002,42 @@
 
         /* Status bar Firebase */
         .firebase-status {
-            position: fixed; bottom: 4px; right: 8px;
-            font-size: 10px; color: #666; z-index: 100;
+            display: none !important;
+        }
+
+        /* ===== LLUVIA DE EMOJIS ===== */
+        @keyframes emojiRainFall {
+            0%   { transform: translateY(-60px) rotate(0deg) scale(1); opacity: 1; }
+            80%  { opacity: 1; }
+            100% { transform: translateY(110vh) rotate(360deg) scale(0.7); opacity: 0; }
+        }
+        @keyframes emojiBigToSmall {
+            0%   { transform: scale(0) translateY(0); opacity: 0; }
+            30%  { transform: scale(3.5) translateY(-10px); opacity: 1; }
+            60%  { transform: scale(2) translateY(-5px); opacity: 1; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .emoji-rain-container {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+            overflow: hidden;
+        }
+        .emoji-rain-drop {
+            position: absolute;
+            top: -60px;
+            font-size: 28px;
+            animation: emojiRainFall linear forwards;
+            user-select: none;
             pointer-events: none;
         }
-        .firebase-status.online { color: #4caf50; }
-        .firebase-status.offline { color: #ff5722; }
+        .msg-content.emoji-solo {
+            animation: emojiBigToSmall 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards;
+            display: inline-block;
+            font-size: 1.1em;
+        }
 
         /* ===== PUSH BANNER (notif. dentro de la app) ===== */
         .push-banner {
@@ -3432,7 +3462,7 @@
                     <button class="btn-calificar" onclick="calificarOponente()">Calificar</button>
                 </div>
 
-                <button class="btn-begin" onclick="volverAlJuegoStop()" style="margin-top: 8px;">Jugar de Nuevo</button>
+                <button class="btn-begin" onclick="pedirRevanchaStop()" style="margin-top: 8px;">Jugar de Nuevo</button>
             </div>
 
             <!-- VISTA DE RESULTADOS -->
@@ -3468,7 +3498,7 @@
                     </div>
                 </div>
                 
-                <button class="btn-begin" onclick="volverAlJuegoStop()" style="margin-top: 16px;">Jugar de Nuevo</button>
+                <button class="btn-begin" onclick="pedirRevanchaStop()" style="margin-top: 16px;">Jugar de Nuevo</button>
                 <button class="btn-begin" onclick="terminarPartidaStop()" style="margin-top: 10px; background: linear-gradient(135deg, #ffd700, #ffa500); color: #1e1e3f;">🏆 Terminar partida</button>
             </div>
         </div>
@@ -4005,6 +4035,15 @@ function escucharSalas() {
         });
         setFirebaseStatus(true);
         renderSalas();
+
+        // Si el usuario está dentro de una sala y esa sala ya no existe → volver al inicio
+        if (salaActualKey) {
+            const salaAunExiste = salas.some(s => s._key === salaActualKey);
+            if (!salaAunExiste) {
+                showToast('🗑️ La sala fue eliminada');
+                setTimeout(() => irInicio(), 800);
+            }
+        }
     }, (error) => {
         setFirebaseStatus(false);
         console.error('Firebase error:', error);
@@ -4224,6 +4263,10 @@ function escucharMensajes() {
             if (!esPropio) {
                 // Estás en la sala → solo sonido suave (ya estás viendo el mensaje)
                 try { reproducirSonidoMsg(); } catch(e) {}
+                // Si es solo emoji → lluvia de emojis
+                if (lastMsg.tipo === 'texto' && esSoloEmoji(lastMsg.texto || '')) {
+                    try { lanzarLluviaEmoji(lastMsg.texto.trim()); } catch(e) {}
+                }
                 // Si la pestaña no tiene foco → notificación nativa para reactivar atención
                 if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
                     try {
@@ -4267,7 +4310,10 @@ function buildMsgHTML(msg) {
     } else if (msg.tipo === 'audio') {
         contenido = `<audio controls class="msg-audio"><source src="${msg.mediaUrl}" type="audio/ogg"></audio>`;
     } else {
-        contenido = `<div class="msg-content">${escapeHtml(msg.texto)}</div>`;
+        const soloEmoji = esSoloEmoji(msg.texto || '');
+        const emojiClass = soloEmoji ? ' emoji-solo' : '';
+        const emojiData  = soloEmoji ? ` data-emoji="${escapeHtml(msg.texto)}"` : '';
+        contenido = `<div class="msg-content${emojiClass}"${emojiData}>${escapeHtml(msg.texto)}</div>`;
     }
 
     return `<div class="mensaje ${esPropio ? 'propio' : 'otro'}">
@@ -4277,6 +4323,38 @@ function buildMsgHTML(msg) {
             <div class="msg-time">${formatearHoraMs(msg.horaMs)}</div>
         </div>
     </div>`;
+}
+
+// ── Detectar si un texto es solo emoji(s) ──
+const _EMOJI_REGEX = /^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F|\p{Emoji_Modifier_Base}\p{Emoji_Modifier}?|\p{Emoji_Component})+$/u;
+function esSoloEmoji(texto) {
+    const t = texto.trim();
+    if (!t || t.length > 12) return false; // max ~3 emojis
+    return _EMOJI_REGEX.test(t);
+}
+
+// ── Lluvia de emojis ──
+function lanzarLluviaEmoji(emoji) {
+    const container = document.createElement('div');
+    container.className = 'emoji-rain-container';
+    document.body.appendChild(container);
+    const cantidad = 18;
+    for (let i = 0; i < cantidad; i++) {
+        const drop = document.createElement('div');
+        drop.className = 'emoji-rain-drop';
+        drop.textContent = emoji;
+        drop.style.left = (Math.random() * 100) + 'vw';
+        const dur = (1.8 + Math.random() * 2.2).toFixed(2);
+        const delay = (Math.random() * 1.5).toFixed(2);
+        const size = (20 + Math.random() * 22).toFixed(0);
+        drop.style.fontSize = size + 'px';
+        drop.style.animationDuration = dur + 's';
+        drop.style.animationDelay = delay + 's';
+        container.appendChild(drop);
+    }
+    setTimeout(() => {
+        if (container.parentNode) container.parentNode.removeChild(container);
+    }, 5000);
 }
 
 function formatearHoraMs(ms) {
@@ -4385,6 +4463,10 @@ window.enviarMensaje = async function() {
     if (btn) { input.dispatchEvent(new Event('input')); }
     try {
         await pushMensaje({ usuario: usuarioActual, texto, tipo: 'texto' });
+        // Si el mensaje es solo emoji → lluvia local para el emisor
+        if (esSoloEmoji(texto)) {
+            try { lanzarLluviaEmoji(texto.trim()); } catch(e) {}
+        }
     } catch(e) {
         showToast('❌ Error al enviar mensaje');
         input.value = texto;
@@ -4403,6 +4485,8 @@ window.enviarMensaje = async function() {
         if (!emoji || !usuarioActual) return;
         try {
             await pushMensaje({ usuario: usuarioActual, texto: emoji, tipo: 'texto' });
+            // Lluvia local para el emisor también
+            try { lanzarLluviaEmoji(emoji); } catch(e) {}
         } catch(err) {
             showToast('❌ Error al enviar emoji');
         }
@@ -6057,29 +6141,29 @@ window.cerrarJuegoWindow = function() {
                     _showNotify('🎮', `¡Revancha Stop!`, `${nombre} quiere jugar de nuevo. ¿Aceptas?`,
                         [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
                             _tttClearSignal();
-                            _tttSendSignal('stop_rematch_accepted');
-                            _doRevanchaStopReal();
+                            _tttSendSignal('stop_rematch_accepted', { nombre: capitalizarNombre(usuarioActual) });
+                            _hideNotify();
+                            _stopMostrarCountdownJugarNuevo(nombre);
                         }},
                         { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
                             _tttClearSignal();
-                            _tttSendSignal('stop_rematch_declined');
-                            _stopResetCompleto();
-                            salirAlMenuJuegos();
+                            _tttSendSignal('stop_rematch_declined', { nombre: capitalizarNombre(usuarioActual) });
+                            _hideNotify();
                         }}]
                     );
                     break;
                 case 'stop_rematch_accepted':
                     _hideNotify();
                     _tttClearSignal();
-                    _doRevanchaStopReal();
+                    _stopMostrarCountdownJugarNuevo(nombre || capitalizarNombre(usuarioActual));
                     break;
                 case 'stop_rematch_declined':
                     _hideNotify();
                     _tttClearSignal();
-                    _stopResetCompleto();
-                    _showNotify('😔', 'Revancha rechazada', `${nombre} ha decidido no jugar de nuevo.`,
-                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
-                        () => salirAlMenuJuegos()
+                    // Ambos se quedan en la pantalla de calificación/resultados
+                    _showNotify('😔', 'Revancha rechazada', `${nombre} prefirió no jugar de nuevo.`,
+                        [{ label: 'OK', cls: 'btn-notify-ok', cb: () => { _hideNotify(); }}],
+                        () => { _hideNotify(); }
                     );
                     break;
 
@@ -6863,7 +6947,7 @@ window.cerrarJuegoWindow = function() {
             const btnPlay = document.getElementById('btn-play-again-win');
             btnPlay.style.display = '';
             btnPlay.textContent = '🔄 Jugar de nuevo';
-            btnPlay.onclick = jugarDeNuevoStop;
+            btnPlay.onclick = pedirRevanchaStop;
 
             // El botón "Salir" del modal debe volver al menú de juegos (no cerrar la plataforma)
             const btnExit = document.querySelector('#modal-win .btn-exit');
@@ -6875,13 +6959,29 @@ window.cerrarJuegoWindow = function() {
         }
 
         async function jugarDeNuevoStop() {
-            // Countdown 3s igual que TicTacToe libre → luego _doRevanchaStopReal
+            // Enviar solicitud al oponente — espera su aceptación antes de iniciar countdown
             document.getElementById('modal-win').classList.remove('active');
             _hideNotify();
             const solicitante = capitalizarNombre(usuarioActual);
             _tttAttachSignalListener();
-            await _tttSendSignal('stop_jugar_nuevo', { nombre: solicitante });
-            _stopMostrarCountdownJugarNuevo(solicitante);
+            window._stopMiRematchTs = Date.now();
+            await _tttSendSignal('stop_rematch_request', { nombre: solicitante, ts: window._stopMiRematchTs });
+            // Mostrar aviso al solicitante de que está esperando respuesta
+            _showNotify('⏳', 'Esperando respuesta', `Pediste jugar de nuevo. Esperando que ${_getNombreOponente()} acepte...`,
+                [{ label: '❌ Cancelar', cls: 'btn-notify-decline', cb: () => {
+                    _tttClearSignal();
+                    _hideNotify();
+                }}]
+            );
+        }
+
+        async function pedirRevanchaStop() {
+            // Llamado desde los botones de calificación y resultados
+            await jugarDeNuevoStop();
+        }
+
+        function _getNombreOponente() {
+            return typeof nombreOponente === 'function' ? nombreOponente() : 'el oponente';
         }
 
         function _stopMostrarCountdownJugarNuevo(nombre) {
@@ -7627,6 +7727,7 @@ window.cerrarJuegoWindow = function() {
         window.presionarStop           = presionarStop;
         window.calificarOponente       = calificarOponente;
         window.volverAlJuegoStop       = volverAlJuegoStop;
+        window.pedirRevanchaStop       = pedirRevanchaStop;
         window.terminarPartidaStop     = terminarPartidaStop;
         window.jugarTicTacToe          = jugarTicTacToe;
         window.reiniciarTicTacToe      = reiniciarTicTacToe;
