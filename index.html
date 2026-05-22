@@ -5287,7 +5287,7 @@ window.cerrarJuegoWindow = function() {
         }
 
         // ===== VISTA DE CALIFICACION MANUAL (peer-grading) =====
-        function mostrarVistaCalificacion() {
+        async function mostrarVistaCalificacion() {
             // Cambiar de vista de juego a vista de calificación
             document.getElementById('stop-juego').classList.remove('active');
             document.getElementById('stop-calificacion').classList.add('active');
@@ -5305,14 +5305,16 @@ window.cerrarJuegoWindow = function() {
                 misPalabras.push(filaPalabras);
             });
 
-            // Simulación: generar las palabras del oponente (mientras no haya backend en tiempo real)
-            const palabrasOponente = generarPalabrasOponenteSimuladas(misPalabras.length);
-
-            // Guardar en el estado para uso posterior
+            // Guardar mis palabras en el estado local
             stopGameState.misPalabras = misPalabras;
-            stopGameState.palabrasOponente = palabrasOponente;
             stopGameState.miPuntajeRonda = 0;
             stopGameState.oponentePuntajeRonda = 0;
+
+            // ── FIREBASE REAL: publicar mis palabras para que el oponente las vea ──
+            await set(ref(db, `gameData/${salaActualKey}/stopCalif/palabras_${usuarioActual}`), {
+                palabras: misPalabras,
+                ts: Date.now()
+            });
 
             // Mostrar nombres
             document.getElementById('miNombreCalif').textContent = (usuarioActual || 'Tú') + ' (tú)';
@@ -5322,12 +5324,35 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('miPuntajeCalif').textContent = '—';
             document.getElementById('oponentePuntajeCalif').textContent = '—';
 
-            // Renderizar ambos cuadros
+            // Renderizar mi cuadro inmediatamente
             renderizarCuadroPropio(misPalabras);
-            renderizarCuadroOponente(palabrasOponente);
 
-            // Simular en tiempo real al oponente calificando mis respuestas
-            simularCalificacionDelOponente();
+            // Mostrar placeholder mientras espera palabras del oponente
+            const opBody = document.getElementById('oponenteCuadroBody');
+            opBody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888;padding:12px;">⏳ Esperando palabras del oponente…</td></tr>`;
+
+            // ── Escuchar las palabras del oponente en Firebase ──
+            _escucharPalabrasOponenteCalif();
+        }
+
+        // Listener Firebase para las palabras del oponente en la vista de calificación
+        let _stopCalifListener = null;
+        function _escucharPalabrasOponenteCalif() {
+            if (_stopCalifListener) { _stopCalifListener(); _stopCalifListener = null; }
+            const opKey = `palabras_${oponenteActual || 'Oponente'}`;
+            const opRef = ref(db, `gameData/${salaActualKey}/stopCalif/${opKey}`);
+            _stopCalifListener = onValue(opRef, (snap) => {
+                const data = snap.val();
+                if (!data || !data.palabras) return;
+                // Detach para no reejecutar
+                if (_stopCalifListener) { _stopCalifListener(); _stopCalifListener = null; }
+                stopGameState.palabrasOponente = data.palabras;
+                renderizarCuadroOponente(data.palabras);
+            });
+        }
+
+        function _detachStopCalifListener() {
+            if (_stopCalifListener) { _stopCalifListener(); _stopCalifListener = null; }
         }
 
         function simularCalificacionDelOponente() {
@@ -5446,13 +5471,50 @@ window.cerrarJuegoWindow = function() {
             // Calcula el puntaje del oponente: cada palabra escrita y NO marcada como mal = 50 puntos
             const celdas = document.querySelectorAll('#oponenteCuadroBody td.palabra-llena');
             let puntaje = 0;
-            celdas.forEach(td => {
+            const marcadasMal = [];
+            celdas.forEach((td, idx) => {
                 if (!td.classList.contains('marcada-mal')) {
                     puntaje += 50;
+                } else {
+                    marcadasMal.push(idx);
                 }
             });
             stopGameState.oponentePuntajeRonda = puntaje;
             document.getElementById('oponentePuntajeCalif').textContent = puntaje;
+
+            // ── FIREBASE REAL: publicar el veredicto para que el oponente vea su puntaje ──
+            const opKey = oponenteActual || 'Oponente';
+            set(ref(db, `gameData/${salaActualKey}/stopCalif/veredicto_${opKey}`), {
+                puntaje: puntaje,
+                marcadasMal: marcadasMal,
+                calificadoPor: usuarioActual,
+                ts: Date.now()
+            });
+
+            // Escuchar el veredicto del oponente sobre mis palabras (para mostrar mi puntaje real)
+            _escucharVeredictoMisPalabras();
+        }
+
+        // Listener Firebase para recibir el veredicto del oponente sobre mis palabras
+        let _stopVeredictoListener = null;
+        function _escucharVeredictoMisPalabras() {
+            if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
+            const miVeredictoRef = ref(db, `gameData/${salaActualKey}/stopCalif/veredicto_${usuarioActual}`);
+            _stopVeredictoListener = onValue(miVeredictoRef, (snap) => {
+                const data = snap.val();
+                if (!data || data.puntaje === undefined) return;
+                if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
+                stopGameState.miPuntajeRonda = data.puntaje;
+                document.getElementById('miPuntajeCalif').textContent = data.puntaje;
+                // Marcar visualmente las celdas que el oponente marcó como malas
+                if (data.marcadasMal && data.marcadasMal.length > 0) {
+                    const misCeldas = document.querySelectorAll('#miCuadroBody td');
+                    const celdasConPalabra = Array.from(misCeldas).filter(td => td.textContent && td.textContent !== '—');
+                    data.marcadasMal.forEach(idx => {
+                        if (celdasConPalabra[idx]) celdasConPalabra[idx].classList.add('marcada-mal');
+                    });
+                }
+            });
         }
 
         function removerTildes(texto) {
@@ -5638,10 +5700,14 @@ window.cerrarJuegoWindow = function() {
             stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
             stopGameState.calificacionTimers = [];
 
-            // Si el oponente aún no me calificó (puntaje aún en pantalla), calcular ahora
-            // con las marcas rojas que ya estén visibles en mi cuadro
+            // Detach listeners de calificación Firebase
+            _detachStopCalifListener();
+            if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
+
+            // Si el oponente aún no me calificó (puntaje aún en pantalla), usar 0
             if (document.getElementById('miPuntajeCalif').textContent === '—') {
-                autoCalificarMisRespuestas();
+                stopGameState.miPuntajeRonda = 0;
+                document.getElementById('miPuntajeCalif').textContent = 0;
             }
 
             // Acumular puntajes de la ronda al total
@@ -5906,6 +5972,10 @@ window.cerrarJuegoWindow = function() {
                     break;
 
                 // ── Revancha Stop ──
+                case 'stop_jugar_nuevo':
+                    // El oponente quiere jugar de nuevo → countdown 3s en ambos
+                    _stopMostrarCountdownJugarNuevo((payload && payload.nombre) ? payload.nombre : nombre);
+                    break;
                 case 'stop_rematch_request':
                     if (document.getElementById('modal-game-notify').classList.contains('active')) {
                         const miTs2 = window._stopMiRematchTs || 0;
@@ -6620,8 +6690,10 @@ window.cerrarJuegoWindow = function() {
             // Primero acumular la ronda actual (igual que volverAlJuegoStop)
             stopGameState.calificacionTimers.forEach(t => clearTimeout(t));
             stopGameState.calificacionTimers = [];
+            _detachStopCalifListener();
+            if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
             if (document.getElementById('miPuntajeCalif').textContent === '—') {
-                autoCalificarMisRespuestas();
+                stopGameState.miPuntajeRonda = 0;
             }
             if (typeof stopGameState.puntajeAcumulado[usuarioActual] !== 'number') {
                 stopGameState.puntajeAcumulado[usuarioActual] = 0;
@@ -6712,16 +6784,13 @@ window.cerrarJuegoWindow = function() {
             }
 
             // Configurar botones:
-            // - Si hay premio → mostrar "🔄 Revancha" (mismos premios, puntajes a 0, histórico se mantiene)
-            // - Si no hay premio → ocultar el botón (solo "Salir")
+            // - Siempre mostrar "Jugar de nuevo" (con countdown 3s, igual que TicTacToe libre)
+            // - Si hay premio con modo rondas → "Siguiente ronda" con countdown
+            // - "Salir" siempre visible
             const btnPlay = document.getElementById('btn-play-again-win');
-            if (hayPremio) {
-                btnPlay.style.display = '';
-                btnPlay.textContent = '🔄 Revancha';
-                btnPlay.onclick = revanchaStop;
-            } else {
-                btnPlay.style.display = 'none';
-            }
+            btnPlay.style.display = '';
+            btnPlay.textContent = '🔄 Jugar de nuevo';
+            btnPlay.onclick = jugarDeNuevoStop;
 
             // El botón "Salir" del modal debe volver al menú de juegos (no cerrar la plataforma)
             const btnExit = document.querySelector('#modal-win .btn-exit');
@@ -6732,21 +6801,39 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('modal-win').classList.add('active');
         }
 
-        function revanchaStop() {
-            // Pedir revancha al oponente a través de señales
+        async function jugarDeNuevoStop() {
+            // Countdown 3s igual que TicTacToe libre → luego _doRevanchaStopReal
             document.getElementById('modal-win').classList.remove('active');
-            const miTs = Date.now();
-            window._stopMiRematchTs = miTs;
-            _tttAttachSignalListener(); // asegurar que el listener esté activo
-            _tttSendSignal('stop_rematch_request', { ts: miTs });
-            _showNotify('⏳', 'Esperando respuesta...', `Solicitaste revancha. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
-                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
-                    _hideNotify();
-                    _tttClearSignal();
-                    _stopResetCompleto();
-                    salirAlMenuJuegos();
-                }}]
-            );
+            _hideNotify();
+            const solicitante = capitalizarNombre(usuarioActual);
+            _tttAttachSignalListener();
+            await _tttSendSignal('stop_jugar_nuevo', { nombre: solicitante });
+            _stopMostrarCountdownJugarNuevo(solicitante);
+        }
+
+        function _stopMostrarCountdownJugarNuevo(nombre) {
+            if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
+            document.getElementById('modal-win').classList.remove('active');
+            const modal = document.getElementById('modal-rematch-cd');
+            const msgEl = document.getElementById('rematch-cd-msg');
+            const numEl = document.getElementById('rematch-cd-num');
+            const iconEl = document.getElementById('rematch-cd-icon');
+            modal.classList.remove('exit-mode');
+            iconEl.textContent = '🔄';
+            msgEl.textContent = `${nombre} quiere jugar de nuevo`;
+            let secs = 3;
+            numEl.textContent = secs;
+            modal.classList.add('active');
+            _tttCdTimer = setInterval(() => {
+                secs--;
+                numEl.textContent = secs;
+                if (secs <= 0) {
+                    clearInterval(_tttCdTimer);
+                    _tttCdTimer = null;
+                    modal.classList.remove('active');
+                    _doRevanchaStopReal();
+                }
+            }, 1000);
         }
 
         function _stopResetCompleto() {
@@ -6760,6 +6847,10 @@ window.cerrarJuegoWindow = function() {
         function _doRevanchaStopReal() {
             // Revancha efectiva de Stop: mismos premios, puntajes a 0, histórico se mantiene
             _hideNotify();
+            // Limpiar listeners y nodo de calificación Firebase
+            _detachStopCalifListener();
+            if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
+            remove(ref(db, `gameData/${salaActualKey}/stopCalif`)).catch(() => {});
             document.getElementById('stop-resultados').classList.remove('active');
             document.getElementById('stop-calificacion').classList.remove('active');
             document.getElementById('stopTableBody').innerHTML = '';
@@ -6809,7 +6900,10 @@ window.cerrarJuegoWindow = function() {
                 stopGameState.calificacionTimers = [];
             }
             _detachStopGameListener();
+            _detachStopCalifListener();
+            if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
             remove(_stopGameRef()).catch(() => {});
+            remove(ref(db, `gameData/${salaActualKey}/stopCalif`)).catch(() => {});
             const confActivo = document.getElementById('confetti-active');
             if (confActivo && confActivo.parentNode) confActivo.parentNode.removeChild(confActivo);
             document.getElementById('modal-win').classList.remove('active');
