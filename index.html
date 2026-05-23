@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>SWITCH - Chat Grupos</title>
 
     <!-- PWA / Manifest -->
@@ -27,6 +28,15 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html {
+            height: 100%;
+            height: -webkit-fill-available;
+            height: 100dvh;
+            overflow: hidden;
+            background: #121212;
         }
 
         /* ===== CARRUSEL ===== */
@@ -107,9 +117,20 @@
 
         body {
             font-family: 'Segoe UI', sans-serif;
-            background: #f5f5f5;
-            color: #333;
+            background: #121212;
+            color: #e0e0e0;
             overflow: hidden;
+            width: 100%;
+            height: 100%;
+            height: -webkit-fill-available;
+            height: 100dvh;
+            /* Ocultar barra de navegación del sistema en standalone/PWA */
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            padding-top: env(safe-area-inset-top, 0px);
+        }
+
+        @media all and (display-mode: standalone) {
+            body { padding-bottom: 0; padding-top: 0; }
         }
 
         .container {
@@ -2018,6 +2039,47 @@
             50% { transform: scale(1.12); opacity: 0.85; }
         }
 
+
+        /* ── Divisor dinámico entre juego y chat ── */
+        #split-divider {
+            display: none;
+            position: fixed;
+            left: 0;
+            width: 100vw;
+            height: 18px;
+            z-index: 850;
+            cursor: ns-resize;
+            align-items: center;
+            justify-content: center;
+            touch-action: none;
+            user-select: none;
+        }
+        #split-divider.visible { display: flex; }
+        #split-divider-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.45);
+            border-radius: 2px;
+            position: relative;
+            transition: background 0.2s;
+        }
+        #split-divider:active #split-divider-bar,
+        #split-divider.dragging #split-divider-bar {
+            background: #00c853;
+            box-shadow: 0 0 8px rgba(0,200,83,0.6);
+        }
+        #split-divider-handle {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 4px;
+            background: #00c853;
+            border-radius: 2px;
+            box-shadow: 0 0 6px rgba(0,200,83,0.5);
+        }
+
         /* ── Modal vistoso de premio elegido ── */
         #ttt-premio-alert {
             position: fixed;
@@ -3797,6 +3859,11 @@
     <div class="firebase-status" id="firebase-status">● Firebase</div>
 
     <!-- Firebase SDK -->
+    <!-- Divisor dinámico split screen -->
+    <div id="split-divider">
+        <div id="split-divider-bar"><div id="split-divider-handle"></div></div>
+    </div>
+
     <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, push, set, onValue, remove, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -5064,18 +5131,30 @@ function escucharInvitacionesJuego() {
         if (inv.estado === 'accepted' && inv.deUsuario === usuarioActual && _miInviteEnVuelo) {
             _miInviteEnVuelo = false;
             hideLoading();
-            // Capturar el nombre real del que aceptó como oponente
             if (inv.aUsuario) oponenteActual = inv.aUsuario;
             _entrarAJuego(inv.juego);
             _ultimoInviteHoraMs = inv.horaMs || _ultimoInviteHoraMs;
+        }
+        // ACCEPTED — soy espectador (no soy ni el invitador ni el aceptante)
+        if (inv.estado === 'accepted' && inv.deUsuario !== usuarioActual && inv.aUsuario && inv.aUsuario !== usuarioActual) {
+            // Solo cierra el modal si estaba abierto; no entra al juego
+            document.getElementById('modal-game-invite').classList.remove('active');
+            _ultimoInviteHoraMs = inv.horaMs || _ultimoInviteHoraMs;
+            // Guardar quiénes están jugando para que el X del espectador no afecte el juego
+            window._espectadorDe = { juego: inv.juego, jugador1: inv.deUsuario, jugador2: inv.aUsuario };
         }
         // REJECTED — soy el invitador
         if (inv.estado === 'rejected' && inv.deUsuario === usuarioActual && _miInviteEnVuelo) {
             _miInviteEnVuelo = false;
             hideLoading();
-            alert('❌ El otro usuario rechazó la invitación.');
+            showToast('❌ El otro usuario rechazó la invitación.');
             juegoActual = null;
             oponenteActual = null;
+            _ultimoInviteHoraMs = inv.horaMs || _ultimoInviteHoraMs;
+        }
+        // REJECTED — soy espectador, solo cierra el modal
+        if (inv.estado === 'rejected' && inv.deUsuario !== usuarioActual && usuarioActual !== inv.aUsuario) {
+            document.getElementById('modal-game-invite').classList.remove('active');
             _ultimoInviteHoraMs = inv.horaMs || _ultimoInviteHoraMs;
         }
     });
@@ -5144,7 +5223,21 @@ window.rechazarJuego = async function() {
 };
 
 window.cerrarJuegoWindow = function() {
-    // Usar el flujo de salida completo: notifica al oponente con countdown rojo 3s.
+    // Si soy espectador (no soy ninguno de los dos jugadores), solo cerrar la vista
+    const esp = window._espectadorDe;
+    if (esp && esp.jugador1 !== usuarioActual && esp.jugador2 !== usuarioActual) {
+        // Ocultar la ventana de juego sin afectar a los jugadores
+        const gameWin = document.querySelector('.game-window.jugando');
+        if (gameWin) {
+            gameWin.classList.remove('jugando');
+            gameWin.classList.remove('active');
+        }
+        const chatEl = document.getElementById('pantalla-chat');
+        if (chatEl) chatEl.classList.remove('jugando');
+        window._espectadorDe = null;
+        return;
+    }
+    // Soy jugador: flujo completo con notificación al oponente
     if (typeof salirAlMenuJuegos === 'function') {
         salirAlMenuJuegos();
     }
@@ -5153,6 +5246,7 @@ window.cerrarJuegoWindow = function() {
         function mostrarTicTacToe() {
             document.getElementById('tictactoe-window').classList.add('active', 'jugando');
             document.getElementById('pantalla-chat').classList.add('jugando');
+            if (window._splitDividerShow) window._splitDividerShow();
             // Cancelar countdown de revancha si estaba corriendo
             if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
             document.getElementById('modal-rematch-cd').classList.remove('active');
@@ -5286,6 +5380,7 @@ window.cerrarJuegoWindow = function() {
         function mostrarStop() {
             document.getElementById('stop-window').classList.add('active', 'jugando');
             document.getElementById('pantalla-chat').classList.add('jugando');
+            if (window._splitDividerShow) window._splitDividerShow();
             // Resetear premios y vista a inicio para esta nueva partida
             premiosJuego.stop.mi = null;
             premiosJuego.stop.oponente = null;
@@ -6892,7 +6987,7 @@ window.cerrarJuegoWindow = function() {
 
             document.getElementById('modal-premio').classList.remove('active');
 
-            // Notificar al oponente que elegimos premio
+            // Notificar al oponente vía signal; él verá el modal grande
             if (juegoSeleccionandoPremio === 'tictactoe') {
                 _tttSendSignal('prize_chosen', { premio: premioFinal });
                 actualizarLobbyTicTacToe();
@@ -6903,8 +6998,8 @@ window.cerrarJuegoWindow = function() {
                 _tttSendSignal('quiz_prize_chosen', { premio: premioFinal });
                 actualizarLobbyQuiz();
             }
-            // Mostrar modal de confirmación al propio usuario
-            _tttMostrarAlertaPremio(capitalizarNombre(usuarioActual), premioFinal, true);
+            // Al emisor solo mostrar un toast discreto de confirmación (el modal grande es para el receptor)
+            showToast('🎁 Premio guardado: ' + premioFinal);
             juegoSeleccionandoPremio = null;
             premioOpcionSeleccionada = null;
         }
@@ -7209,6 +7304,7 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('stop-window').classList.remove('active', 'jugando');
             document.getElementById('quiz-window').classList.remove('active', 'jugando');
             document.getElementById('pantalla-chat').classList.remove('jugando');
+            if (window._splitDividerHide) window._splitDividerHide();
             document.getElementById('stopScoreboard').classList.remove('visible');
             if (stopGameState) {
                 stopGameState.historicoTotal = { [usuarioActual]: 0, 'Oponente': 0 };
@@ -7451,6 +7547,7 @@ window.cerrarJuegoWindow = function() {
             premiosJuego.quiz = { mi: null, oponente: null };
             document.getElementById('quiz-window').classList.add('active', 'jugando');
             document.getElementById('pantalla-chat').classList.add('jugando');
+            if (window._splitDividerShow) window._splitDividerShow();
             document.getElementById('quiz-lobby').style.display = 'flex';
             document.getElementById('quiz-question-view').classList.remove('active');
             document.getElementById('quizScoreboard').classList.remove('visible');
@@ -8008,6 +8105,113 @@ window.cerrarJuegoWindow = function() {
                     .catch(err => console.warn('[PWA] Error registrando SW:', err));
             });
         }
+
+
+        // ── Pantalla completa al primer toque (Android/Chrome) ──
+        (function() {
+            function tryFullscreen() {
+                const el = document.documentElement;
+                if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+                else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+                document.removeEventListener('touchstart', tryFullscreen, true);
+                document.removeEventListener('click', tryFullscreen, true);
+            }
+            // Solo intentar si no está ya en fullscreen/standalone
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                || window.matchMedia('(display-mode: fullscreen)').matches
+                || window.navigator.standalone === true;
+            if (!isStandalone && !document.fullscreenElement) {
+                document.addEventListener('touchstart', tryFullscreen, { once: true, capture: true });
+                document.addEventListener('click', tryFullscreen, { once: true, capture: true });
+            }
+        })();
+
+        (function() {
+            const divider = document.getElementById('split-divider');
+            const MIN_GAME_PCT = 25;   // mínimo 25% para el juego
+            const MAX_GAME_PCT = 75;   // máximo 75% para el juego
+
+            let dragging = false;
+            let startY = 0;
+            let startPct = 50;
+
+            function getSplitPct() {
+                const gw = document.querySelector('.game-window.jugando');
+                if (!gw) return 50;
+                const h = parseFloat(gw.style.height) || 50;
+                return h;
+            }
+
+            function applySplit(pct) {
+                pct = Math.max(MIN_GAME_PCT, Math.min(MAX_GAME_PCT, pct));
+                const gw = document.querySelector('.game-window.jugando');
+                const ch = document.getElementById('pantalla-chat');
+                if (!gw || !ch) return;
+                gw.style.height = pct + 'vh';
+                ch.style.top = pct + 'vh';
+                ch.style.height = (100 - pct) + 'vh';
+                divider.style.top = 'calc(' + pct + 'vh - 9px)';
+            }
+
+            function showDivider() {
+                divider.classList.add('visible');
+                applySplit(50);
+            }
+            function hideDivider() {
+                divider.classList.remove('visible');
+                divider.style.top = '';
+            }
+
+            // Exponer para que se llame al entrar/salir del modo split
+            window._splitDividerShow = showDivider;
+            window._splitDividerHide = hideDivider;
+            window._splitDividerApply = applySplit;
+
+            // Touch events
+            divider.addEventListener('touchstart', (e) => {
+                dragging = true;
+                startY = e.touches[0].clientY;
+                startPct = getSplitPct();
+                divider.classList.add('dragging');
+                e.preventDefault();
+            }, { passive: false });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!dragging) return;
+                const dy = e.touches[0].clientY - startY;
+                const screenH = window.innerHeight || screen.height;
+                const deltaPct = (dy / screenH) * 100;
+                applySplit(startPct + deltaPct);
+                e.preventDefault();
+            }, { passive: false });
+
+            document.addEventListener('touchend', () => {
+                dragging = false;
+                divider.classList.remove('dragging');
+            });
+
+            // Mouse events (para desktop)
+            divider.addEventListener('mousedown', (e) => {
+                dragging = true;
+                startY = e.clientY;
+                startPct = getSplitPct();
+                divider.classList.add('dragging');
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!dragging) return;
+                const dy = e.clientY - startY;
+                const screenH = window.innerHeight || screen.height;
+                const deltaPct = (dy / screenH) * 100;
+                applySplit(startPct + deltaPct);
+            });
+
+            document.addEventListener('mouseup', () => {
+                dragging = false;
+                divider.classList.remove('dragging');
+            });
+        })();
 
     </script>
 </body>
