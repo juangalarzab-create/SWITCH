@@ -4,10 +4,10 @@
   "description": "Chat grupal en tiempo real con notificaciones push",
   "start_url": "./index.html",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "portrait",
-  "background_color": "#0088cc",
-  "theme_color": "#0088cc",
+  "background_color": "#121212",
+  "theme_color": "#121212",
   "lang": "es",
   "dir": "ltr",
   "icons": [
@@ -36,5 +36,10 @@
       "purpose": "maskable"
     }
   ],
-  "gcm_sender_id": "103953800507"
+  "gcm_sender_id": "103953800507",
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui"
+  ]
 }
