@@ -2254,6 +2254,51 @@
             box-shadow: 0 0 6px rgba(0,200,83,0.5);
         }
 
+        /* ── Modal sugerencia pantalla completa (divisor límites) ── */
+        #modal-fullscreen-suggestion {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+        }
+        #modal-fullscreen-suggestion.active { display: flex; }
+        #modal-fullscreen-suggestion .fs-box {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1a2640 100%);
+            border: 2px solid #00c853;
+            border-radius: 22px;
+            padding: 30px 28px 24px;
+            max-width: 320px;
+            width: 88%;
+            text-align: center;
+            box-shadow: 0 0 50px rgba(0,200,83,0.35);
+            animation: notifyPop 0.3s cubic-bezier(.175,.885,.32,1.275);
+        }
+        #modal-fullscreen-suggestion .fs-icon { font-size: 44px; margin-bottom: 8px; }
+        #modal-fullscreen-suggestion .fs-title {
+            font-size: 18px; font-weight: 800; color: #fff;
+            margin-bottom: 8px;
+        }
+        #modal-fullscreen-suggestion .fs-msg {
+            font-size: 14px; color: #aac; line-height: 1.5; margin-bottom: 20px;
+        }
+        #modal-fullscreen-suggestion .fs-buttons { display: flex; gap: 10px; justify-content: center; }
+        #modal-fullscreen-suggestion .fs-btn-ok {
+            background: linear-gradient(135deg, #00c853, #00a040);
+            color: #fff; border: none; border-radius: 50px;
+            padding: 11px 28px; font-size: 15px; font-weight: 700;
+            cursor: pointer; flex: 1;
+        }
+        #modal-fullscreen-suggestion .fs-btn-cancel {
+            background: rgba(255,255,255,0.1);
+            color: #aaa; border: 1px solid rgba(255,255,255,0.2); border-radius: 50px;
+            padding: 11px 22px; font-size: 15px; font-weight: 600;
+            cursor: pointer; flex: 1;
+        }
+
         /* ── Modal vistoso de premio elegido ── */
         #ttt-premio-alert {
             position: fixed;
@@ -3983,6 +4028,19 @@
         <div class="rematch-cd-icon" id="rematch-cd-icon">🔄</div>
         <div class="rematch-cd-msg" id="rematch-cd-msg">¡Nueva partida!</div>
         <div class="rematch-cd-num" id="rematch-cd-num">3</div>
+    </div>
+
+    <!-- MODAL SUGERENCIA PANTALLA COMPLETA -->
+    <div id="modal-fullscreen-suggestion">
+        <div class="fs-box">
+            <div class="fs-icon" id="fs-suggestion-icon">🎮</div>
+            <div class="fs-title" id="fs-suggestion-title">¿Pantalla completa?</div>
+            <div class="fs-msg" id="fs-suggestion-msg">Arrastraste hasta el límite. ¿Quieres ver el juego en pantalla completa?</div>
+            <div class="fs-buttons">
+                <button class="fs-btn-ok" id="fs-btn-accept">✅ Sí, ver completo</button>
+                <button class="fs-btn-cancel" id="fs-btn-cancel">No</button>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL SALA ELIMINADA -->
@@ -6679,6 +6737,9 @@ window.cerrarJuegoWindow = function() {
                     if (!document.getElementById('modal-win').classList.contains('active')) {
                         mostrarGanadorFinalStop();
                     }
+                    // Asegurar que el signal listener siga activo tras mostrar el modal,
+                    // para poder recibir el player_exit_cd del emisor inmediatamente.
+                    _tttAttachSignalListener();
                     break;
 
                 // ── Revancha Quiz ──
@@ -7574,9 +7635,10 @@ window.cerrarJuegoWindow = function() {
             const modoRondas   = stopGameState.modoRondas;
             const esUltimaRonda = modoRondas && stopGameState.rondaActual >= stopGameState.totalRondas;
 
-            // Si es la última ronda y ambos ya calificaron → el último en calificar
-            // dispara el modal ganador en tiempo real para ambos jugadores
-            if (ambosCalif && esUltimaRonda) {
+            // Si ambos calificaron y es la última ronda (o modo libre sin premios) →
+            // el último en calificar dispara el modal ganador en tiempo real para ambos.
+            const esFinDePartida = ambosCalif && (esUltimaRonda || (!modoRondas));
+            if (esFinDePartida) {
                 // Acumular puntajes de esta ronda
                 _detachStopCalifListener();
                 if (_stopMarcadoListener) { _stopMarcadoListener(); _stopMarcadoListener = null; }
@@ -7803,9 +7865,7 @@ window.cerrarJuegoWindow = function() {
             _chatEl.style.top = '';
             if (window._splitDividerHide) window._splitDividerHide();
             document.getElementById('stopScoreboard').classList.remove('visible');
-            if (stopGameState) {
-                stopGameState.historicoTotal = { [usuarioActual]: 0, 'Oponente': 0 };
-            }
+            // historicoTotal NO se resetea al salir — se conserva entre partidas para acumulación sin premios
             premiosJuego.tictactoe.mi = null; premiosJuego.tictactoe.oponente = null;
             premiosJuego.stop.mi = null; premiosJuego.stop.oponente = null;
             premiosJuego.quiz.mi = null; premiosJuego.quiz.oponente = null;
@@ -8473,6 +8533,13 @@ window.cerrarJuegoWindow = function() {
                 });
                 setFirebaseStatus(true);
                 renderSalas();
+                // Si el usuario está dentro de una sala y esa sala ya no existe → modal rojo
+                if (salaActualKey) {
+                    const salaAunExiste = salas.some(s => s._key === salaActualKey);
+                    if (!salaAunExiste) {
+                        _mostrarModalSalaEliminada();
+                    }
+                }
                 hideLoading();
             }, (error) => {
                 setFirebaseStatus(false);
@@ -8615,6 +8682,7 @@ window.cerrarJuegoWindow = function() {
             const divider = document.getElementById('split-divider');
             const MIN_GAME_PCT = 25;   // mínimo 25% para el juego
             const MAX_GAME_PCT = 75;   // máximo 75% para el juego
+            let _fsSuggestionPending = false; // evitar doble modal
 
             let dragging = false;
             let startY = 0;
@@ -8632,7 +8700,6 @@ window.cerrarJuegoWindow = function() {
                 const gw = document.querySelector('.game-window.jugando');
                 const ch = document.getElementById('pantalla-chat');
                 if (!gw || !ch) return;
-                // Aplicar alturas con !important via style (override el CSS fijo)
                 gw.style.cssText = gw.style.cssText
                     .replace(/height:[^;]*/g,'')
                     .replace(/top:[^;]*/g,'');
@@ -8642,6 +8709,86 @@ window.cerrarJuegoWindow = function() {
                 ch.style.setProperty('height', (100 - pct) + 'dvh', 'important');
                 divider.style.top = 'calc(' + pct + 'vh - 9px)';
                 window._splitPct = pct;
+            }
+
+            function applyFullGame() {
+                // Juego ocupa toda la pantalla, chat se oculta
+                const gw = document.querySelector('.game-window.jugando');
+                const ch = document.getElementById('pantalla-chat');
+                if (!gw || !ch) return;
+                gw.style.setProperty('height', '100vh', 'important');
+                gw.style.setProperty('top', '0', 'important');
+                ch.style.setProperty('top', '100vh', 'important');
+                ch.style.setProperty('height', '0', 'important');
+                divider.style.top = 'calc(100vh - 9px)';
+                window._splitPct = 100;
+            }
+
+            function applyFullChat() {
+                // Chat ocupa toda la pantalla, juego se oculta
+                const gw = document.querySelector('.game-window.jugando');
+                const ch = document.getElementById('pantalla-chat');
+                if (!gw || !ch) return;
+                gw.style.setProperty('height', '0', 'important');
+                gw.style.setProperty('top', '0', 'important');
+                ch.style.setProperty('top', '0', 'important');
+                ch.style.setProperty('height', '100dvh', 'important');
+                divider.style.top = '-9px';
+                window._splitPct = 0;
+            }
+
+            function _mostrarSugerenciaFullscreen(haciaBajo) {
+                // haciaBajo=true → juego pantalla completa; false → chat pantalla completa
+                if (_fsSuggestionPending) return;
+                _fsSuggestionPending = true;
+                const modal = document.getElementById('modal-fullscreen-suggestion');
+                const icon  = document.getElementById('fs-suggestion-icon');
+                const title = document.getElementById('fs-suggestion-title');
+                const msg   = document.getElementById('fs-suggestion-msg');
+                const btnOk = document.getElementById('fs-btn-accept');
+                const btnNo = document.getElementById('fs-btn-cancel');
+
+                if (haciaBajo) {
+                    icon.textContent  = '🎮';
+                    title.textContent = '¿Juego en pantalla completa?';
+                    msg.textContent   = 'Arrastraste hasta abajo. ¿Ver el juego en pantalla completa?';
+                    btnOk.textContent = '🎮 Sí, juego completo';
+                } else {
+                    icon.textContent  = '💬';
+                    title.textContent = '¿Chat en pantalla completa?';
+                    msg.textContent   = 'Arrastraste hasta arriba. ¿Ver el chat en pantalla completa?';
+                    btnOk.textContent = '💬 Sí, chat completo';
+                }
+
+                modal.classList.add('active');
+
+                function cerrar() {
+                    modal.classList.remove('active');
+                    _fsSuggestionPending = false;
+                    // Restaurar al valor límite normal si cancela
+                    applySplit(haciaBajo ? MAX_GAME_PCT : MIN_GAME_PCT);
+                }
+
+                btnOk.onclick = function() {
+                    modal.classList.remove('active');
+                    _fsSuggestionPending = false;
+                    if (haciaBajo) applyFullGame();
+                    else           applyFullChat();
+                };
+                btnNo.onclick = cerrar;
+                // Cerrar al pulsar fuera del box
+                modal.onclick = function(e) {
+                    if (e.target === modal) cerrar();
+                };
+            }
+
+            function onDragEnd(rawPct) {
+                // Si el usuario arrastró más allá de los límites → modal
+                if (rawPct > MAX_GAME_PCT && !_fsSuggestionPending) {
+                    _mostrarSugerenciaFullscreen(true);
+                } else if (rawPct < MIN_GAME_PCT && !_fsSuggestionPending) {
+                    _mostrarSugerenciaFullscreen(false);
+                }
             }
 
             function showDivider() {
@@ -8654,16 +8801,17 @@ window.cerrarJuegoWindow = function() {
                 window._splitPct = 50;
             }
 
-            // Exponer para que se llame al entrar/salir del modo split
             window._splitDividerShow = showDivider;
             window._splitDividerHide = hideDivider;
             window._splitDividerApply = applySplit;
 
             // Touch events
+            let _rawDragPct = 50;
             divider.addEventListener('touchstart', (e) => {
                 dragging = true;
                 startY = e.touches[0].clientY;
                 startPct = getSplitPct();
+                _rawDragPct = startPct;
                 divider.classList.add('dragging');
                 e.preventDefault();
             }, { passive: false });
@@ -8673,13 +8821,17 @@ window.cerrarJuegoWindow = function() {
                 const dy = e.touches[0].clientY - startY;
                 const screenH = window.innerHeight || screen.height;
                 const deltaPct = (dy / screenH) * 100;
-                applySplit(startPct + deltaPct);
+                _rawDragPct = startPct + deltaPct;
+                applySplit(_rawDragPct);
                 e.preventDefault();
             }, { passive: false });
 
             document.addEventListener('touchend', () => {
-                dragging = false;
-                divider.classList.remove('dragging');
+                if (dragging) {
+                    dragging = false;
+                    divider.classList.remove('dragging');
+                    onDragEnd(_rawDragPct);
+                }
             });
 
             // Mouse events (para desktop)
@@ -8687,6 +8839,7 @@ window.cerrarJuegoWindow = function() {
                 dragging = true;
                 startY = e.clientY;
                 startPct = getSplitPct();
+                _rawDragPct = startPct;
                 divider.classList.add('dragging');
                 e.preventDefault();
             });
@@ -8696,12 +8849,16 @@ window.cerrarJuegoWindow = function() {
                 const dy = e.clientY - startY;
                 const screenH = window.innerHeight || screen.height;
                 const deltaPct = (dy / screenH) * 100;
-                applySplit(startPct + deltaPct);
+                _rawDragPct = startPct + deltaPct;
+                applySplit(_rawDragPct);
             });
 
             document.addEventListener('mouseup', () => {
-                dragging = false;
-                divider.classList.remove('dragging');
+                if (dragging) {
+                    dragging = false;
+                    divider.classList.remove('dragging');
+                    onDragEnd(_rawDragPct);
+                }
             });
         })();
 
