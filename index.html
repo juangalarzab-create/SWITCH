@@ -2147,6 +2147,67 @@
             color: #cc3300;
             text-shadow: 0 0 16px rgba(204,51,0,0.7);
         }
+
+        /* ── Modal Sala Eliminada ── */
+        #modal-sala-eliminada {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0,0,0,0.75);
+            align-items: center;
+            justify-content: center;
+        }
+        #modal-sala-eliminada.active { display: flex; }
+        #modal-sala-eliminada .sala-elim-box {
+            background: linear-gradient(135deg, #1a0000 0%, #3a0000 100%);
+            border: 3px solid #ff1a1a;
+            border-radius: 22px;
+            padding: 36px 40px;
+            text-align: center;
+            max-width: 340px;
+            width: 88%;
+            box-shadow: 0 0 60px rgba(255,26,26,0.7), 0 0 120px rgba(255,26,26,0.25);
+            animation: salaElimPop 0.35s cubic-bezier(.175,.885,.32,1.275);
+        }
+        @keyframes salaElimPop {
+            from { transform: scale(0.6); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+        #modal-sala-eliminada .sala-elim-icon {
+            font-size: 52px;
+            margin-bottom: 10px;
+            animation: salaElimShake 0.5s ease-in-out;
+        }
+        @keyframes salaElimShake {
+            0%,100% { transform: rotate(0deg); }
+            20% { transform: rotate(-10deg); }
+            40% { transform: rotate(10deg); }
+            60% { transform: rotate(-8deg); }
+            80% { transform: rotate(8deg); }
+        }
+        #modal-sala-eliminada .sala-elim-title {
+            font-size: 26px;
+            font-weight: 900;
+            color: #ff3333;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 20px rgba(255,51,51,0.8);
+            margin-bottom: 10px;
+        }
+        #modal-sala-eliminada .sala-elim-msg {
+            font-size: 14px;
+            color: #ffaaaa;
+            margin-bottom: 18px;
+        }
+        #modal-sala-eliminada .sala-elim-counter {
+            font-size: 48px;
+            font-weight: 900;
+            color: #ff1a1a;
+            text-shadow: 0 0 24px rgba(255,26,26,0.9);
+            line-height: 1;
+            animation: cdPulse 1s ease-in-out infinite;
+        }
         @keyframes cdPulse {
             0%,100% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.12); opacity: 0.85; }
@@ -3924,6 +3985,16 @@
         <div class="rematch-cd-num" id="rematch-cd-num">3</div>
     </div>
 
+    <!-- MODAL SALA ELIMINADA -->
+    <div id="modal-sala-eliminada">
+        <div class="sala-elim-box">
+            <div class="sala-elim-icon">🗑️</div>
+            <div class="sala-elim-title">Sala Eliminada</div>
+            <div class="sala-elim-msg">Esta sala ha sido eliminada.<br>Serás redirigido al inicio.</div>
+            <div class="sala-elim-counter" id="sala-elim-counter">2</div>
+        </div>
+    </div>
+
     <!-- MODAL GANAR TICTACTOE / STOP (con premio y confeti) -->
     <div class="modal-win" id="modal-win">
         <div class="win-trophy" id="win-trophy">🏆</div>
@@ -4321,18 +4392,38 @@ function escucharSalas() {
         setFirebaseStatus(true);
         renderSalas();
 
-        // Si el usuario está dentro de una sala y esa sala ya no existe → volver al inicio EN TIEMPO REAL
+        // Si el usuario está dentro de una sala y esa sala ya no existe → modal rojo + volver al inicio
         if (salaActualKey) {
             const salaAunExiste = salas.some(s => s._key === salaActualKey);
             if (!salaAunExiste) {
-                showToast('🗑️ La sala fue eliminada');
-                irInicio(); // sin delay — todos los usuarios salen al instante
+                _mostrarModalSalaEliminada();
             }
         }
     }, (error) => {
         setFirebaseStatus(false);
         console.error('Firebase error:', error);
     });
+}
+
+let _salaElimTimer = null;
+function _mostrarModalSalaEliminada() {
+    // Evitar mostrar el modal más de una vez si Firebase dispara varias veces
+    if (_salaElimTimer) return;
+    const modal = document.getElementById('modal-sala-eliminada');
+    const counter = document.getElementById('sala-elim-counter');
+    modal.classList.add('active');
+    let secs = 2;
+    counter.textContent = secs;
+    _salaElimTimer = setInterval(() => {
+        secs--;
+        counter.textContent = secs;
+        if (secs <= 0) {
+            clearInterval(_salaElimTimer);
+            _salaElimTimer = null;
+            modal.classList.remove('active');
+            irInicio();
+        }
+    }, 1000);
 }
 
 window.renderSalas = function() {
@@ -6583,8 +6674,11 @@ window.cerrarJuegoWindow = function() {
                     _stopMostrarCountdownRevanchaConPremio(nombre || 'Tu oponente');
                     break;
                 case 'stop_final_ganador':
-                    // El otro jugador ya calificó en la última ronda → mostrar modal ganador
-                    mostrarGanadorFinalStop();
+                    // El otro jugador terminó la partida (o auto-fin de rondas) → mostrar modal ganador
+                    // Si ya está activo el modal (el usuario también presionó terminar), ignorar.
+                    if (!document.getElementById('modal-win').classList.contains('active')) {
+                        mostrarGanadorFinalStop();
+                    }
                     break;
 
                 // ── Revancha Quiz ──
@@ -7293,6 +7387,8 @@ window.cerrarJuegoWindow = function() {
             stopGameState.miPuntajeRonda = 0;
             stopGameState.oponentePuntajeRonda = 0;
             actualizarScoreboard();
+            // Sincronizar al oponente: avisarle que la partida terminó para que también vea el modal final
+            _tttSendSignal('stop_final_ganador', {}).catch(() => {});
             mostrarGanadorFinalStop();
         }
 
