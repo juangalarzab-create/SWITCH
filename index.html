@@ -133,6 +133,15 @@
         .header h1 {
             color: #e0e0e0;
             font-size: 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        .header-logo-img {
+            height: 28px;
+            width: auto;
+            display: block;
+            object-fit: contain;
         }
 
         .header h1 i {
@@ -1087,25 +1096,63 @@
         .screen-chat.jugando .chat-header {
             flex-shrink: 0;
             display: flex;
-            padding: 6px 10px;
+            padding: 4px 8px;
+            min-height: 0;
         }
         .screen-chat.jugando .mensajes-area {
             flex: 1;
             min-height: 0;
             overflow-y: auto;
-            padding: 8px 12px;
+            padding: 4px 8px;
+        }
+        .screen-chat.jugando .mensajes-area .burbuja {
+            font-size: clamp(10px, 2.8vw, 13px);
+            padding: 5px 8px;
+        }
+        .screen-chat.jugando .mensajes-area .msg-content {
+            font-size: clamp(10px, 2.8vw, 13px);
+        }
+        .screen-chat.jugando .mensajes-area .msg-time {
+            font-size: 9px;
+        }
+        .screen-chat.jugando .mensajes-area .msg-sender {
+            font-size: 9px;
         }
         .screen-chat.jugando .emoji-bar {
             flex-shrink: 0;
-            padding: 3px 6px;
-            gap: 3px;
+            padding: 2px 4px;
+            gap: 2px;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
+            max-height: 32px;
+        }
+        .screen-chat.jugando .emoji-quick-btn {
+            width: 24px !important;
+            height: 24px !important;
+            min-width: 24px !important;
+            min-height: 24px !important;
+            font-size: 13px !important;
         }
         .screen-chat.jugando .input-area {
             flex-shrink: 0;
-            padding: 5px 8px;
-            gap: 5px;
+            padding: 4px 6px;
+            gap: 4px;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
+        }
+        .screen-chat.jugando .input-msg {
+            font-size: 12px;
+            padding: 6px 10px;
+            min-height: 0;
+            height: 32px;
+        }
+        .screen-chat.jugando .btn-enviar,
+        .screen-chat.jugando .btn-multimedia {
+            width: 32px !important;
+            height: 32px !important;
+            min-width: 32px !important;
+            min-height: 32px !important;
+            font-size: 14px !important;
         }
 
         /* ===== AJUSTES HORIZONTAL SPLIT: juego arriba (50vh), chat abajo (50vh) ===== */
@@ -1407,12 +1454,12 @@
         }
 
         .tictactoe-cell {
-            width: 60px;
-            height: 60px;
+            width: clamp(48px, 18vw, 90px);
+            height: clamp(48px, 18vw, 90px);
             background: rgba(42, 42, 82, 0.8);
             border: 1px solid #ddd;
             border-radius: 8px;
-            font-size: 24px;
+            font-size: clamp(18px, 5vw, 28px);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -1971,59 +2018,107 @@
             50% { transform: scale(1.12); opacity: 0.85; }
         }
 
-        /* ── Alerta vistosa de premio elegido ── */
+        /* ── Modal vistoso de premio elegido ── */
         #ttt-premio-alert {
             position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%) scale(0.7);
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border: 2px solid #ffd700;
-            border-radius: 20px;
-            padding: 28px 36px;
-            z-index: 1020;
-            text-align: center;
-            max-width: 320px;
-            width: 88%;
-            box-shadow: 0 0 50px rgba(255,215,0,0.5), 0 0 100px rgba(255,215,0,0.15);
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1025;
+            background: rgba(0,0,0,0.72);
             opacity: 0;
             pointer-events: none;
             transition: none;
         }
         #ttt-premio-alert.ttt-premio-alert-show {
-            animation: premioAlertaEntrar 0.4s cubic-bezier(.175,.885,.32,1.275) forwards;
+            animation: premioAlertaEntrar 0.35s cubic-bezier(.175,.885,.32,1.275) forwards;
+            pointer-events: all;
         }
         #ttt-premio-alert.ttt-premio-alert-hide {
-            animation: premioAlertaSalir 0.4s ease-in forwards;
+            animation: premioAlertaSalir 0.3s ease-in forwards;
+            pointer-events: none;
+        }
+        #ttt-premio-alert-inner {
+            background: linear-gradient(145deg, #1a1a3e 0%, #0f2027 60%, #1a1a2e 100%);
+            border: 3px solid #ffd700;
+            border-radius: 24px;
+            padding: 36px 32px 28px;
+            text-align: center;
+            max-width: 340px;
+            width: 88%;
+            box-shadow: 0 0 60px rgba(255,215,0,0.55), 0 0 120px rgba(255,215,0,0.18), 0 8px 32px rgba(0,0,0,0.6);
+            position: relative;
         }
         @keyframes premioAlertaEntrar {
-            0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-            100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            0%   { opacity: 0; transform: scale(0.7); }
+            100% { opacity: 1; transform: scale(1); }
         }
         @keyframes premioAlertaSalir {
-            0%   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            0%   { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.85); }
         }
         .ttt-premio-alert-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-            animation: premioIconoPulse 0.6s ease-in-out infinite alternate;
+            font-size: 58px;
+            margin-bottom: 8px;
+            display: block;
+            animation: premioIconoPulse 0.7s ease-in-out infinite alternate;
         }
         @keyframes premioIconoPulse {
-            0%   { transform: scale(1) rotate(-5deg); }
-            100% { transform: scale(1.15) rotate(5deg); }
+            0%   { transform: scale(1) rotate(-6deg); }
+            100% { transform: scale(1.18) rotate(6deg); }
+        }
+        .ttt-premio-alert-who {
+            color: #a0cfff;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            opacity: 0.9;
         }
         .ttt-premio-alert-title {
-            color: #e0e0e0;
-            font-size: 14px;
-            margin-bottom: 10px;
-            opacity: 0.85;
+            color: #ffffff;
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 14px;
         }
         .ttt-premio-alert-premio {
             color: #ffd700;
-            font-size: 22px;
+            font-size: 26px;
             font-weight: 900;
-            text-shadow: 0 0 12px rgba(255,215,0,0.6);
+            text-shadow: 0 0 18px rgba(255,215,0,0.75), 0 2px 8px rgba(0,0,0,0.5);
             letter-spacing: 0.5px;
+            margin-bottom: 22px;
+            padding: 10px 16px;
+            background: rgba(255,215,0,0.08);
+            border-radius: 12px;
+            border: 1px solid rgba(255,215,0,0.25);
+        }
+        .ttt-premio-alert-btn {
+            background: linear-gradient(135deg, #ffd700, #ffa500);
+            color: #1a1a2e;
+            border: none;
+            border-radius: 50px;
+            padding: 11px 40px;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 15px rgba(255,165,0,0.4);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .ttt-premio-alert-btn:active { transform: scale(0.96); }
+        .ttt-premio-alert-sparkle {
+            position: absolute;
+            top: -12px; right: -10px;
+            font-size: 28px;
+            animation: sparkleSpin 2s linear infinite;
+        }
+        @keyframes sparkleSpin {
+            0%   { transform: rotate(0deg) scale(1); }
+            50%  { transform: rotate(180deg) scale(1.2); }
+            100% { transform: rotate(360deg) scale(1); }
         }
 
         /* ── Modal de notificación de juego (revancha / salida / premio) ── */
@@ -2837,15 +2932,16 @@
                 gap: 4px;
             }
             .game-window.jugando .tictactoe-board {
-                max-width: 90% !important;
+                max-width: min(80vw, 38vh) !important;
                 margin-left: auto;
                 margin-right: auto;
+                gap: 3px !important;
             }
             .game-window.jugando .tictactoe-cell {
-                width: 100%;
-                height: auto;
+                width: clamp(36px, 11vw, 60px) !important;
+                height: clamp(36px, 11vw, 60px) !important;
                 aspect-ratio: 1 / 1;
-                font-size: 20px;
+                font-size: clamp(14px, 3.5vw, 22px) !important;
                 min-width: 0;
                 min-height: 0;
             }
@@ -3134,7 +3230,7 @@
     </div>
 
         <div class="header">
-            <h1><i class="fas fa-lightbulb"></i> SWITCH</h1>
+            <h1><img src="icons/switch-logo.png" alt="SWITCH" class="header-logo-img"></h1>
             <div class="header-divider"></div>
             <div class="header-chat-info" id="header-chat-info">
                 <div class="header-user-details">
@@ -4244,16 +4340,24 @@ function escucharMensajes() {
     const msgsRef = ref(db, `mensajes/${salaActualKey}`);
     mensajesListener = onValue(msgsRef, snapshot => {
         const container = document.getElementById('mensajes');
-        container.innerHTML = '';
 
         let lastKey = null;
         let lastMsg = null;
+        const allMsgs = [];
         snapshot.forEach(child => {
-            const msg  = child.val();
-            const html = buildMsgHTML(msg);
-            container.insertAdjacentHTML('beforeend', html);
+            allMsgs.push({ key: child.key, val: child.val() });
             lastKey = child.key;
-            lastMsg = msg;
+            lastMsg = child.val();
+        });
+
+        // Detectar si hay mensaje nuevo real (no la carga inicial)
+        const isNewMsg = !_primeraCarga && lastKey && lastKey !== _ultimoMsgKey && lastMsg;
+
+        // Re-renderizar todos; solo el último nuevo lleva _isNew para la animación
+        container.innerHTML = '';
+        allMsgs.forEach(({ key, val }) => {
+            const msgData = (isNewMsg && key === lastKey) ? { ...val, _isNew: true } : val;
+            container.insertAdjacentHTML('beforeend', buildMsgHTML(msgData));
         });
 
         // Detectar si hay mensaje nuevo (no en la primera carga, no es propio)
@@ -4311,7 +4415,8 @@ function buildMsgHTML(msg) {
         contenido = `<audio controls class="msg-audio"><source src="${msg.mediaUrl}" type="audio/ogg"></audio>`;
     } else {
         const soloEmoji = esSoloEmoji(msg.texto || '');
-        const emojiClass = soloEmoji ? ' emoji-solo' : '';
+        // La clase emoji-solo (con animación) solo se aplica si es el mensaje nuevo recién llegado
+        const emojiClass = (soloEmoji && msg._isNew) ? ' emoji-solo' : '';
         const emojiData  = soloEmoji ? ` data-emoji="${escapeHtml(msg.texto)}"` : '';
         contenido = `<div class="msg-content${emojiClass}"${emojiData}>${escapeHtml(msg.texto)}</div>`;
     }
@@ -6106,16 +6211,19 @@ window.cerrarJuegoWindow = function() {
                     break;
                 case 'prize_chosen':
                     const premio = payload.premio || '?';
-                    // Guardar el premio del oponente y actualizar lobby
                     premiosJuego.tictactoe.oponente = premio;
                     actualizarLobbyTicTacToe();
-                    // Mostrar alerta vistosa que se va sola en 3s
-                    _tttMostrarAlertaPremio(nombre, premio);
+                    _tttMostrarAlertaPremio(nombre, premio, false);
                     break;
                 case 'stop_prize_chosen':
                     premiosJuego.stop.oponente = payload.premio || '?';
                     actualizarLobbyStop();
-                    _tttMostrarAlertaPremio(nombre, payload.premio || '?');
+                    _tttMostrarAlertaPremio(nombre, payload.premio || '?', false);
+                    break;
+                case 'quiz_prize_chosen':
+                    premiosJuego.quiz.oponente = payload.premio || '?';
+                    actualizarLobbyQuiz();
+                    _tttMostrarAlertaPremio(nombre, payload.premio || '?', false);
                     break;
                 case 'left_games': // Legacy — tratar como exit countdown
                     _tttDetachListener();
@@ -6703,26 +6811,35 @@ window.cerrarJuegoWindow = function() {
             _tttMostrarCountdownRevancha(solicitante);
         }
 
-        function _tttMostrarAlertaPremio(nombreOp, premioElegido) {
-            // Crear o reutilizar el elemento de alerta de premio
+        function _tttMostrarAlertaPremio(nombreOp, premioElegido, esMiPremio) {
             let alerta = document.getElementById('ttt-premio-alert');
             if (!alerta) {
                 alerta = document.createElement('div');
                 alerta.id = 'ttt-premio-alert';
                 document.body.appendChild(alerta);
             }
+            if (alerta._autoHideTimer) { clearTimeout(alerta._autoHideTimer); alerta._autoHideTimer = null; }
+
+            const whoLabel = esMiPremio ? '¡Tu premio quedó guardado!' : `${nombreOp} eligió su premio`;
+            const iconoPrincipal = esMiPremio ? '✅' : '🎁';
+
             alerta.innerHTML = `
-                <div class="ttt-premio-alert-icon">🎁</div>
-                <div class="ttt-premio-alert-title">${nombreOp} eligió su premio</div>
-                <div class="ttt-premio-alert-premio">${premioElegido}</div>
+                <div id="ttt-premio-alert-inner">
+                    <span class="ttt-premio-alert-sparkle">✨</span>
+                    <span class="ttt-premio-alert-icon">${iconoPrincipal}</span>
+                    <div class="ttt-premio-alert-who">${esMiPremio ? capitalizarNombre(usuarioActual) : nombreOp}</div>
+                    <div class="ttt-premio-alert-title">${whoLabel}</div>
+                    <div class="ttt-premio-alert-premio">🎁 ${premioElegido}</div>
+                    <button class="ttt-premio-alert-btn" onclick="
+                        var a=document.getElementById('ttt-premio-alert');
+                        a.classList.remove('ttt-premio-alert-show');
+                        a.classList.add('ttt-premio-alert-hide');
+                    ">¡Entendido!</button>
+                </div>
             `;
             alerta.classList.remove('ttt-premio-alert-hide');
+            void alerta.offsetWidth; // reflow
             alerta.classList.add('ttt-premio-alert-show');
-            if (alerta._autoHideTimer) clearTimeout(alerta._autoHideTimer);
-            alerta._autoHideTimer = setTimeout(() => {
-                alerta.classList.remove('ttt-premio-alert-show');
-                alerta.classList.add('ttt-premio-alert-hide');
-            }, 3000);
         }
 
         // ===== PREMIOS =====
@@ -6775,7 +6892,7 @@ window.cerrarJuegoWindow = function() {
 
             document.getElementById('modal-premio').classList.remove('active');
 
-            // Notificar al oponente que elegimos premio (solo TicTacToe por ahora)
+            // Notificar al oponente que elegimos premio
             if (juegoSeleccionandoPremio === 'tictactoe') {
                 _tttSendSignal('prize_chosen', { premio: premioFinal });
                 actualizarLobbyTicTacToe();
@@ -6783,8 +6900,11 @@ window.cerrarJuegoWindow = function() {
                 _tttSendSignal('stop_prize_chosen', { premio: premioFinal });
                 actualizarLobbyStop();
             } else if (juegoSeleccionandoPremio === 'quiz') {
+                _tttSendSignal('quiz_prize_chosen', { premio: premioFinal });
                 actualizarLobbyQuiz();
             }
+            // Mostrar modal de confirmación al propio usuario
+            _tttMostrarAlertaPremio(capitalizarNombre(usuarioActual), premioFinal, true);
             juegoSeleccionandoPremio = null;
             premioOpcionSeleccionada = null;
         }
@@ -7786,6 +7906,8 @@ window.cerrarJuegoWindow = function() {
             if (_appIsInstalled()) {
                 _installBtn.classList.remove('show');
             } else {
+                // Mostrar siempre si no está instalada (Chrome mostrará prompt nativo,
+                // iOS mostrará las instrucciones visuales)
                 _installBtn.classList.add('show');
             }
         }
@@ -7797,27 +7919,64 @@ window.cerrarJuegoWindow = function() {
         });
 
         window.instalarPWA = async function() {
-            // iOS no soporta beforeinstallprompt: damos instrucciones
-            const ua = navigator.userAgent || '';
-            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-            if (!_deferredInstallPrompt) {
-                if (isIOS) {
-                    alert('Para instalar en iPhone/iPad:\n\n1) Toca el botón Compartir (cuadrado con flecha hacia arriba)\n2) Elige "Agregar a pantalla de inicio"');
-                } else {
-                    alert('Para instalar la app:\n\n• En Chrome/Edge Android: menú ⋮ → "Instalar aplicación" o "Agregar a pantalla de inicio".\n• En PC: ícono de instalar a la derecha de la barra de direcciones.');
+            if (_deferredInstallPrompt) {
+                // Chrome/Edge Android/Desktop: instalación nativa directa
+                try {
+                    _deferredInstallPrompt.prompt();
+                    const choice = await _deferredInstallPrompt.userChoice;
+                    if (choice && choice.outcome === 'accepted') {
+                        if (_installBtn) _installBtn.classList.remove('show');
+                    }
+                    _deferredInstallPrompt = null;
+                } catch (err) {
+                    console.warn('[PWA] install error:', err);
                 }
                 return;
             }
-            try {
-                _deferredInstallPrompt.prompt();
-                const choice = await _deferredInstallPrompt.userChoice;
-                if (choice && choice.outcome === 'accepted') {
-                    if (_installBtn) _installBtn.classList.remove('show');
-                }
-                _deferredInstallPrompt = null;
-            } catch (err) {
-                console.warn('[PWA] install error:', err);
+
+            // Fallback: instrucciones visuales según plataforma
+            const ua = navigator.userAgent || '';
+            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+
+            let modalEl = document.getElementById('pwa-install-guide-modal');
+            if (!modalEl) {
+                modalEl = document.createElement('div');
+                modalEl.id = 'pwa-install-guide-modal';
+                modalEl.style.cssText = `
+                    position:fixed;inset:0;z-index:9999;
+                    background:rgba(0,0,0,0.82);
+                    display:flex;align-items:center;justify-content:center;
+                `;
+                document.body.appendChild(modalEl);
             }
+
+            const steps = isIOS
+                ? `<div style="margin:10px 0;font-size:15px;line-height:1.7;color:#e0e0e0;">
+                    <div style="margin-bottom:8px;">1️⃣ Toca <b style="color:#0af">Compartir</b> <span style="font-size:18px">⬆️</span> en Safari</div>
+                    <div>2️⃣ Elige <b style="color:#0af">"Agregar a pantalla de inicio"</b> 📲</div>
+                   </div>`
+                : `<div style="margin:10px 0;font-size:15px;line-height:1.7;color:#e0e0e0;">
+                    <div style="margin-bottom:8px;">1️⃣ En Chrome: toca el menú <b style="color:#0af">⋮</b></div>
+                    <div>2️⃣ Elige <b style="color:#0af">"Instalar aplicación"</b> 📲</div>
+                   </div>`;
+
+            modalEl.innerHTML = `
+                <div style="background:#1a1a2e;border:2px solid #0088cc;border-radius:20px;
+                            padding:28px 24px;max-width:320px;width:88%;text-align:center;
+                            box-shadow:0 0 40px rgba(0,136,204,0.4);">
+                    <div style="font-size:44px;margin-bottom:8px;">📲</div>
+                    <div style="color:#fff;font-size:18px;font-weight:800;margin-bottom:4px;">Instalar SWITCH</div>
+                    <div style="color:#888;font-size:12px;margin-bottom:16px;">Agrega la app a tu pantalla de inicio</div>
+                    ${steps}
+                    <button onclick="document.getElementById('pwa-install-guide-modal').style.display='none'"
+                        style="margin-top:16px;background:linear-gradient(135deg,#0088cc,#0055aa);
+                               color:#fff;border:none;border-radius:50px;padding:11px 36px;
+                               font-size:15px;font-weight:700;cursor:pointer;">
+                        Entendido
+                    </button>
+                </div>
+            `;
+            modalEl.style.display = 'flex';
         };
 
         window.addEventListener('appinstalled', () => {
