@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <title>SWITCH - Chat Grupos</title>
+    <!-- Capturar beforeinstallprompt lo antes posible -->
+    <script>
+        window._deferredPWAPrompt = null;
+        window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window._deferredPWAPrompt = e;
+            console.log('[PWA] prompt listo para instalar');
+        });
+    </script>
 
     <!-- PWA / Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -3575,6 +3584,12 @@
             <!-- VISTA DE CALIFICACION (NUEVA) -->
             <div id="stop-calificacion" class="stop-calificacion-container">
                 <div class="result-title">CALIFICACIÓN</div>
+                <!-- Premios en juego (visible solo en modo rondas) -->
+                <div id="stop-calif-premios" style="display:none;text-align:center;margin-bottom:8px;padding:6px 10px;background:rgba(255,215,0,0.08);border-radius:10px;border:1px solid rgba(255,215,0,0.2);">
+                    <span id="stop-calif-mi-premio" style="color:#ffd700;font-size:12px;font-weight:700;"></span>
+                    <span style="color:#888;margin:0 8px;">|</span>
+                    <span id="stop-calif-op-premio" style="color:#a0cfff;font-size:12px;font-weight:700;"></span>
+                </div>
                 <div class="calif-letra">Letra:<span class="calif-letra-valor" id="califLetraValor">?</span></div>
                 <div class="calif-aviso">
                     🔒 Los espacios están bloqueados para ambos jugadores.<br>
@@ -3623,7 +3638,7 @@
                     <button class="btn-calificar" onclick="calificarOponente()">Calificar</button>
                 </div>
 
-                <button class="btn-begin" onclick="pedirRevanchaStop()" style="margin-top: 8px;">Jugar de Nuevo</button>
+                <button class="btn-begin" id="btn-siguiente-ronda-calif" onclick="accionSiguienteRondaORevancha()" style="margin-top: 8px;" disabled>Jugar de Nuevo</button>
             </div>
 
             <!-- VISTA DE RESULTADOS -->
@@ -3659,7 +3674,7 @@
                     </div>
                 </div>
                 
-                <button class="btn-begin" onclick="pedirRevanchaStop()" style="margin-top: 16px;">Jugar de Nuevo</button>
+                <button class="btn-begin" id="btn-siguiente-ronda-result" onclick="accionSiguienteRondaORevancha()" style="margin-top: 16px;" disabled>Jugar de Nuevo</button>
                 <button class="btn-begin" onclick="terminarPartidaStop()" style="margin-top: 10px; background: linear-gradient(135deg, #ffd700, #ffa500); color: #1e1e3f;">🏆 Terminar partida</button>
             </div>
         </div>
@@ -5671,6 +5686,14 @@ window.cerrarJuegoWindow = function() {
             // Cambiar de vista de juego a vista de calificación
             document.getElementById('stop-juego').classList.remove('active');
             document.getElementById('stop-calificacion').classList.add('active');
+            // Resetear botones a desactivado al iniciar nueva calificación
+            ['btn-siguiente-ronda-calif','btn-siguiente-ronda-result'].forEach(id => {
+                const b = document.getElementById(id); if (!b) return;
+                b.disabled = true; b.style.opacity='0.45'; b.style.cursor='not-allowed';
+            });
+            document.getElementById('miPuntajeCalif').textContent = '—';
+            document.getElementById('oponentePuntajeCalif').textContent = '—';
+            _actualizarBotonesCalificacion();
 
             // Mostrar la letra que salió en el aleatorio
             document.getElementById('califLetraValor').textContent = stopGameState.currentLetter;
@@ -5848,6 +5871,8 @@ window.cerrarJuegoWindow = function() {
                 calificadoPor: usuarioActual,
                 ts: Date.now()
             }).catch(() => {});
+            // Activar botón si el oponente ya había publicado su puntaje
+            _onCalificacionActualizada();
         }
 
         // Listener Firebase para recibir el veredicto FINAL del oponente (puntaje real)
@@ -5863,6 +5888,8 @@ window.cerrarJuegoWindow = function() {
                 if (!data.calificadoPor) return;
                 stopGameState.miPuntajeRonda = data.puntaje;
                 document.getElementById('miPuntajeCalif').textContent = data.puntaje;
+                // Activar botón si yo ya califiqué al oponente
+                _onCalificacionActualizada();
             });
         }
 
@@ -6337,6 +6364,12 @@ window.cerrarJuegoWindow = function() {
                 case 'stop_jugar_nuevo':
                     // El oponente quiere jugar de nuevo → countdown 3s en ambos
                     _stopMostrarCountdownJugarNuevo((payload && payload.nombre) ? payload.nombre : nombre);
+                    break;
+                case 'stop_siguiente_ronda':
+                    // El oponente inicia la siguiente ronda → countdown 3s
+                    document.getElementById('stop-calificacion').classList.remove('active');
+                    document.getElementById('stop-resultados').classList.remove('active');
+                    _stopMostrarCountdownSiguienteRonda((payload && payload.nombre) ? payload.nombre : nombre);
                     break;
                 case 'stop_rematch_request':
                     if (document.getElementById('modal-game-notify').classList.contains('active')) {
@@ -7160,18 +7193,30 @@ window.cerrarJuegoWindow = function() {
                 lanzarConfetti();
             }
 
-            // Configurar botones:
-            // - Siempre mostrar "Jugar de nuevo" (con countdown 3s, igual que TicTacToe libre)
-            // - Si hay premio con modo rondas → "Siguiente ronda" con countdown
-            // - "Salir" siempre visible
+            // Configurar botones del modal final
             const btnPlay = document.getElementById('btn-play-again-win');
             btnPlay.style.display = '';
-            btnPlay.textContent = '🔄 Jugar de nuevo';
-            btnPlay.onclick = pedirRevanchaStop;
 
-            // El botón "Salir" del modal debe volver al menú de juegos (no cerrar la plataforma)
+            if (hayPremio) {
+                // Modo rondas con premio: "Revancha" vuelve al lobby a elegir premios
+                btnPlay.textContent = '🎁 Revancha';
+                btnPlay.onclick = function() {
+                    document.getElementById('modal-win').classList.remove('active');
+                    // Resetear premios y volver al lobby de stop
+                    premiosJuego.stop.mi = null;
+                    premiosJuego.stop.oponente = null;
+                    _stopResetCompleto();
+                    mostrarStop();
+                };
+            } else {
+                btnPlay.textContent = '🔄 Jugar de nuevo';
+                btnPlay.onclick = pedirRevanchaStop;
+            }
+
+            // Botón Salir
             const btnExit = document.querySelector('#modal-win .btn-exit');
             if (btnExit) {
+                btnExit.textContent = '🚪 Salir';
                 btnExit.onclick = salirAlMenuJuegos;
             }
 
@@ -7203,6 +7248,98 @@ window.cerrarJuegoWindow = function() {
         function _getNombreOponente() {
             return typeof nombreOponente === 'function' ? nombreOponente() : 'el oponente';
         }
+
+        // ── Controla el botón Siguiente Ronda / Jugar de Nuevo ──
+        function _actualizarBotonesCalificacion() {
+            const miPuntaje    = document.getElementById('miPuntajeCalif').textContent;
+            const opPuntaje    = document.getElementById('oponentePuntajeCalif').textContent;
+            const ambosCalif   = (miPuntaje !== '—') && (opPuntaje !== '—');
+            const modoRondas   = stopGameState.modoRondas;
+            const esUltimaRonda = modoRondas && stopGameState.rondaActual >= stopGameState.totalRondas;
+
+            // Texto del botón
+            let texto;
+            if (modoRondas && !esUltimaRonda) {
+                texto = '▶ Siguiente Ronda';
+            } else {
+                texto = '🔄 Jugar de Nuevo';
+            }
+
+            // Mostrar premios en la cabecera de calificación
+            const premiosDiv = document.getElementById('stop-calif-premios');
+            const miPremio   = premiosJuego.stop.mi;
+            const opPremio   = premiosJuego.stop.oponente;
+            if (modoRondas && (miPremio || opPremio)) {
+                premiosDiv.style.display = 'block';
+                const yo = capitalizarNombre(usuarioActual);
+                const op = nombreOponente();
+                document.getElementById('stop-calif-mi-premio').textContent =
+                    `🎁 ${yo}: ${miPremio || 'sin premio'}`;
+                document.getElementById('stop-calif-op-premio').textContent =
+                    `🎁 ${op}: ${opPremio || 'sin premio'}`;
+            } else {
+                premiosDiv.style.display = 'none';
+            }
+
+            ['btn-siguiente-ronda-calif','btn-siguiente-ronda-result'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.textContent = texto;
+                btn.disabled = !ambosCalif;
+                btn.style.opacity = ambosCalif ? '1' : '0.45';
+                btn.style.cursor  = ambosCalif ? 'pointer' : 'not-allowed';
+            });
+        }
+
+        // Llamada desde el signal cuando el OPONENTE publica su veredicto (ya calificó)
+        // y desde calificarOponente() cuando YO califico
+        function _onCalificacionActualizada() {
+            _actualizarBotonesCalificacion();
+        }
+
+        // ── Acción del botón: Siguiente Ronda o Jugar de Nuevo ──
+        async function accionSiguienteRondaORevancha() {
+            const modoRondas   = stopGameState.modoRondas;
+            const esUltimaRonda = modoRondas && stopGameState.rondaActual >= stopGameState.totalRondas;
+
+            if (modoRondas && !esUltimaRonda) {
+                // ── SIGUIENTE RONDA: countdown 3s en ambos simultáneamente ──
+                // El que aprieta primero manda el signal, el otro recibe el countdown
+                document.getElementById('stop-calificacion').classList.remove('active');
+                document.getElementById('stop-resultados').classList.remove('active');
+                const solicitante = capitalizarNombre(usuarioActual);
+                await _tttSendSignal('stop_siguiente_ronda', { nombre: solicitante });
+                _stopMostrarCountdownSiguienteRonda(solicitante);
+            } else {
+                // ── JUGAR DE NUEVO / REVANCHA ──
+                await pedirRevanchaStop();
+            }
+        }
+        window.accionSiguienteRondaORevancha = accionSiguienteRondaORevancha;
+
+        // Countdown 3s "Pasando a Siguiente Ronda"
+        function _stopMostrarCountdownSiguienteRonda(nombre) {
+            if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
+            const modal = document.getElementById('modal-rematch-cd');
+            const msgEl = document.getElementById('modal-rematch-cd-msg');
+            const numEl = document.getElementById('modal-rematch-cd-num');
+            if (!modal || !msgEl || !numEl) { volverAlJuegoStop(); return; }
+
+            msgEl.textContent = `${nombre} inicia la siguiente ronda`;
+            modal.classList.add('active');
+            let secs = 3;
+            numEl.textContent = secs;
+            _tttCdTimer = setInterval(() => {
+                secs--;
+                numEl.textContent = secs;
+                if (secs <= 0) {
+                    clearInterval(_tttCdTimer); _tttCdTimer = null;
+                    modal.classList.remove('active');
+                    volverAlJuegoStop();
+                }
+            }, 1000);
+        }
+
 
         function _stopMostrarCountdownJugarNuevo(nombre) {
             if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
@@ -8021,15 +8158,21 @@ window.cerrarJuegoWindow = function() {
             e.preventDefault();
             _deferredInstallPrompt = e;
             _mostrarBotonInstalarSiAplica();
-            console.log('[PWA] beforeinstallprompt capturado ✓');
+            // Cambiar ícono del botón para indicar que el prompt está listo
+            if (_installBtn) {
+                _installBtn.title = 'Instalar SWITCH como app';
+                _installBtn.style.background = 'linear-gradient(135deg,#00c853,#009624)';
+            }
+            console.log('[PWA] ✓ beforeinstallprompt capturado — instalación nativa disponible');
         });
 
         window.instalarPWA = async function() {
-            // CASO 1: Chrome Android/Desktop — prompt nativo disponible
-            if (_deferredInstallPrompt) {
+            // CASO 1: Chrome Android/Desktop — prompt nativo disponible (de cualquiera de los dos captores)
+            const prompt = _deferredInstallPrompt || window._deferredPWAPrompt;
+            if (prompt) {
                 try {
-                    await _deferredInstallPrompt.prompt();
-                    const { outcome } = await _deferredInstallPrompt.userChoice;
+                    await prompt.prompt();
+                    const { outcome } = await prompt.userChoice;
                     console.log('[PWA] userChoice:', outcome);
                     if (outcome === 'accepted') {
                         if (_installBtn) _installBtn.classList.remove('show');
@@ -8038,6 +8181,7 @@ window.cerrarJuegoWindow = function() {
                     console.warn('[PWA] prompt error:', err);
                 }
                 _deferredInstallPrompt = null;
+                window._deferredPWAPrompt = null;
                 return;
             }
 
