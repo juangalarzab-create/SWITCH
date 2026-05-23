@@ -2,12 +2,12 @@
   "name": "SWITCH - Chat Grupos",
   "short_name": "SWITCH",
   "description": "Chat grupal en tiempo real con notificaciones push",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#121212",
-  "theme_color": "#121212",
+  "theme_color": "#0088cc",
   "lang": "es",
   "dir": "ltr",
   "icons": [
@@ -36,10 +36,5 @@
       "purpose": "maskable"
     }
   ],
-  "gcm_sender_id": "103953800507",
-  "display_override": [
-    "fullscreen",
-    "standalone",
-    "minimal-ui"
-  ]
+  "gcm_sender_id": "103953800507"
 }
