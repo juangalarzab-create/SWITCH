@@ -3276,11 +3276,13 @@
             display: none !important;
         }
 
-        /* ===== LLUVIA DE EMOJIS ===== */
-        @keyframes emojiRainFall {
-            0%   { transform: translateY(-60px) rotate(0deg) scale(1); opacity: 1; }
-            80%  { opacity: 1; }
-            100% { transform: translateY(110vh) rotate(360deg) scale(0.7); opacity: 0; }
+        /* ===== LLUVIA DE EMOJIS (efecto palomitas) ===== */
+        @keyframes emojiPopcorn {
+            0%   { transform: translateY(0) translateX(0) scale(0.4) rotate(0deg); opacity: 0; }
+            15%  { opacity: 1; }
+            40%  { transform: translateY(var(--peak)) translateX(var(--drift)) scale(1.1) rotate(var(--spin)); opacity: 1; }
+            70%  { opacity: 0.5; }
+            100% { transform: translateY(20px) translateX(var(--drift2)) scale(0.6) rotate(var(--spin2)); opacity: 0; }
         }
         @keyframes emojiBigToSmall {
             0%   { transform: scale(0) translateY(0); opacity: 0; }
@@ -3290,19 +3292,20 @@
         }
         .emoji-rain-container {
             position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
+            bottom: 0; left: 0;
+            width: 100vw; height: 55vh;
             pointer-events: none;
             z-index: 9999;
             overflow: hidden;
         }
         .emoji-rain-drop {
             position: absolute;
-            top: -60px;
+            bottom: 0;
             font-size: 28px;
-            animation: emojiRainFall linear forwards;
+            animation: emojiPopcorn ease-out forwards;
             user-select: none;
             pointer-events: none;
+            opacity: 0;
         }
         .msg-content.emoji-solo {
             animation: emojiBigToSmall 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards;
@@ -4318,12 +4321,12 @@ function escucharSalas() {
         setFirebaseStatus(true);
         renderSalas();
 
-        // Si el usuario está dentro de una sala y esa sala ya no existe → volver al inicio
+        // Si el usuario está dentro de una sala y esa sala ya no existe → volver al inicio EN TIEMPO REAL
         if (salaActualKey) {
             const salaAunExiste = salas.some(s => s._key === salaActualKey);
             if (!salaAunExiste) {
                 showToast('🗑️ La sala fue eliminada');
-                setTimeout(() => irInicio(), 800);
+                irInicio(); // sin delay — todos los usuarios salen al instante
             }
         }
     }, (error) => {
@@ -4629,23 +4632,38 @@ function lanzarLluviaEmoji(emoji) {
     const container = document.createElement('div');
     container.className = 'emoji-rain-container';
     document.body.appendChild(container);
-    const cantidad = 18;
+    const cantidad = 14;
     for (let i = 0; i < cantidad; i++) {
         const drop = document.createElement('div');
         drop.className = 'emoji-rain-drop';
         drop.textContent = emoji;
-        drop.style.left = (Math.random() * 100) + 'vw';
-        const dur = (1.8 + Math.random() * 2.2).toFixed(2);
-        const delay = (Math.random() * 1.5).toFixed(2);
-        const size = (20 + Math.random() * 22).toFixed(0);
+        // posición horizontal aleatoria
+        drop.style.left = (5 + Math.random() * 90) + 'vw';
+        // duración lenta: entre 1.4s y 2.2s
+        const dur = (1.4 + Math.random() * 0.8).toFixed(2);
+        // delay escalonado para efecto palomitas
+        const delay = (i * 0.12 + Math.random() * 0.2).toFixed(2);
+        const size = (22 + Math.random() * 16).toFixed(0);
+        // altura del salto: entre -30vh y -50vh (hacia arriba desde abajo)
+        const peak = -(30 + Math.random() * 20).toFixed(0) + 'vh';
+        // desplazamiento lateral
+        const drift  = ((Math.random() - 0.5) * 60).toFixed(0) + 'px';
+        const drift2 = ((Math.random() - 0.5) * 80).toFixed(0) + 'px';
+        const spin   = ((Math.random() - 0.5) * 120).toFixed(0) + 'deg';
+        const spin2  = ((Math.random() - 0.5) * 200).toFixed(0) + 'deg';
         drop.style.fontSize = size + 'px';
         drop.style.animationDuration = dur + 's';
         drop.style.animationDelay = delay + 's';
+        drop.style.setProperty('--peak', peak);
+        drop.style.setProperty('--drift', drift);
+        drop.style.setProperty('--drift2', drift2);
+        drop.style.setProperty('--spin', spin);
+        drop.style.setProperty('--spin2', spin2);
         container.appendChild(drop);
     }
     setTimeout(() => {
         if (container.parentNode) container.parentNode.removeChild(container);
-    }, 5000);
+    }, 4500);
 }
 
 function formatearHoraMs(ms) {
