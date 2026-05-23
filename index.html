@@ -5,13 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="mobile-web-app-capable" content="yes">
     <title>SWITCH - Chat Grupos</title>
-    <!-- Capturar beforeinstallprompt lo antes posible -->
+    <!-- Capturar beforeinstallprompt lo antes posible — UN SOLO listener global -->
     <script>
         window._deferredPWAPrompt = null;
         window.addEventListener('beforeinstallprompt', function(e) {
             e.preventDefault();
             window._deferredPWAPrompt = e;
-            console.log('[PWA] prompt listo para instalar');
+            // Notificar al botón si ya está en el DOM
+            var btn = document.getElementById('pwa-install-btn');
+            if (btn) {
+                btn.classList.add('show');
+                btn.style.background = 'linear-gradient(135deg,#00c853,#009624)';
+                btn.style.borderColor = '#00c853';
+                btn.title = 'Instalar SWITCH como app';
+            }
+            console.log('[PWA] ✓ beforeinstallprompt capturado — instalación nativa disponible');
+        });
+        window.addEventListener('appinstalled', function() {
+            window._deferredPWAPrompt = null;
+            var btn = document.getElementById('pwa-install-btn');
+            if (btn) {
+                btn.textContent = '✅ App instalada';
+                btn.style.background = 'linear-gradient(135deg,#00c853,#009624)';
+                btn.style.border = 'none';
+                setTimeout(function() { btn.classList.remove('show'); }, 2500);
+            }
+            if (typeof showToast === 'function') showToast('✅ SWITCH instalada correctamente', 3500);
+            console.log('[PWA] App instalada ✓');
         });
     </script>
 
@@ -151,6 +171,35 @@
             height: 100dvh; /* altura dinámica: respeta barra URL/navegación en móvil */
             display: flex;
             flex-direction: column;
+        }
+
+        /* ── Pantallas grandes: centrar la app con aspecto de móvil elegante ── */
+        @media (min-width: 768px) {
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #0a0a0a;
+            }
+            .container {
+                width: 420px;
+                max-width: 420px;
+                height: 100dvh;
+                max-height: 900px;
+                border-radius: 0;
+                box-shadow: 0 0 80px rgba(0,136,204,0.18), 0 0 0 1px rgba(255,255,255,0.06);
+                overflow: hidden;
+                position: relative;
+            }
+        }
+        @media (min-width: 1024px) {
+            .container {
+                width: 440px;
+                max-width: 440px;
+                max-height: 860px;
+                border-radius: 24px;
+                box-shadow: 0 0 100px rgba(0,136,204,0.22), 0 0 0 1px rgba(255,255,255,0.07);
+            }
         }
 
         .header {
@@ -6514,6 +6563,10 @@ window.cerrarJuegoWindow = function() {
                     _hideNotify();
                     _stopMostrarCountdownRevanchaConPremio(nombre || 'Tu oponente');
                     break;
+                case 'stop_final_ganador':
+                    // El otro jugador ya calificó en la última ronda → mostrar modal ganador
+                    mostrarGanadorFinalStop();
+                    break;
 
                 // ── Revancha Quiz ──
                 case 'quiz_rematch_request':
@@ -7400,6 +7453,34 @@ window.cerrarJuegoWindow = function() {
         // Llamada desde el signal cuando el OPONENTE publica su veredicto (ya calificó)
         // y desde calificarOponente() cuando YO califico
         function _onCalificacionActualizada() {
+            const miPuntaje    = document.getElementById('miPuntajeCalif').textContent;
+            const opPuntaje    = document.getElementById('oponentePuntajeCalif').textContent;
+            const ambosCalif   = (miPuntaje !== '—') && (opPuntaje !== '—');
+            const modoRondas   = stopGameState.modoRondas;
+            const esUltimaRonda = modoRondas && stopGameState.rondaActual >= stopGameState.totalRondas;
+
+            // Si es la última ronda y ambos ya calificaron → el último en calificar
+            // dispara el modal ganador en tiempo real para ambos jugadores
+            if (ambosCalif && esUltimaRonda) {
+                // Acumular puntajes de esta ronda
+                _detachStopCalifListener();
+                if (_stopMarcadoListener) { _stopMarcadoListener(); _stopMarcadoListener = null; }
+                if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
+                if (typeof stopGameState.puntajeAcumulado[usuarioActual] !== 'number')
+                    stopGameState.puntajeAcumulado[usuarioActual] = 0;
+                if (typeof stopGameState.puntajeAcumulado['Oponente'] !== 'number')
+                    stopGameState.puntajeAcumulado['Oponente'] = 0;
+                stopGameState.puntajeAcumulado[usuarioActual] += stopGameState.miPuntajeRonda || 0;
+                stopGameState.puntajeAcumulado['Oponente'] += stopGameState.oponentePuntajeRonda || 0;
+                stopGameState.miPuntajeRonda = 0;
+                stopGameState.oponentePuntajeRonda = 0;
+                actualizarScoreboard();
+                // Enviar señal al oponente para que también vea el modal ganador
+                _tttSendSignal('stop_final_ganador', {});
+                mostrarGanadorFinalStop();
+                return;
+            }
+
             _actualizarBotonesCalificacion();
         }
 
@@ -8290,13 +8371,13 @@ window.cerrarJuegoWindow = function() {
 
         // ============================================================
         // PWA — Botón "Instalar app" (beforeinstallprompt)
+        // El listener principal está en <head> para capturar lo antes posible.
+        // Aquí solo manejamos el botón y la lógica de instalación.
         // ============================================================
-        let _deferredInstallPrompt = null;
         const _installBtn = document.getElementById('pwa-install-btn');
 
         function _appIsInstalled() {
             return window.matchMedia('(display-mode: standalone)').matches
-                || window.matchMedia('(display-mode: fullscreen)').matches
                 || window.navigator.standalone === true;
         }
 
@@ -8304,43 +8385,29 @@ window.cerrarJuegoWindow = function() {
             if (!_installBtn) return;
             if (_appIsInstalled()) {
                 _installBtn.classList.remove('show');
-            } else {
+            } else if (window._deferredPWAPrompt) {
                 _installBtn.classList.add('show');
             }
         }
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            _deferredInstallPrompt = e;
-            _mostrarBotonInstalarSiAplica();
-            // Cambiar ícono del botón para indicar que el prompt está listo
-            if (_installBtn) {
-                _installBtn.title = 'Instalar SWITCH como app';
-                _installBtn.style.background = 'linear-gradient(135deg,#00c853,#009624)';
-            }
-            console.log('[PWA] ✓ beforeinstallprompt capturado — instalación nativa disponible');
-        });
-
         window.instalarPWA = async function() {
-            // CASO 1: Chrome Android/Desktop — prompt nativo disponible (de cualquiera de los dos captores)
-            const prompt = _deferredInstallPrompt || window._deferredPWAPrompt;
+            const prompt = window._deferredPWAPrompt;
             if (prompt) {
                 try {
                     await prompt.prompt();
                     const { outcome } = await prompt.userChoice;
                     console.log('[PWA] userChoice:', outcome);
                     if (outcome === 'accepted') {
+                        window._deferredPWAPrompt = null;
                         if (_installBtn) _installBtn.classList.remove('show');
                     }
                 } catch (err) {
                     console.warn('[PWA] prompt error:', err);
                 }
-                _deferredInstallPrompt = null;
-                window._deferredPWAPrompt = null;
                 return;
             }
 
-            // CASO 2: iOS Safari
+            // iOS Safari
             const ua = navigator.userAgent || '';
             const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
             if (isIOS) {
@@ -8348,18 +8415,8 @@ window.cerrarJuegoWindow = function() {
                 return;
             }
 
-            // CASO 3: Chrome Android pero beforeinstallprompt aún no disparado
-            // (la app cumple criterios PWA pero el evento no llegó todavía)
-            const isChrome = /Chrome/.test(ua) && /Android/.test(ua);
-            if (isChrome) {
-                // Abrir el menú de instalación nativo de Chrome via URL especial
-                // (no existe API directa, pero podemos mostrar instrucción mínima y específica)
-                _mostrarGuiaInstalacion('android');
-                return;
-            }
-
-            // CASO 4: cualquier otro navegador
-            _mostrarGuiaInstalacion('other');
+            // Android sin prompt (aún no llegó el evento)
+            _mostrarGuiaInstalacion('android');
         };
 
         function _mostrarGuiaInstalacion(tipo) {
@@ -8404,17 +8461,7 @@ window.cerrarJuegoWindow = function() {
             modalEl.style.display = 'flex';
         }
 
-        window.addEventListener('appinstalled', () => {
-            if (_installBtn) _installBtn.classList.remove('show');
-            _deferredInstallPrompt = null;
-            console.log('[PWA] App instalada ✓');
-        });
-
         window.addEventListener('load', _mostrarBotonInstalarSiAplica);
-        if (window.matchMedia) {
-            try { window.matchMedia('(display-mode: standalone)').addEventListener('change', _mostrarBotonInstalarSiAplica); } catch(e) {}
-            try { window.matchMedia('(display-mode: fullscreen)').addEventListener('change', _mostrarBotonInstalarSiAplica); } catch(e) {}
-        }
 
 
         // ============================================================
