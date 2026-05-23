@@ -1885,6 +1885,57 @@
             background: #43a047;
         }
 
+        /* Flash de puntaje al calificar */
+        #score-flash-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+        #score-flash-overlay.visible {
+            opacity: 1;
+        }
+        #score-flash-bubble {
+            background: linear-gradient(135deg, rgba(56, 200, 90, 0.92), rgba(20, 160, 60, 0.95));
+            border: 3px solid rgba(150, 255, 180, 0.7);
+            border-radius: 28px;
+            padding: 28px 52px;
+            text-align: center;
+            box-shadow: 0 0 60px rgba(80, 255, 120, 0.5), 0 8px 32px rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            transform: scale(0.7);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #score-flash-overlay.visible #score-flash-bubble {
+            transform: scale(1);
+        }
+        #score-flash-label {
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(220,255,230,0.9);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        #score-flash-value {
+            font-size: 72px;
+            font-weight: 900;
+            color: #ffffff;
+            line-height: 1;
+            text-shadow: 0 2px 16px rgba(0,0,0,0.3);
+        }
+        #score-flash-pts {
+            font-size: 18px;
+            font-weight: 700;
+            color: rgba(220,255,230,0.9);
+            margin-top: 4px;
+        }
+
         /* Marcador acumulado en la parte superior */
         .stop-scoreboard {
             display: none;
@@ -5483,6 +5534,7 @@ window.cerrarJuegoWindow = function() {
             // Limpiar nodo Firebase del juego Stop y adjuntar listener en tiempo real
             remove(_stopGameRef()).catch(() => {});
             _attachStopGameListener();
+            _attachStopScoreListener(); // sincronizar puntajes en tiempo real
             // Determinar si hay premio (de alguno de los dos jugadores)
             const hayPremio = !!(premiosJuego.stop.mi || premiosJuego.stop.oponente);
 
@@ -5542,8 +5594,34 @@ window.cerrarJuegoWindow = function() {
             const miNombre = usuarioActual || 'Tú';
             document.getElementById('sbMyName').textContent = miNombre;
             document.getElementById('sbOtherName').textContent = nombreOponente();
-            document.getElementById('sbMyScore').textContent = stopGameState.puntajeAcumulado[usuarioActual] || 0;
-            document.getElementById('sbOtherScore').textContent = stopGameState.puntajeAcumulado['Oponente'] || 0;
+            const miScore = stopGameState.puntajeAcumulado[usuarioActual] || 0;
+            const opScore = stopGameState.puntajeAcumulado['Oponente'] || 0;
+            document.getElementById('sbMyScore').textContent = miScore;
+            document.getElementById('sbOtherScore').textContent = opScore;
+            // Publicar puntaje en Firebase para que el oponente lo vea en tiempo real
+            if (salaActualKey) {
+                set(ref(db, `gameData/${salaActualKey}/stopScore/${usuarioActual}`), {
+                    score: miScore,
+                    ts: Date.now()
+                }).catch(() => {});
+            }
+        }
+
+        // Listener para recibir el puntaje del oponente en tiempo real
+        let _stopScoreListener = null;
+        function _attachStopScoreListener() {
+            if (_stopScoreListener) { _stopScoreListener(); _stopScoreListener = null; }
+            if (!salaActualKey || !oponenteActual) return;
+            const opScoreRef = ref(db, `gameData/${salaActualKey}/stopScore/${oponenteActual}`);
+            _stopScoreListener = onValue(opScoreRef, (snap) => {
+                const data = snap.val();
+                if (!data || typeof data.score !== 'number') return;
+                stopGameState.puntajeAcumulado['Oponente'] = data.score;
+                document.getElementById('sbOtherScore').textContent = data.score;
+            });
+        }
+        function _detachStopScoreListener() {
+            if (_stopScoreListener) { _stopScoreListener(); _stopScoreListener = null; }
         }
 
         function iniciarRonda() {
@@ -5863,6 +5941,9 @@ window.cerrarJuegoWindow = function() {
             stopGameState.oponentePuntajeRonda = puntaje;
             document.getElementById('oponentePuntajeCalif').textContent = puntaje;
 
+            // ── Flash visual de puntaje ──
+            _mostrarFlashPuntaje(puntaje);
+
             // ── FIREBASE REAL: publicar el veredicto FINAL con puntaje para que el oponente vea su calificación ──
             const opKey = oponenteActual || 'Oponente';
             set(ref(db, `gameData/${salaActualKey}/stopCalif/veredicto_${opKey}`), {
@@ -5873,6 +5954,21 @@ window.cerrarJuegoWindow = function() {
             }).catch(() => {});
             // Activar botón si el oponente ya había publicado su puntaje
             _onCalificacionActualizada();
+        }
+
+        function _mostrarFlashPuntaje(puntaje) {
+            const overlay = document.getElementById('score-flash-overlay');
+            const valEl = document.getElementById('score-flash-value');
+            const labelEl = document.getElementById('score-flash-label');
+            const ptsEl = document.getElementById('score-flash-pts');
+            if (!overlay || !valEl) return;
+            valEl.textContent = puntaje;
+            labelEl.textContent = puntaje > 0 ? '¡Le diste!' : 'Sin puntos';
+            ptsEl.textContent = puntaje === 1 ? 'punto' : 'puntos';
+            overlay.classList.add('visible');
+            setTimeout(() => {
+                overlay.classList.remove('visible');
+            }, 1600);
         }
 
         // Listener Firebase para recibir el veredicto FINAL del oponente (puntaje real)
@@ -6406,6 +6502,17 @@ window.cerrarJuegoWindow = function() {
                         [{ label: 'OK', cls: 'btn-notify-ok', cb: () => { _hideNotify(); }}],
                         () => { _hideNotify(); }
                     );
+                    break;
+                case 'stop_rematch_cancelled':
+                    // El solicitante canceló su petición de revancha → ocultar el modal de invitación
+                    _hideNotify();
+                    _tttClearSignal();
+                    break;
+                case 'stop_prize_rematch':
+                    // Revancha con premio: ambos ven el countdown y van al lobby
+                    document.getElementById('modal-win').classList.remove('active');
+                    _hideNotify();
+                    _stopMostrarCountdownRevanchaConPremio(nombre || 'Tu oponente');
                     break;
 
                 // ── Revancha Quiz ──
@@ -7147,8 +7254,7 @@ window.cerrarJuegoWindow = function() {
             const hayPremio = !!(premiosJuego.stop.mi || premiosJuego.stop.oponente);
 
             // Mensaje con resultado de la partida + acumulado histórico
-            const total = quizGameState.preguntas.length;
-            const msgPartida = `Esta partida: ${yo} ${miScore}/${total} — ${op} ${opScore}/${total}`;
+            const msgPartida = `Esta partida: ${yo} ${miScore} pts — ${op} ${opScore} pts`;
             const msgHistorico = `📊 Acumulado total: ${yo} ${miHist} — ${op} ${opHist}`;
 
             if (miScore === opScore) {
@@ -7198,15 +7304,13 @@ window.cerrarJuegoWindow = function() {
             btnPlay.style.display = '';
 
             if (hayPremio) {
-                // Modo rondas con premio: "Revancha" vuelve al lobby a elegir premios
+                // Modo rondas con premio: "Revancha" envía countdown 3s a ambos y va al lobby
                 btnPlay.textContent = '🎁 Revancha';
-                btnPlay.onclick = function() {
+                btnPlay.onclick = async function() {
                     document.getElementById('modal-win').classList.remove('active');
-                    // Resetear premios y volver al lobby de stop
-                    premiosJuego.stop.mi = null;
-                    premiosJuego.stop.oponente = null;
-                    _stopResetCompleto();
-                    mostrarStop();
+                    const solicitante = capitalizarNombre(usuarioActual);
+                    await _tttSendSignal('stop_prize_rematch', { nombre: solicitante });
+                    _stopMostrarCountdownRevanchaConPremio(solicitante);
                 };
             } else {
                 btnPlay.textContent = '🔄 Jugar de nuevo';
@@ -7233,7 +7337,9 @@ window.cerrarJuegoWindow = function() {
             await _tttSendSignal('stop_rematch_request', { nombre: solicitante, ts: window._stopMiRematchTs });
             // Mostrar aviso al solicitante de que está esperando respuesta
             _showNotify('⏳', 'Esperando respuesta', `Pediste jugar de nuevo. Esperando que ${_getNombreOponente()} acepte...`,
-                [{ label: '❌ Cancelar', cls: 'btn-notify-decline', cb: () => {
+                [{ label: '❌ Cancelar', cls: 'btn-notify-decline', cb: async () => {
+                    // Notificar al oponente que cancelamos para que oculte el modal
+                    await _tttSendSignal('stop_rematch_cancelled', { nombre: solicitante });
                     _tttClearSignal();
                     _hideNotify();
                 }}]
@@ -7374,6 +7480,53 @@ window.cerrarJuegoWindow = function() {
             }
         }
 
+        // Countdown 3s de revancha con premio — va al lobby a elegir premios de nuevo
+        function _stopMostrarCountdownRevanchaConPremio(nombre) {
+            if (_tttCdTimer) { clearInterval(_tttCdTimer); _tttCdTimer = null; }
+            const modal = document.getElementById('modal-rematch-cd');
+            const msgEl = document.getElementById('rematch-cd-msg');
+            const numEl = document.getElementById('rematch-cd-num');
+            const iconEl = document.getElementById('rematch-cd-icon');
+            if (!modal || !msgEl || !numEl) { _goToStopLobbyFresh(); return; }
+            modal.classList.remove('exit-mode');
+            iconEl.textContent = '🎁';
+            msgEl.textContent = `${nombre} quiere revancha`;
+            let secs = 3;
+            numEl.textContent = secs;
+            modal.classList.add('active');
+            _tttCdTimer = setInterval(() => {
+                secs--;
+                numEl.textContent = secs;
+                if (secs <= 0) {
+                    clearInterval(_tttCdTimer); _tttCdTimer = null;
+                    modal.classList.remove('active');
+                    _goToStopLobbyFresh();
+                }
+            }, 1000);
+        }
+
+        // Resetea scores, premios y va al lobby de Stop a elegir nuevos premios
+        function _goToStopLobbyFresh() {
+            // Limpiar premios para elegir de nuevo
+            premiosJuego.stop.mi = null;
+            premiosJuego.stop.oponente = null;
+            // Resetear puntajes acumulados para la nueva partida
+            if (stopGameState) {
+                stopGameState.puntajeAcumulado = { [usuarioActual]: 0, 'Oponente': 0 };
+                stopGameState.historicoTotal   = { [usuarioActual]: 0, 'Oponente': 0 };
+                stopGameState.modoRondas = false;
+                stopGameState.rondaActual = 1;
+            }
+            // Limpiar listeners y nodos Firebase
+            _detachStopGameListener();
+            _detachStopCalifListener();
+            _detachStopScoreListener();
+            remove(ref(db, `gameData/${salaActualKey}/stopCalif`)).catch(() => {});
+            remove(ref(db, `gameData/${salaActualKey}/stopScore`)).catch(() => {});
+            // Ir al lobby de Stop a elegir premios
+            mostrarStop();
+        }
+
         function _doRevanchaStopReal() {
             // Revancha efectiva de Stop: mismos premios, puntajes a 0, histórico se mantiene
             _hideNotify();
@@ -7434,10 +7587,12 @@ window.cerrarJuegoWindow = function() {
             }
             _detachStopGameListener();
             _detachStopCalifListener();
+            _detachStopScoreListener();
             if (_stopMarcadoListener) { _stopMarcadoListener(); _stopMarcadoListener = null; }
             if (_stopVeredictoListener) { _stopVeredictoListener(); _stopVeredictoListener = null; }
             remove(_stopGameRef()).catch(() => {});
             remove(ref(db, `gameData/${salaActualKey}/stopCalif`)).catch(() => {});
+            remove(ref(db, `gameData/${salaActualKey}/stopScore`)).catch(() => {});
             const confActivo = document.getElementById('confetti-active');
             if (confActivo && confActivo.parentNode) confActivo.parentNode.removeChild(confActivo);
             document.getElementById('modal-win').classList.remove('active');
@@ -8389,5 +8544,14 @@ window.cerrarJuegoWindow = function() {
         })();
 
     </script>
+
+    <!-- Flash de puntaje al calificar -->
+    <div id="score-flash-overlay">
+        <div id="score-flash-bubble">
+            <div id="score-flash-label">Le diste</div>
+            <div id="score-flash-value">300</div>
+            <div id="score-flash-pts">puntos</div>
+        </div>
+    </div>
 </body>
 </html>
