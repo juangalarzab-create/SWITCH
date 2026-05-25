@@ -6,7 +6,7 @@
  * firebase-messaging-sw.js (NO en este archivo).
  * ========================================================= */
 
-const CACHE_NAME = 'switch-cache-v1';
+const CACHE_NAME = 'switch-cache-v4';
 const PRECACHE_URLS = [
   './',
   './index.html',
