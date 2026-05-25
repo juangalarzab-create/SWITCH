@@ -3627,6 +3627,71 @@
         @media (max-height: 500px) and (orientation: landscape) {
             .header { padding: 6px 10px; }
         }
+
+        /* ===== CHAT-HEADER REESTRUCTURADO ===== */
+        .chat-myname {
+            font-size: 13px;
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+        }
+        .chat-roomname {
+            font-size: 11px;
+            color: #0088cc;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+        .chat-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            flex: 1;
+            min-width: 0;
+        }
+        .chat-user {
+            font-size: 11px;
+            color: #aaa;
+            line-height: 1.2;
+        }
+        .presence-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: nowrap;
+        }
+        .presence-label {
+            font-size: 10px;
+            color: #4caf50;
+        }
+        .presence-label.offline { color: #e53935; }
+
+        /* ===== SEARCH WRAPPER CON ICONO FA ===== */
+        .search-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            color: #555;
+            font-size: 14px;
+            pointer-events: none;
+        }
+        .search-input {
+            padding-left: 38px !important;
+        }
+
+        /* ===== BOTÓN VOZ — alineado a la derecha del game-header ===== */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .game-header .btn-voice-game {
+            margin-right: 8px;
+            margin-left: auto;
+        }
     </style>
 </head>
 <body>
@@ -3657,7 +3722,10 @@
             <!-- PANTALLA INICIO -->
             <div class="screen screen-inicio active" id="pantalla-inicio">
                 <div class="inicio-search">
-                    <input type="text" class="search-input" id="buscador" placeholder="🔍 Buscar sala..." onkeyup="buscarSalas()">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" class="search-input" id="buscador" placeholder="Buscar sala..." onkeyup="buscarSalas()">
+                    </div>
                 </div>
                 <div class="salas-container" id="salas-lista"></div>
                 <div class="inicio-footer">
@@ -3687,23 +3755,23 @@
             <!-- PANTALLA CHAT -->
             <div class="screen screen-chat" id="pantalla-chat">
                 <div class="chat-header">
-                    <!-- Flecha atrás (reemplaza botón home) -->
+                    <!-- Flecha atrás -->
                     <button class="btn-home" onclick="irInicio()" title="Ir a Inicio">
                         <i class="fas fa-arrow-left"></i>
                     </button>
                     <!-- Avatar circular con iniciales del usuario -->
                     <div class="chat-header-avatar" id="chat-header-avatar">U</div>
-                    <!-- Info: nombre arriba, sala abajo, presencia -->
+                    <!-- Info: mi nombre > sala > otro usuario + estado -->
                     <div class="chat-info">
-                        <div class="chat-user" id="nombre-usuario">Usuario</div>
+                        <div class="chat-myname" id="chat-myname">Yo</div>
+                        <div class="chat-roomname" id="nombre-sala">Sala</div>
                         <div class="presence-row">
                             <div class="presence-dot offline" id="presence-dot"></div>
+                            <span class="chat-user" id="nombre-usuario">Usuario</span>
                             <span class="presence-label offline" id="presence-label">offline</span>
-                            <span style="color:#444;margin:0 4px;">·</span>
-                            <span class="chat-room" id="nombre-sala">Sala</span>
                         </div>
                     </div>
-                    <!-- Indicador escritura (derecha) -->
+                    <!-- Indicador escritura -->
                     <div class="header-typing-status" id="header-typing-status"></div>
                     <!-- Botón llamada WebRTC -->
                     <button class="btn-call-header" id="btn-call-header" onclick="iniciarLlamada()" title="Llamada de voz">
@@ -4112,7 +4180,7 @@
                     </div>
                     <div class="quiz-countdown-label">Siguiente pregunta...</div>
                 </div>
-                <button class="quiz-exit-btn" id="quizExitBtn" onclick="salirAlMenuJuegos()" style="display:none;">Salir al menú de juegos</button>
+                <button class="quiz-exit-btn" id="quizExitBtn" onclick="cerrarJuegoWindow()" style="display:none;">Salir al menú de juegos</button>
             </div>
 
         </div>
@@ -4247,7 +4315,7 @@
         </div>
         <div class="win-buttons">
             <button class="btn-play-again" id="btn-play-again-win" onclick="reiniciarTicTacToe()">Jugar de Nuevo</button>
-            <button class="btn-exit" onclick="salirAlMenuJuegos()">Salir</button>
+            <button class="btn-exit" onclick="cerrarJuegoWindow()">Salir</button>
         </div>
     </div>
 
@@ -4545,6 +4613,10 @@ let salas = [];
 let salaActual = null;
 let salaActualKey = null;
 let usuarioActual = null;
+// Exponer globalmente para WebRTC
+Object.defineProperty(window, 'salaActualKey', { get: () => salaActualKey, set: v => { salaActualKey = v; } });
+Object.defineProperty(window, 'usuarioActual',  { get: () => usuarioActual,  set: v => { usuarioActual = v; } });
+Object.defineProperty(window, 'salaActual',     { get: () => salaActual,     set: v => { salaActual = v; } });
 let salaSeleccionada = null;
 let salaSeleccionadaKey = null;
 let mensajesListener = null;
@@ -4663,9 +4735,36 @@ window.renderSalas = function() {
         return;
     }
 
+    // Paleta de colores web para salas
+    const SALA_COLORS = [
+        'linear-gradient(135deg,#e91e63,#880e4f)',
+        'linear-gradient(135deg,#9c27b0,#4a148c)',
+        'linear-gradient(135deg,#3f51b5,#1a237e)',
+        'linear-gradient(135deg,#0097a7,#006064)',
+        'linear-gradient(135deg,#388e3c,#1b5e20)',
+        'linear-gradient(135deg,#f57c00,#e65100)',
+        'linear-gradient(135deg,#c62828,#7f0000)',
+        'linear-gradient(135deg,#5c6bc0,#283593)',
+        'linear-gradient(135deg,#00838f,#004d40)',
+        'linear-gradient(135deg,#6d4c41,#3e2723)',
+        'linear-gradient(135deg,#0288d1,#01579b)',
+        'linear-gradient(135deg,#7b1fa2,#4a0072)',
+        'linear-gradient(135deg,#d32f2f,#b71c1c)',
+        'linear-gradient(135deg,#1976d2,#0d47a1)',
+        'linear-gradient(135deg,#2e7d32,#1b5e20)',
+        'linear-gradient(135deg,#f9a825,#e65100)',
+    ];
+    function salaColor(key) {
+        // Hash del key para índice estable y único por sala
+        let h = 0;
+        for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+        return SALA_COLORS[h % SALA_COLORS.length];
+    }
+
     container.innerHTML = filtered.map(sala => {
         const initials = (sala.nombre||'?').substring(0,2).toUpperCase();
         const msgCount = sala.msgCount || 0;
+        const color = salaColor(sala._key);
         const bloqueadaBadge = sala.bloqueada
             ? `<span style="background:#dc3545;color:white;padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px;">🔒</span>`
             : '';
@@ -4673,7 +4772,7 @@ window.renderSalas = function() {
         <div class="sala-card${sala.bloqueada ? ' bloqueada-card' : ''}" 
              id="sala-card-${sala._key}"
              data-key="${sala._key}">
-            <div class="sala-avatar">${initials}</div>
+            <div class="sala-avatar" style="background:${color}">${initials}</div>
             <div class="sala-card-body">
                 <div class="sala-name">${escapeHtml(sala.nombre)}${bloqueadaBadge}</div>
                 <div class="sala-type">${sala.tipo || 'Sala Privada'}</div>
@@ -4825,7 +4924,8 @@ window.guardarNombreUsuario = function() {
     usuarioActual = nombre;
     document.getElementById('modal-nombre').classList.remove('active');
     mostrarPantalla('pantalla-chat');
-    document.getElementById('nombre-usuario').textContent = usuarioActual.toUpperCase();
+    document.getElementById('nombre-usuario').textContent = 'Cargando...';
+    document.getElementById('chat-myname') && (document.getElementById('chat-myname').textContent = usuarioActual.toUpperCase());
     document.getElementById('header-username').textContent = usuarioActual.toUpperCase();
     document.getElementById('header-roomname').textContent = salaActual.nombre;
     document.getElementById('header-chat-info').classList.add('active');
@@ -5393,6 +5493,9 @@ let audioStream;
             const otherKey = Object.keys(data).find(k => k !== usuarioActual);
             if (otherKey && data[otherKey] && data[otherKey].ts) {
                 _lastOpponentTs = data[otherKey].ts;
+                // Mostrar nombre del otro usuario
+                const nameEl = document.getElementById('nombre-usuario');
+                if (nameEl) nameEl.textContent = otherKey.toUpperCase();
             }
         });
 
@@ -5848,7 +5951,7 @@ async function _iniciarInvitacion(juego) {
     showLoading('Esperando respuesta del otro usuario...');
     const ok = await _enviarInvitacionJuego(juego);
     if (!ok) { _miInviteEnVuelo = false; hideLoading(); return; }
-    pushMensaje({ usuario: 'Sistema', texto: `🎮 ${usuarioActual} invitó a jugar ${_nombreJuego(juego)}`, tipo: 'texto' });
+    pushMensaje({ usuario: 'Sistema', texto: `<i class='fas fa-gamepad'></i> ${usuarioActual} invitó a jugar ${_nombreJuego(juego)}`, tipo: 'texto' });
     // Timeout: si nadie responde en 60s, cancelar
     setTimeout(async () => {
         if (_miInviteEnVuelo) {
@@ -8243,7 +8346,7 @@ window.cerrarJuegoWindow = function() {
         function _prepararModalWinSalir() {
             const btnExit = document.querySelector('#modal-win .btn-exit');
             if (btnExit) {
-                btnExit.onclick = salirAlMenuJuegos;
+                btnExit.onclick = cerrarJuegoWindow;
             }
             // Adjuntar listeners de señal para recibir salida del oponente
             _tttAttachSignalListener();
@@ -8929,7 +9032,7 @@ window.cerrarJuegoWindow = function() {
             }
 
             const btnExit = document.querySelector('#modal-win .btn-exit');
-            if (btnExit) btnExit.onclick = salirAlMenuJuegos;
+            if (btnExit) btnExit.onclick = cerrarJuegoWindow;
 
             _prepararModalWinSalir(); document.getElementById('modal-win').classList.add('active');
         }
@@ -9265,19 +9368,23 @@ window.cerrarJuegoWindow = function() {
         // Busca el otro usuario en presencia
         const el = document.getElementById('presence-label');
         // Fallback: nombre sala / "oponente"
-        const nombreSala = (window.salaActual && window.salaActual.nombre) ? window.salaActual.nombre : 'otro';
+        const nombreSala = (window.salaActual && window.salaActual.nombre) ? window.salaActual.nombre : 'otro'; // salaActual via defineProperty
         return el && el.textContent !== 'offline' && el.textContent !== 'en línea'
             ? el.textContent
             : (document.getElementById('nombre-usuario')?.textContent || nombreSala);
     }
 
+    function getSalaKey() { return window.salaActualKey || null; }
+    function getUsuario() { return window.usuarioActual || null; }
     function callRef() {
-        if (!window.salaActualKey) return null;
-        return ref(db, `webrtc_call/${window.salaActualKey}`);
+        const k = getSalaKey();
+        if (!k) return null;
+        return ref(db, `webrtc_call/${k}`);
     }
     function gameVoiceRef() {
-        if (!window.salaActualKey) return null;
-        return ref(db, `webrtc_game/${window.salaActualKey}`);
+        const k = getSalaKey();
+        if (!k) return null;
+        return ref(db, `webrtc_game/${k}`);
     }
 
     // ── TIMER ──
@@ -9297,8 +9404,9 @@ window.cerrarJuegoWindow = function() {
 
     // ── INICIAR LLAMADA (quien pulsa teléfono) ──
     window.iniciarLlamada = async function() {
-        if (!window.salaActualKey || !window.usuarioActual) { showToast('Debes estar en un chat'); return; }
+        if (!getSalaKey() || !getUsuario()) { showToast('Debes estar en un chat'); return; }
         if (_pc) { showToast('Ya hay una llamada activa'); return; }
+        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
 
         _isCaller = true;
 
@@ -9306,6 +9414,7 @@ window.cerrarJuegoWindow = function() {
         const callingName = document.getElementById('calling-name');
         const callingAvatar = document.getElementById('calling-avatar');
         const otherName = document.getElementById('nombre-usuario')?.textContent || 'Usuario';
+        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
         if (callingName) callingName.textContent = otherName;
         if (callingAvatar) callingAvatar.textContent = otherName.substring(0,2).toUpperCase();
         document.getElementById('calling-overlay').classList.add('active');
@@ -9348,7 +9457,7 @@ window.cerrarJuegoWindow = function() {
 
         // Publicar oferta en Firebase
         await set(callRef(), {
-            caller: window.usuarioActual,
+            caller: getUsuario(),
             offer: _pc.localDescription.toJSON(),
             status: 'calling',
             ts: Date.now()
@@ -9478,7 +9587,7 @@ window.cerrarJuegoWindow = function() {
 
     // ── ESCUCHAR LLAMADAS ENTRANTES ──
     function escucharLlamadasEntrantes() {
-        if (!window.salaActualKey) return;
+        if (!getSalaKey()) return;
         onValue(callRef(), snap => {
             const data = snap.val();
             if (!data) return;
@@ -9531,8 +9640,7 @@ window.cerrarJuegoWindow = function() {
     };
 
     async function _encenderVozJuego(gameId) {
-        const btn = document.getElementById('voice-btn-' + gameId);
-        if (!window.salaActualKey) { showToast('Debes estar en un chat'); return; }
+        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
 
         try {
             _gameStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -9540,6 +9648,9 @@ window.cerrarJuegoWindow = function() {
             showToast('❌ No se pudo acceder al micrófono'); return;
         }
 
+        const myRole = getUsuario();
+
+        // Siempre crear PC y emitir offer
         _gamePc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         _gameStream.getTracks().forEach(t => _gamePc.addTrack(t, _gameStream));
 
@@ -9549,7 +9660,6 @@ window.cerrarJuegoWindow = function() {
             ra.srcObject = e.streams[0];
         };
 
-        // Publish offer
         const offer = await _gamePc.createOffer();
         await _gamePc.setLocalDescription(offer);
 
@@ -9559,7 +9669,6 @@ window.cerrarJuegoWindow = function() {
             setTimeout(res, 3000);
         });
 
-        const myRole = window.usuarioActual;
         await set(gameVoiceRef(), {
             host: myRole,
             offer: _gamePc.localDescription.toJSON(),
@@ -9567,20 +9676,18 @@ window.cerrarJuegoWindow = function() {
             ts: Date.now()
         });
 
-        // Escuchar respuesta del otro
+        // Escuchar answer del otro
         onValue(gameVoiceRef(), async snap => {
             const d = snap.val();
             if (!d) return;
-            if (d.status === 'answer' && d.host === myRole && d.answer) {
-                await _gamePc.setRemoteDescription(new RTCSessionDescription(d.answer));
+            if (d.status === 'answer' && d.host === myRole && d.answer && _gamePc && !_gamePc.currentRemoteDescription) {
+                await _gamePc.setRemoteDescription(new RTCSessionDescription(d.answer)).catch(()=>{});
             }
             if (d.status === 'off') { _apagarVozJuego(gameId); }
         });
 
         _activeGameVoice = gameId;
-        btn.classList.add('voz-activa');
-        btn.querySelector('i').className = 'fas fa-microphone';
-        btn.querySelector('.voice-label').textContent = 'Voz on';
+        _actualizarBotonesVoz(true);
     }
 
     // El que recibe el offer responde
@@ -9610,11 +9717,20 @@ window.cerrarJuegoWindow = function() {
 
         await update(gameVoiceRef(), { answer: _gamePc.localDescription.toJSON(), status: 'answer' });
 
-        // Actualizar UI de todos los botones de voz
+        _actualizarBotonesVoz(true);
+    }
+
+    function _actualizarBotonesVoz(activo) {
         document.querySelectorAll('.btn-voice-game').forEach(btn => {
-            btn.classList.add('voz-activa');
-            btn.querySelector('i').className = 'fas fa-microphone';
-            btn.querySelector('.voice-label').textContent = 'Voz on';
+            if (activo) {
+                btn.classList.add('voz-activa');
+                btn.querySelector('i').className = 'fas fa-microphone';
+                btn.querySelector('.voice-label').textContent = 'Voz on';
+            } else {
+                btn.classList.remove('voz-activa');
+                btn.querySelector('i').className = 'fas fa-microphone-slash';
+                btn.querySelector('.voice-label').textContent = 'Voz off';
+            }
         });
     }
 
@@ -9625,18 +9741,14 @@ window.cerrarJuegoWindow = function() {
         if (ra) ra.remove();
         _activeGameVoice = null;
 
-        if (gameVoiceRef()) await update(gameVoiceRef(), { status: 'off' });
+        if (gameVoiceRef()) await update(gameVoiceRef(), { status: 'off' }).catch(()=>{});
 
-        document.querySelectorAll('.btn-voice-game').forEach(btn => {
-            btn.classList.remove('voz-activa');
-            btn.querySelector('i').className = 'fas fa-microphone-slash';
-            btn.querySelector('.voice-label').textContent = 'Voz off';
-        });
+        _actualizarBotonesVoz(false);
     }
 
     // Escuchar ofertas de voz de juego del otro usuario
     function escucharOfertasVozJuego() {
-        if (!window.salaActualKey) return;
+        if (!getSalaKey()) return;
         onValue(gameVoiceRef(), snap => {
             const d = snap.val();
             if (!d) return;
