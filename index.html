@@ -4082,7 +4082,7 @@ async function pedirPermisoYRegistrarToken() {
             return;
         }
 
-        // Obtener token FCM — usar explícitamente el SW de FCM
+        // Obtener token FCM — usar explícitamente el SW de FCM para evitar conflicto con sw.js
         const fcmSwReg = await navigator.serviceWorker.register('firebase-messaging-sw.js');
         await navigator.serviceWorker.ready;
         const token = await getToken(messaging, {
@@ -8466,8 +8466,8 @@ window.cerrarJuegoWindow = function() {
         window.addEventListener('load', _mostrarBotonInstalarSiAplica);
 
 
-        // El SW unificado (firebase-messaging-sw.js) ya maneja caché + push.
-        // No se registra sw.js separado para evitar conflicto de scope.
+        // SW unificado: firebase-messaging-sw.js ya maneja caché + push.
+        // sw.js no se registra por separado para evitar conflicto de scope.
 
 
         // ── Pantalla completa al primer toque (Android/Chrome) ──
