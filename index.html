@@ -80,14 +80,18 @@
             height: 100%;
             height: -webkit-fill-available;
             height: 100dvh;
-            /* Ocultar barra de navegación del sistema en standalone/PWA */
+            /* Respetar safe areas en iOS (notch, Dynamic Island, barra inferior) */
             padding-bottom: env(safe-area-inset-bottom, 0px);
-            padding-top: env(safe-area-inset-top, 0px);
+            padding-top: 0;
         }
 
+        /* En modo standalone/PWA también respetar safe areas */
         @media all and (display-mode: standalone),
                all and (display-mode: fullscreen) {
-            body { padding-bottom: 0 !important; padding-top: 0 !important; }
+            body {
+                padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+                padding-top: 0 !important;
+            }
         }
         /* Ocultar scrollbar del sistema */
         ::-webkit-scrollbar { width: 0; height: 0; }
@@ -132,12 +136,13 @@
         .header {
             background: #000000;
             padding: 12px 16px;
+            padding-top: calc(12px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: 56px;
+            min-height: calc(56px + env(safe-area-inset-top, 0px));
             position: sticky;
             top: 0;
             z-index: 100;
@@ -523,7 +528,8 @@
         .chat-header {
             background: #1a1a1a;
             padding: 0 12px;
-            min-height: 58px;
+            padding-top: env(safe-area-inset-top, 0px);
+            min-height: calc(58px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             display: none;
             justify-content: flex-start;
@@ -3251,7 +3257,7 @@
                 gap: 0;
             }
             .header h1 { font-size: 18px; }
-            .header { padding: 10px 14px; }
+            .header { padding: 10px 14px; padding-top: calc(10px + env(safe-area-inset-top, 0px)); }
             .inicio-search { padding: 10px 12px; }
             .search-input { padding: 10px 16px; font-size: 13px; }
             .form-crear { padding: 24px 16px; }
@@ -3427,7 +3433,7 @@
             .salas-container { padding: 0; }
             .burbuja { max-width: 90%; font-size: 13px; }
             .input-msg { font-size: 13px; }
-            .header { padding: 8px 12px; }
+            .header { padding: 8px 12px; padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
             .inicio-search { padding: 8px 10px; }
         }
 
@@ -3605,8 +3611,9 @@
         .push-banner-close:hover { color: #333; }
 
         /* ===== SAFE AREA (notch / barra inferior iOS / Android) ===== */
-        body { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
-        .container { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        /* El padding-top lo maneja el .header y .chat-header directamente */
+        body { padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); padding-top: 0 !important; }
+        .container { padding-bottom: 0; }
 
         /* ===== RESPONSIVE: pantallas anchas (tablet / desktop) ===== */
         @media (min-width: 769px) {
@@ -3625,7 +3632,7 @@
 
         /* ===== Landscape móvil (evitar que el teclado tape el chat) ===== */
         @media (max-height: 500px) and (orientation: landscape) {
-            .header { padding: 6px 10px; }
+            .header { padding: 6px 10px; padding-top: calc(6px + env(safe-area-inset-top, 0px)); }
         }
 
         /* ===== CHAT-HEADER REESTRUCTURADO ===== */
@@ -5951,7 +5958,7 @@ async function _iniciarInvitacion(juego) {
     showLoading('Esperando respuesta del otro usuario...');
     const ok = await _enviarInvitacionJuego(juego);
     if (!ok) { _miInviteEnVuelo = false; hideLoading(); return; }
-    pushMensaje({ usuario: 'Sistema', texto: `<i class='fas fa-gamepad'></i> ${usuarioActual} invitó a jugar ${_nombreJuego(juego)}`, tipo: 'texto' });
+    pushMensaje({ usuario: 'Sistema', texto: `🎮 ${usuarioActual} invitó a jugar ${_nombreJuego(juego)}`, tipo: 'texto' });
     // Timeout: si nadie responde en 60s, cancelar
     setTimeout(async () => {
         if (_miInviteEnVuelo) {
@@ -7393,6 +7400,8 @@ window.cerrarJuegoWindow = function() {
         async function _tttLimpiarFirebase() {
             if (!salaActualKey) return;
             try { await remove(_tttRef()); } catch(e) {}
+            // Limpiar nodo quiz también
+            try { if (quizRef()) await remove(quizRef()); } catch(e) {}
         }
         function _tttMostrarOponenteGano() {
             const op = nombreOponente();
@@ -8660,6 +8669,42 @@ window.cerrarJuegoWindow = function() {
             { cat: 'Tecnología', q: '¿Qué significa "HTML"?', opts: ['HyperText Markup Language', 'High Transfer Markup Logic', 'Hyperlink Text Mode Link'], ans: 0 },
             { cat: 'Tecnología', q: '¿Cuál es la red social con más usuarios activos en el mundo?', opts: ['Instagram', 'Facebook', 'TikTok'], ans: 1 },
             { cat: 'Tecnología', q: '¿Qué empresa creó Android?', opts: ['Apple', 'Samsung', 'Google'], ans: 2 },
+            // CINE Y TV
+            { cat: 'Cine y TV', q: '¿Quién dirigió la trilogía "El Señor de los Anillos"?', opts: ['Steven Spielberg', 'Peter Jackson', 'James Cameron'], ans: 1 },
+            { cat: 'Cine y TV', q: '¿En qué película aparece el personaje "Forrest Gump"?', opts: ['Cast Away', 'Philadelphia', 'Forrest Gump'], ans: 2 },
+            { cat: 'Cine y TV', q: '¿Qué serie tiene el eslogan "Winter is Coming"?', opts: ['Vikings', 'Game of Thrones', 'The Last Kingdom'], ans: 1 },
+            { cat: 'Cine y TV', q: '¿Cuántas temporadas tiene "Breaking Bad"?', opts: ['4', '5', '6'], ans: 1 },
+            { cat: 'Cine y TV', q: '¿Qué actor interpreta a Iron Man en el MCU?', opts: ['Chris Evans', 'Robert Downey Jr.', 'Chris Pratt'], ans: 1 },
+            // GASTRONOMÍA
+            { cat: 'Gastronomía', q: '¿De qué país es originaria la pizza?', opts: ['España', 'Francia', 'Italia'], ans: 2 },
+            { cat: 'Gastronomía', q: '¿Cuál es el ingrediente principal del guacamole?', opts: ['Tomate', 'Aguacate', 'Pepino'], ans: 1 },
+            { cat: 'Gastronomía', q: '¿En qué país se originó el sushi?', opts: ['China', 'Corea', 'Japón'], ans: 2 },
+            { cat: 'Gastronomía', q: '¿Qué cereal se usa para hacer el pan tradicional?', opts: ['Maíz', 'Arroz', 'Trigo'], ans: 2 },
+            { cat: 'Gastronomía', q: '¿De qué fruta se hace el vino?', opts: ['Manzana', 'Uva', 'Pera'], ans: 1 },
+            // NATURALEZA
+            { cat: 'Naturaleza', q: '¿Cuál es el animal terrestre más rápido?', opts: ['León', 'Guepardo', 'Leopardo'], ans: 1 },
+            { cat: 'Naturaleza', q: '¿Cuántos lados tiene un hexágono?', opts: ['5', '6', '7'], ans: 1 },
+            { cat: 'Naturaleza', q: '¿Cuál es el árbol más alto del mundo?', opts: ['Baobab', 'Secuoya gigante', 'Eucalipto'], ans: 1 },
+            { cat: 'Naturaleza', q: '¿De qué se alimentan principalmente los koalas?', opts: ['Bambú', 'Hojas de eucalipto', 'Frutas'], ans: 1 },
+            { cat: 'Naturaleza', q: '¿Cuántas patas tiene una araña?', opts: ['6', '8', '10'], ans: 1 },
+            // MATEMÁTICAS
+            { cat: 'Matemáticas', q: '¿Cuánto es la raíz cuadrada de 144?', opts: ['11', '12', '13'], ans: 1 },
+            { cat: 'Matemáticas', q: '¿Cuántos lados tiene un triángulo?', opts: ['2', '3', '4'], ans: 1 },
+            { cat: 'Matemáticas', q: '¿Qué número es primo?', opts: ['9', '15', '17'], ans: 2 },
+            { cat: 'Matemáticas', q: '¿Cuánto es 15% de 200?', opts: ['25', '30', '35'], ans: 1 },
+            { cat: 'Matemáticas', q: '¿Cuántos grados tiene un ángulo recto?', opts: ['45', '90', '180'], ans: 1 },
+            // MÚSICA
+            { cat: 'Música', q: '¿De qué país es la banda U2?', opts: ['Reino Unido', 'Irlanda', 'Australia'], ans: 1 },
+            { cat: 'Música', q: '¿Qué instrumento toca Elton John?', opts: ['Guitarra', 'Piano', 'Violín'], ans: 1 },
+            { cat: 'Música', q: '¿Cuál es el nombre real de "Shakira"?', opts: ['Shakira Isabel Mebarak Ripoll', 'María Shakira Ripoll', 'Shakira Mebarak Torres'], ans: 0 },
+            { cat: 'Música', q: '¿En qué año murió Michael Jackson?', opts: ['2007', '2009', '2011'], ans: 1 },
+            { cat: 'Música', q: '¿Qué género musical es originario de Jamaica?', opts: ['Salsa', 'Reggae', 'Cumbia'], ans: 1 },
+            // IDIOMAS
+            { cat: 'Idiomas', q: '¿Cómo se dice "gracias" en japonés?', opts: ['Arigatou', 'Konnichiwa', 'Sayonara'], ans: 0 },
+            { cat: 'Idiomas', q: '¿En qué idioma está escrita la Biblia original del Antiguo Testamento?', opts: ['Griego', 'Latín', 'Hebreo'], ans: 2 },
+            { cat: 'Idiomas', q: '¿Cuántas letras tiene el alfabeto español?', opts: ['27', '28', '29'], ans: 0 },
+            { cat: 'Idiomas', q: '¿Cómo se dice "agua" en inglés?', opts: ['Fire', 'Water', 'Wind'], ans: 1 },
+            { cat: 'Idiomas', q: '¿Qué idioma tiene más palabras en su diccionario oficial?', opts: ['Español', 'Inglés', 'Francés'], ans: 1 },
         ];
 
         let quizGameState = {
@@ -8675,6 +8720,15 @@ window.cerrarJuegoWindow = function() {
             _cdInterval: null,
             _simTimeout: null
         };
+
+        // ── QUIZ EN TIEMPO REAL VÍA FIREBASE ──
+        // Referencia Firebase para quiz
+        function quizRef() {
+            const k = window.salaActualKey;
+            return k ? ref(db, `quiz/${k}`) : null;
+        }
+
+        let _quizListener = null; // listener Firebase quiz
 
         function iniciarQuiz() {
             premiosJuego.quiz = { mi: null, oponente: null };
@@ -8701,7 +8755,6 @@ window.cerrarJuegoWindow = function() {
         }
 
         function iniciarPartidaQuiz() {
-            // Sincronización real con Firebase: esperar a que el otro usuario también pulse "Comenzar".
             const btn = document.getElementById('btn-comenzar-quiz');
             btn.disabled = true;
             btn.textContent = '⏳ Esperando al rival...';
@@ -8724,7 +8777,6 @@ window.cerrarJuegoWindow = function() {
             }, 60000);
         }
 
-        // Función llamada por el listener de sincronización cuando AMBOS están listos para Quiz
         function iniciarPartidaQuizReal() {
             arrancarQuiz();
         }
@@ -8738,40 +8790,132 @@ window.cerrarJuegoWindow = function() {
             return a;
         }
 
-        function arrancarQuiz() {
-            _tttAttachSignalListener(); // escuchar señales (revancha, salida) durante Quiz
+        // Determinar si soy el "host" del quiz (iniciador = quien envió la invitación)
+        function _soyHostQuiz() {
+            return window.usuarioActual === window.oponenteActual
+                ? false
+                : (window.usuarioActual < window.oponenteActual);
+        }
+
+        async function arrancarQuiz() {
+            _tttAttachSignalListener();
             const hayPremio = !!(premiosJuego.quiz.mi || premiosJuego.quiz.oponente);
             const numPregs = hayPremio ? 5 : 10;
-            quizGameState.preguntas = mezclarArray(quizBancoPeguntas).slice(0, numPregs);
-            quizGameState.preguntaActual = 0;
+
             quizGameState.modoRondas = hayPremio;
             quizGameState.puntajes = { mi: 0, oponente: 0 };
             quizGameState.historicoTotal = { mi: 0, oponente: 0 };
+            quizGameState.preguntaActual = 0;
 
             document.getElementById('quiz-lobby').style.display = 'none';
             document.getElementById('quiz-question-view').classList.add('active');
             document.getElementById('quizScoreboard').classList.add('visible');
 
-            // Indicador de ronda solo con premio
             const roundEl = document.getElementById('quiz-round-indicator');
-            if (hayPremio) {
-                roundEl.classList.add('visible');
-            } else {
-                roundEl.classList.remove('visible');
-            }
+            if (hayPremio) roundEl.classList.add('visible');
+            else roundEl.classList.remove('visible');
 
             actualizarScoreboardQuiz();
-            mostrarPreguntaQuiz();
+
+            // Solo el host escribe el set de preguntas en Firebase
+            if (_soyHostQuiz()) {
+                const pregsSeleccionadas = mezclarArray(quizBancoPeguntas).slice(0, numPregs);
+                // Guardamos solo índices de las preguntas para no escribir texto largo
+                const indices = pregsSeleccionadas.map(p => quizBancoPeguntas.indexOf(p));
+                const qRef = quizRef();
+                if (qRef) {
+                    await set(qRef, {
+                        preguntas: indices,
+                        preguntaActual: 0,
+                        puntajes: { [window.usuarioActual]: 0, [window.oponenteActual || '__op']: 0 },
+                        buzz: null,
+                        respuesta: null,
+                        timestamp: Date.now()
+                    });
+                }
+            }
+
+            // Ambos escuchan Firebase para sincronización
+            _iniciarListenerQuiz();
+        }
+
+        function _iniciarListenerQuiz() {
+            if (_quizListener) { try { _quizListener(); } catch(e){} _quizListener = null; }
+            const qRef = quizRef();
+            if (!qRef) return;
+
+            _quizListener = onValue(qRef, snap => {
+                const d = snap.val();
+                if (!d) return;
+
+                // Sincronizar preguntas desde Firebase
+                if (d.preguntas && quizGameState.preguntas.length === 0) {
+                    quizGameState.preguntas = d.preguntas.map(i => quizBancoPeguntas[i]);
+                    quizGameState.preguntaActual = d.preguntaActual || 0;
+                    mostrarPreguntaQuiz();
+                }
+
+                // Sincronizar pregunta actual si cambió
+                if (d.preguntas && quizGameState.preguntas.length > 0) {
+                    const idx = d.preguntaActual || 0;
+                    if (idx !== quizGameState.preguntaActual && idx < quizGameState.preguntas.length) {
+                        quizGameState.preguntaActual = idx;
+                        quizGameState.respondioAlguien = false;
+                        quizGameState.buzzeadoPor = null;
+                        mostrarPreguntaQuiz();
+                        return;
+                    }
+                }
+
+                // Sincronizar puntajes
+                if (d.puntajes) {
+                    const yo = window.usuarioActual;
+                    const op = window.oponenteActual || '__op';
+                    const pMi = d.puntajes[yo] !== undefined ? d.puntajes[yo] : 0;
+                    const pOp = d.puntajes[op] !== undefined ? d.puntajes[op] : 0;
+                    quizGameState.puntajes.mi = pMi;
+                    quizGameState.puntajes.oponente = pOp;
+                    actualizarScoreboardQuiz();
+                }
+
+                // Sincronizar buzz y respuesta
+                if (d.buzz && !quizGameState.respondioAlguien) {
+                    const esYo = d.buzz.usuario === window.usuarioActual;
+                    quizGameState.respondioAlguien = true;
+                    quizGameState.buzzeadoPor = esYo ? 'mi' : 'oponente';
+
+                    bloquearBotonesQuiz();
+                    if (esYo) {
+                        document.getElementById('quizP1Status').textContent = '⚡ ¡PULSÓ!';
+                        document.getElementById('quizStatusP1').classList.add('buzzed');
+                        document.getElementById('quizBuzzStatus').textContent = `⚡ ${capitalizarNombre(window.usuarioActual) || 'Tú'} respondió primero`;
+                    } else {
+                        document.getElementById('quizP2Status').textContent = '⚡ ¡PULSÓ!';
+                        document.getElementById('quizStatusP2').classList.add('buzzed');
+                        document.getElementById('quizBuzzStatus').textContent = `⚡ ${nombreOponente()} respondió primero`;
+                    }
+                }
+
+                // Revelar respuesta cuando llegue
+                if (d.respuesta !== null && d.respuesta !== undefined && quizGameState.respondioAlguien && !quizGameState._respuestaRevelada) {
+                    quizGameState._respuestaRevelada = true;
+                    _revelarRespuestaLocal(d.respuesta.elegidoIdx, quizGameState.buzzeadoPor, d.respuesta.esCorrecta);
+                }
+
+                // Fin de juego
+                if (d.estado === 'fin') {
+                    if (_quizListener) { try { _quizListener(); } catch(e){} _quizListener = null; }
+                    mostrarGanadorFinalQuiz();
+                }
+            });
         }
 
         function actualizarScoreboardQuiz() {
-            const yo = capitalizarNombre(usuarioActual) || 'Tú';
+            const yo = capitalizarNombre(window.usuarioActual) || 'Tú';
             document.getElementById('quizSbMyName').textContent = yo;
             document.getElementById('quizSbOtherName').textContent = nombreOponente();
             document.getElementById('quizSbMyScore').textContent = quizGameState.puntajes.mi;
             document.getElementById('quizSbOtherScore').textContent = quizGameState.puntajes.oponente;
-
-            // Nombres en la vista de pregunta
             document.getElementById('quizP1Name').textContent = yo;
             document.getElementById('quizP2Name').textContent = nombreOponente();
         }
@@ -8780,10 +8924,12 @@ window.cerrarJuegoWindow = function() {
             const idx = quizGameState.preguntaActual;
             const total = quizGameState.preguntas.length;
             const p = quizGameState.preguntas[idx];
+            if (!p) return;
 
             quizGameState.respondioAlguien = false;
             quizGameState.buzzeadoPor = null;
             quizGameState.esperandoRespuesta = false;
+            quizGameState._respuestaRevelada = false;
 
             document.getElementById('quizCategoryBadge').textContent = p.cat;
             document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1} de ${total}`;
@@ -8792,20 +8938,18 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('quizBuzzStatus').textContent = '';
             document.getElementById('quizResultBanner').className = 'quiz-result-banner';
             document.getElementById('quizResultBanner').textContent = '';
-            // Limpiar countdown anterior
+
             if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
             const cdBox = document.getElementById('quizCountdownBox');
             if (cdBox) cdBox.classList.remove('visible');
             const exitBtnQ = document.getElementById('quizExitBtn');
             if (exitBtnQ) exitBtnQ.style.display = 'none';
 
-            // Reset status jugadores
             document.getElementById('quizP1Status').textContent = '🟡 Esperando...';
             document.getElementById('quizP2Status').textContent = '🟡 Esperando...';
             document.getElementById('quizStatusP1').classList.remove('buzzed');
             document.getElementById('quizStatusP2').classList.remove('buzzed');
 
-            // Renderizar opciones
             const grid = document.getElementById('quizOptionsGrid');
             grid.innerHTML = '';
             const letras = ['A', 'B', 'C'];
@@ -8817,77 +8961,45 @@ window.cerrarJuegoWindow = function() {
                 btn.onclick = () => seleccionarOpcionQuiz(i, btn);
                 grid.appendChild(btn);
             });
-
-            // Simular que el oponente puede "pulsar" primero a veces (20%)
-            quizGameState._simTimeout = null;
-            if (Math.random() < 0.2) {
-                const simDelay = 500 + Math.random() * 2000;
-                quizGameState._simTimeout = setTimeout(() => {
-                    if (!quizGameState.respondioAlguien) {
-                        oponenteBuzzQuiz();
-                    }
-                }, simDelay);
-            }
         }
 
-        function seleccionarOpcionQuiz(optIdx, btnEl) {
-            // Si ya respondió alguien, bloquear
+        async function seleccionarOpcionQuiz(optIdx, btnEl) {
             if (quizGameState.respondioAlguien) return;
-            // Cancelar simulación del oponente
-            if (quizGameState._simTimeout) { clearTimeout(quizGameState._simTimeout); quizGameState._simTimeout = null; }
 
             quizGameState.respondioAlguien = true;
             quizGameState.buzzeadoPor = 'mi';
             quizGameState.esperandoRespuesta = true;
 
-            // Bloquear al oponente (simular)
             bloquearBotonesQuiz();
 
-            // Indicar que el jugador local buzzó
             document.getElementById('quizP1Status').textContent = '⚡ ¡PULSÓ!';
             document.getElementById('quizStatusP1').classList.add('buzzed');
-            document.getElementById('quizBuzzStatus').textContent = `⚡ ${capitalizarNombre(usuarioActual) || 'Tú'} respondió primero`;
+            document.getElementById('quizBuzzStatus').textContent = `⚡ ${capitalizarNombre(window.usuarioActual) || 'Tú'} respondió primero`;
 
-            // Resaltar la opción elegida brevemente y revelar resultado
-            setTimeout(() => {
-                resolverRespuestaQuiz(optIdx, 'mi');
-            }, 400);
-        }
-
-        function oponenteBuzzQuiz() {
-            if (quizGameState.respondioAlguien) return;
-            quizGameState.respondioAlguien = true;
-            quizGameState.buzzeadoPor = 'oponente';
-
-            bloquearBotonesQuiz();
-
-            document.getElementById('quizP2Status').textContent = '⚡ ¡PULSÓ!';
-            document.getElementById('quizStatusP2').classList.add('buzzed');
-            document.getElementById('quizBuzzStatus').textContent = '⚡ Oponente respondió primero';
-
-            // Simular elección del oponente
             const p = quizGameState.preguntas[quizGameState.preguntaActual];
-            const numOpts = p.opts.length;
-            // Oponente tiene 60% de acertar
-            let opChoice;
-            if (Math.random() < 0.6) {
-                opChoice = p.ans;
-            } else {
-                const wrong = [...Array(numOpts).keys()].filter(i => i !== p.ans);
-                opChoice = wrong[Math.floor(Math.random() * wrong.length)];
+            const esCorrecta = optIdx === p.ans;
+
+            // Escribir buzz en Firebase
+            const qRef = quizRef();
+            if (qRef) {
+                const yo = window.usuarioActual;
+                const op = window.oponenteActual || '__op';
+                const nuevoPuntaje = { ...((await (async()=>{ const s = await get(qRef); return s.val()?.puntajes||{}; })())) };
+                if (esCorrecta) {
+                    nuevoPuntaje[yo] = (nuevoPuntaje[yo] || 0) + 1;
+                }
+                await update(qRef, {
+                    buzz: { usuario: yo, ts: Date.now() },
+                    respuesta: { elegidoIdx: optIdx, esCorrecta, ts: Date.now() },
+                    puntajes: nuevoPuntaje
+                });
             }
-
-            setTimeout(() => {
-                resolverRespuestaQuiz(opChoice, 'oponente');
-            }, 800);
         }
 
-        function resolverRespuestaQuiz(elegidoIdx, quien) {
+        function _revelarRespuestaLocal(elegidoIdx, quien, esCorrecta) {
             const p = quizGameState.preguntas[quizGameState.preguntaActual];
-            const esCorrecta = elegidoIdx === p.ans;
             const buttons = document.querySelectorAll('#quizOptionsGrid .quiz-option-btn');
 
-            // Revelar correcta e incorrecta
             buttons.forEach((btn, i) => {
                 btn.disabled = true;
                 if (i === p.ans) btn.classList.add('reveal-correct');
@@ -8896,16 +9008,14 @@ window.cerrarJuegoWindow = function() {
             });
 
             const banner = document.getElementById('quizResultBanner');
-            // +1 punto por respuesta correcta
             if (esCorrecta) {
-                quizGameState.puntajes[quien] += 1;
                 actualizarScoreboardQuiz();
                 if (quien === 'mi') {
                     banner.textContent = '✅ ¡Correcto! +1 punto para ti 🎉';
                     banner.className = 'quiz-result-banner correct-banner show';
                     document.getElementById('quizP1Status').textContent = '✅ +1 pto';
                 } else {
-                    banner.textContent = '✅ Oponente respondió correcto. +1 punto para él.';
+                    banner.textContent = `✅ ${nombreOponente()} respondió correcto. +1 punto para él.`;
                     banner.className = 'quiz-result-banner wrong-banner show';
                     document.getElementById('quizP2Status').textContent = '✅ +1 pto';
                 }
@@ -8921,7 +9031,6 @@ window.cerrarJuegoWindow = function() {
                 }
             }
 
-            // Iniciar cuenta regresiva de 5 segundos (visible para ambos)
             iniciarCountdownQuiz();
         }
 
@@ -8932,7 +9041,6 @@ window.cerrarJuegoWindow = function() {
         }
 
         function iniciarCountdownQuiz() {
-            // Limpiar cualquier countdown previo
             if (quizGameState._cdInterval) clearInterval(quizGameState._cdInterval);
             const box = document.getElementById('quizCountdownBox');
             const numEl = document.getElementById('quizCountdownNum');
@@ -8953,19 +9061,43 @@ window.cerrarJuegoWindow = function() {
             }, 1000);
         }
 
-        function avanzarPreguntaQuiz() {
-            quizGameState.preguntaActual++;
-            if (quizGameState.preguntaActual >= quizGameState.preguntas.length) {
+        async function avanzarPreguntaQuiz() {
+            const nextIdx = quizGameState.preguntaActual + 1;
+            if (nextIdx >= quizGameState.preguntas.length) {
+                // Fin del juego — solo el host escribe 'fin'
+                if (_soyHostQuiz()) {
+                    const qRef = quizRef();
+                    if (qRef) await update(qRef, { estado: 'fin' });
+                }
                 mostrarGanadorFinalQuiz();
             } else {
-                mostrarPreguntaQuiz();
+                // Solo host avanza el índice en Firebase
+                if (_soyHostQuiz()) {
+                    const qRef = quizRef();
+                    if (qRef) {
+                        await update(qRef, {
+                            preguntaActual: nextIdx,
+                            buzz: null,
+                            respuesta: null
+                        });
+                    }
+                }
+                // Si no soy host, el listener Firebase actualizará la pregunta automáticamente
+                // Pero si soy host también necesito avanzar localmente
+                if (_soyHostQuiz()) {
+                    quizGameState.preguntaActual = nextIdx;
+                    quizGameState.respondioAlguien = false;
+                    quizGameState.buzzeadoPor = null;
+                    quizGameState._respuestaRevelada = false;
+                    mostrarPreguntaQuiz();
+                }
             }
         }
 
         function mostrarGanadorFinalQuiz() {
             const miScore = quizGameState.puntajes.mi;
             const opScore = quizGameState.puntajes.oponente;
-            const yo = capitalizarNombre(usuarioActual) || 'Tú';
+            const yo = capitalizarNombre(window.usuarioActual) || 'Tú';
             const op = nombreOponente();
 
             const msgPartida = `Esta partida: ${yo} ${miScore} — ${op} ${opScore}`;
@@ -8973,7 +9105,7 @@ window.cerrarJuegoWindow = function() {
             if (miScore === opScore) {
                 document.getElementById('win-trophy').textContent = '🤝';
                 document.getElementById('win-title').textContent = '¡Empate en el Quiz!';
-                document.getElementById('win-message').innerHTML = `${msgPartida}`;
+                document.getElementById('win-message').innerHTML = msgPartida;
                 document.getElementById('win-prize-box').style.display = 'none';
             } else if (miScore > opScore) {
                 document.getElementById('win-trophy').textContent = '🏆';
@@ -9059,6 +9191,26 @@ window.cerrarJuegoWindow = function() {
             quizGameState.preguntas = mezclarArray(quizBancoPeguntas).slice(0, 5);
             actualizarScoreboardQuiz();
             mostrarPreguntaQuiz();
+                function _limpiarEstadoQuiz() {
+            if (_quizListener) { try { _quizListener(); } catch(e){} _quizListener = null; }
+            premiosJuego.quiz.mi = null;
+            premiosJuego.quiz.oponente = null;
+            quizGameState.puntajes = { mi: 0, oponente: 0 };
+            quizGameState.preguntaActual = 0;
+            quizGameState.preguntas = [];
+            quizGameState.historicoTotal = {};
+        }
+
+        function _doRevanchaQuizReal() {
+            _hideNotify();
+            document.getElementById('modal-win').classList.remove('active');
+            document.getElementById('quiz-lobby').style.display = 'none';
+            document.getElementById('quizScoreboard').classList.add('visible');
+            document.getElementById('quiz-question-view').classList.add('active');
+            quizGameState.preguntaActual = 0;
+            quizGameState.puntajes = { mi: 0, oponente: 0 };
+            quizGameState.preguntas = [];
+            arrancarQuiz();
         }
 
 
@@ -9089,7 +9241,6 @@ window.cerrarJuegoWindow = function() {
         window.capitalizarNombre       = capitalizarNombre;
         window.formatearHora           = function(f){ return formatearHoraMs(f instanceof Date ? f.getTime() : f); };
         window.seleccionarOpcionQuiz    = seleccionarOpcionQuiz;
-        window.oponenteBuzzQuiz         = oponenteBuzzQuiz;
         window.avanzarPreguntaQuiz      = avanzarPreguntaQuiz;
 
         // ============================================================
@@ -9357,6 +9508,7 @@ window.cerrarJuegoWindow = function() {
     let _isCaller = false;
     let _callListener = null;
     let _activeGameVoice = null;   // id del juego con voz activa
+    let _gameVoiceMuted = false;   // mic silenciado (solo escucha)
 
     const ICE_SERVERS = [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -9620,7 +9772,7 @@ window.cerrarJuegoWindow = function() {
         });
     }
 
-    // ── VOZ EN JUEGO (toggle directo) ──
+    // ── VOZ EN JUEGO (toggle: off → listen-only → full-on) ──
     window.toggleVozJuego = async function(gameId) {
         const btn = document.getElementById('voice-btn-' + gameId);
         if (!btn) return;
@@ -9631,10 +9783,24 @@ window.cerrarJuegoWindow = function() {
         }
 
         if (_activeGameVoice === gameId) {
-            // Apagar
-            await _apagarVozJuego(gameId);
+            if (!_gameVoiceMuted) {
+                // Apagar micrófono (silenciar tracks locales) → modo solo escuchar
+                if (_gameStream) {
+                    _gameStream.getAudioTracks().forEach(t => { t.enabled = false; });
+                }
+                _gameVoiceMuted = true;
+                _actualizarBotonesVoz('muted');
+            } else {
+                // Reactivar micrófono
+                if (_gameStream) {
+                    _gameStream.getAudioTracks().forEach(t => { t.enabled = true; });
+                }
+                _gameVoiceMuted = false;
+                _actualizarBotonesVoz(true);
+            }
         } else {
-            // Encender
+            // Encender (primera vez)
+            _gameVoiceMuted = false;
             await _encenderVozJuego(gameId);
         }
     };
@@ -9720,16 +9886,27 @@ window.cerrarJuegoWindow = function() {
         _actualizarBotonesVoz(true);
     }
 
-    function _actualizarBotonesVoz(activo) {
+    function _actualizarBotonesVoz(estado) {
+        // estado: true = voz activa+mic on, 'muted' = conexión activa pero mic off, false = apagado
         document.querySelectorAll('.btn-voice-game').forEach(btn => {
-            if (activo) {
+            if (estado === true) {
                 btn.classList.add('voz-activa');
+                btn.style.opacity = '';
                 btn.querySelector('i').className = 'fas fa-microphone';
                 btn.querySelector('.voice-label').textContent = 'Voz on';
+                btn.title = 'Silenciar micrófono';
+            } else if (estado === 'muted') {
+                btn.classList.add('voz-activa');
+                btn.style.opacity = '0.6';
+                btn.querySelector('i').className = 'fas fa-microphone-slash';
+                btn.querySelector('.voice-label').textContent = 'Solo escucha';
+                btn.title = 'Activar micrófono';
             } else {
                 btn.classList.remove('voz-activa');
+                btn.style.opacity = '';
                 btn.querySelector('i').className = 'fas fa-microphone-slash';
                 btn.querySelector('.voice-label').textContent = 'Voz off';
+                btn.title = 'Activar voz';
             }
         });
     }
@@ -9740,6 +9917,7 @@ window.cerrarJuegoWindow = function() {
         const ra = document.getElementById('game-remote-audio');
         if (ra) ra.remove();
         _activeGameVoice = null;
+        _gameVoiceMuted = false;
 
         if (gameVoiceRef()) await update(gameVoiceRef(), { status: 'off' }).catch(()=>{});
 
