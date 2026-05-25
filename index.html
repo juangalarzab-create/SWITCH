@@ -6383,6 +6383,18 @@ window.cerrarJuegoWindow = function() {
         // ── Señalización: un jugador envía evento al otro ──
         let _tttLastSignalTs = 0; // timestamp de la última señal procesada (evita re-disparos)
         let _tttVolverAlLobby = false; // true cuando el countdown de revancha debe ir al lobby en vez de directo al juego
+        // Guardián: re-adjunta el signal listener si alguna ventana de juego está activa
+        // pero el listener fue desconectado (evita perder señales en transiciones).
+        setInterval(() => {
+            const juegoVisible =
+                document.getElementById('tictactoe-window').classList.contains('active') ||
+                document.getElementById('stop-window').classList.contains('active') ||
+                document.getElementById('quiz-window').classList.contains('active');
+            if (juegoVisible && !_tttSignalListener && oponenteActual && !window._tttExitCdTimer) {
+                _tttAttachSignalListener();
+            }
+        }, 1000);
+
         async function _tttSendSignal(tipo, payload) {
             if (!salaActualKey) return;
             try {
@@ -6466,6 +6478,8 @@ window.cerrarJuegoWindow = function() {
                     break;
                 case 'player_exit_cd':
                     // El oponente presionó Salir → mostrar countdown de 3s y luego ir al menú
+                    // Guard: si ya hay un countdown corriendo, ignorar reintentos.
+                    if (window._tttExitCdTimer) break;
                     _tttDetachListener();
                     _tttClearSignal();
                     clearInterval(timerIntervalo);
@@ -6564,10 +6578,11 @@ window.cerrarJuegoWindow = function() {
                     break;
                 case 'stop_final_ganador':
                     // El otro jugador terminó la partida (o auto-fin de rondas) → mostrar modal ganador
-                    // Si ya está activo el modal (el usuario también presionó terminar), ignorar.
                     if (!document.getElementById('modal-win').classList.contains('active')) {
                         mostrarGanadorFinalStop();
                     }
+                    // Re-adjuntar listener siempre para recibir player_exit_cd del emisor
+                    _tttAttachSignalListener();
                     break;
 
                 // ── Revancha Quiz ──
@@ -7284,8 +7299,6 @@ window.cerrarJuegoWindow = function() {
         function mostrarGanadorFinalStop() {
             // Muestra el modal final con el ganador de la partida.
             // Se usa tanto al terminar manualmente como al cumplir las 3 rondas en modo premio.
-            // Asegurarse de que el listener de señales esté activo para recibir "Jugar de nuevo"
-            _tttAttachSignalListener();
             const miScore = stopGameState.puntajeAcumulado[usuarioActual] || 0;
             const opScore = stopGameState.puntajeAcumulado['Oponente'] || 0;
             const yo = capitalizarNombre(usuarioActual);
@@ -7381,6 +7394,10 @@ window.cerrarJuegoWindow = function() {
                 btnExit.onclick = salirAlMenuJuegos;
             }
 
+            // Adjuntar listener AL FINAL para recibir señales del oponente
+            // (player_exit_cd, jugar de nuevo, etc.) — hacerlo aquí garantiza
+            // que el modal ya está configurado y listo antes de escuchar.
+            _tttAttachSignalListener();
             document.getElementById('modal-win').classList.add('active');
         }
 
@@ -7642,14 +7659,21 @@ window.cerrarJuegoWindow = function() {
         function salirAlMenuJuegos(silencioso) {
             // Si ya hay un countdown de salida corriendo, no duplicar
             if (window._tttExitCdTimer) return;
-            // Notificar al oponente: siempre que no sea silencioso y haya un oponente activo.
-            // No exigimos que la ventana tenga .active porque el modal-win puede estar
-            // visible aunque el juego ya completó su estado (empate stop, etc).
+            const nombreEmisor = capitalizarNombre(usuarioActual);
+
             if (!silencioso && oponenteActual) {
-                _tttSendSignal('player_exit_cd', { nombre: capitalizarNombre(usuarioActual) });
+                // Enviar la señal de salida y reintentarla varias veces para garantizar
+                // que el receptor la recibe aunque su listener se esté re-adjuntando.
+                const enviarSalida = () => _tttSendSignal('player_exit_cd', { nombre: nombreEmisor });
+                enviarSalida();
+                // Reintentos a los 300ms, 800ms y 1500ms — si el receptor ya procesó
+                // la primera, las siguientes son ignoradas por el guard _tttExitCdTimer.
+                setTimeout(enviarSalida, 300);
+                setTimeout(enviarSalida, 800);
+                setTimeout(enviarSalida, 1500);
             }
-            // Mostrar countdown de salida rojo en el solicitante
-            _tttMostrarCountdownSalida(capitalizarNombre(usuarioActual));
+            // Mostrar countdown de salida rojo en el solicitante inmediatamente
+            _tttMostrarCountdownSalida(nombreEmisor);
         }
 
         function _ejecutarSalidaReal() {
