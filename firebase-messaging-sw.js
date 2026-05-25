@@ -1,24 +1,16 @@
 /* =========================================================
- * SWITCH — Firebase Cloud Messaging Service Worker
+ * SWITCH — Service Worker unificado
+ * Maneja TANTO el caché offline (PWA) COMO las notificaciones
+ * push de Firebase Cloud Messaging.
  *
- * Este archivo DEBE llamarse exactamente "firebase-messaging-sw.js"
- * y DEBE estar en la raíz del sitio (mismo nivel que index.html).
- *
- * Recibe los mensajes PUSH cuando la app está:
- *   - Cerrada por completo
- *   - En segundo plano
- *   - Con la pantalla apagada / dispositivo en suspensión
- *
- * Para que funcione, alguien (Cloud Function o servidor) debe
- * enviar el push al endpoint FCM con el token del usuario.
+ * Un solo SW evita conflictos de scope entre sw.js y
+ * firebase-messaging-sw.js.
  * ========================================================= */
 
-// Usamos los SDKs "compat" porque los SW no soportan import módulos en todos
-// los navegadores de forma fiable (sobre todo en Android viejo / iOS PWA).
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 
-// ⚠️ Estos valores DEBEN ser idénticos a los del index.html
+// ── Firebase config (idéntico al index.html) ──
 firebase.initializeApp({
   apiKey: "AIzaSyDbfWRBfbFwikuy9baL6RcbaT4v1KMU8lE",
   authDomain: "switch-46758.firebaseapp.com",
@@ -31,14 +23,72 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-/* ---------------------------------------------------------
- * Handler de mensajes en segundo plano.
- *
- * IMPORTANTE: si tu push trae una clave "notification" en el
- * payload, el navegador la muestra solo (no entra aquí). Para
- * controlar título, icono, sonido y click, mandamos siempre el
- * push como "data-only" desde la Cloud Function. Ahí entra acá:
- * --------------------------------------------------------- */
+// ── Caché PWA ──
+const CACHE_NAME = 'switch-cache-v5';
+const PRECACHE_URLS = [
+  './',
+  './index.html',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png',
+  './icons/favicon-32.png'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .catch((err) => console.warn('[SW] precache parcial:', err))
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  // No interceptar Firebase, Telegram, CDNs externos
+  if (
+    url.hostname.includes('firebaseio.com') ||
+    url.hostname.includes('googleapis.com') ||
+    url.hostname.includes('gstatic.com') ||
+    url.hostname.includes('cloudflare') ||
+    url.hostname.includes('telegram') ||
+    url.hostname.includes('cloudinary') ||
+    url.hostname.includes('workers.dev')
+  ) return;
+
+  // Network-first para HTML, cache-first para assets
+  if (req.destination === 'document') {
+    event.respondWith(
+      fetch(req).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        return res;
+      }).catch(() => caches.match(req))
+    );
+  } else {
+    event.respondWith(
+      caches.match(req).then(cached => cached || fetch(req).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        return res;
+      }))
+    );
+  }
+});
+
+// ── Notificaciones push en segundo plano / app cerrada ──
 messaging.onBackgroundMessage((payload) => {
   console.log('[FCM-SW] Push recibido en segundo plano:', payload);
 
@@ -49,18 +99,14 @@ messaging.onBackgroundMessage((payload) => {
   const tag   = data.tag   || ('switch-' + (sala || 'global'));
 
   const options = {
-    body: body,
-    icon: '/icons/icon-192.png',
-    badge: '/icons/badge-72.png',
-    tag: tag,                // Agrupa notificaciones de la misma sala
-    renotify: true,          // Vibra/suena aunque ya haya una con el mismo tag
+    body,
+    icon:               '/icons/icon-192.png',
+    badge:              '/icons/badge-72.png',
+    tag,
+    renotify:           true,
     requireInteraction: false,
-    vibrate: [200, 100, 200],
-    data: {
-      url: data.url || '/',
-      sala: sala,
-      time: Date.now()
-    },
+    vibrate:            [200, 100, 200],
+    data: { url: data.url || '/', sala, time: Date.now() },
     actions: [
       { action: 'open',  title: 'Abrir' },
       { action: 'close', title: 'Cerrar' }
@@ -70,52 +116,56 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(title, options);
 });
 
-/* ---------------------------------------------------------
- * Click en la notificación → abrir / enfocar la app
- * --------------------------------------------------------- */
+// ── Fallback: push crudo por si onBackgroundMessage no lo captura ──
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try { payload = event.data.json(); } catch (e) {
+    payload = { data: { title: 'SWITCH', body: event.data.text() } };
+  }
+
+  // Si ya tiene clave "notification", el navegador la muestra solo
+  if (payload && payload.notification) return;
+
+  const data  = (payload && payload.data) || {};
+  const title = data.title || 'Mensaje nuevo en SWITCH';
+  const body  = data.body  || 'Tienes un mensaje nuevo';
+  const sala  = data.sala  || '';
+  const tag   = data.tag   || ('switch-' + (sala || 'global'));
+
+  const options = {
+    body, tag,
+    icon:    '/icons/icon-192.png',
+    badge:   '/icons/badge-72.png',
+    renotify: true,
+    vibrate: [200, 100, 200],
+    data:    { url: data.url || '/', sala, time: Date.now() },
+    actions: [
+      { action: 'open',  title: 'Abrir' },
+      { action: 'close', title: 'Cerrar' }
+    ]
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ── Click en notificación → abrir / enfocar la app ──
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
   if (event.action === 'close') return;
 
   const targetUrl = (event.notification.data && event.notification.data.url) || '/';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((winList) => {
-      // Si ya hay una ventana de la app abierta → enfocarla
       for (const client of winList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.postMessage({ type: 'NOTIFICATION_CLICK', data: event.notification.data });
           return client.focus();
         }
       }
-      // Si no, abrir una nueva
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
-      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
     })
   );
 });
-
-/* ---------------------------------------------------------
- * Push "crudo" (por si llega sin pasar por onBackgroundMessage)
- * Esto es un fallback. Algunos navegadores entregan el push acá
- * antes de que FCM lo procese. Lo dejamos solo como red de seguridad.
- * --------------------------------------------------------- */
-self.addEventListener('push', (event) => {
-  // Si el SDK de FCM ya manejó el evento, no hacemos nada
-  if (!event.data) return;
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch (e) {
-    payload = { data: { title: 'SWITCH', body: event.data.text() } };
-  }
-
-  // Si tiene "data" propio, ya lo gestionará onBackgroundMessage
-  if (payload && payload.data && payload.data.handledBySdk) return;
-});
-
-self.addEventListener('install',  () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
