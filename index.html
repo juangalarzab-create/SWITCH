@@ -131,12 +131,13 @@
 
         .header {
             background: #000000;
-            padding: 16px 24px;
-            border-bottom: 2px solid #333;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            padding: 12px 16px;
+            border-bottom: 1px solid #222;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            min-height: 56px;
         }
 
         .header h1 {
@@ -144,13 +145,52 @@
             font-size: 24px;
             display: flex;
             align-items: center;
+            gap: 10px;
         }
 
         .header-logo-img {
-            height: 28px;
+            height: 32px;
             width: auto;
             display: block;
             object-fit: contain;
+        }
+
+        /* Separador vertical blanco + nombre app */
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-brand-sep {
+            width: 2px;
+            height: 32px;
+            background: #ffffff;
+            border-radius: 2px;
+        }
+        .header-brand-name {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* Ícono (+) para crear sala — ocupa el lugar del botón */
+        .btn-nueva-sala-icon {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 26px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+        .btn-nueva-sala-icon:hover {
+            background: rgba(255,255,255,0.12);
         }
 
         .header h1 i {
@@ -250,149 +290,136 @@
 
         /* ===== PANTALLA INICIO ===== */
         .screen-inicio {
-            background: #f5f5f5;
+            background: #121212;
         }
 
         .inicio-search {
-            padding: 20px;
-            background: #ffffff;
-            border-bottom: 1px solid #ddd;
+            padding: 12px 16px;
+            background: #121212;
         }
 
         .search-input {
             width: 100%;
-            padding: 12px 16px;
-            background: #f0f0f0;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            color: #333;
+            padding: 11px 18px;
+            background: #1e1e1e;
+            border: 1.5px solid #2a2a2a;
+            border-radius: 24px;
+            color: #e0e0e0;
             font-size: 14px;
             outline: none;
+            transition: border-color 0.2s;
         }
 
         .search-input:focus {
-            border-color: #999;
+            border-color: #0088cc;
         }
 
         .search-input::placeholder {
-            color: #999;
+            color: #555;
         }
 
+        /* Lista vertical de salas */
         .salas-container {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
+            padding: 4px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
         }
 
+        /* Sala card estilo lista de chat (como Telegram/WhatsApp) */
         .sala-card {
-            background: #ffffff;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            padding: 20px;
+            background: #121212;
+            border: none;
+            border-bottom: 1px solid #1e1e1e;
+            border-radius: 0;
+            padding: 12px 16px;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: background 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
         }
 
         .sala-card:hover {
-            border-color: #999;
-            transform: translateY(-5px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: #1a1a1a;
+        }
+        .sala-card:active, .sala-card.pressing {
+            background: #1f1414;
+        }
+
+        /* Avatar circular con iniciales */
+        .sala-avatar {
+            width: 48px;
+            height: 48px;
+            min-width: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0088cc, #005f8f);
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-transform: uppercase;
+        }
+
+        .sala-card-body {
+            flex: 1;
+            min-width: 0;
         }
 
         .sala-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #e0e0e0;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .sala-type {
             font-size: 12px;
-            color: #666;
-            margin-bottom: 16px;
-            text-transform: uppercase;
+            color: #0088cc;
+            font-weight: 400;
         }
 
-        .sala-footer {
+        .sala-card-right {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #eee;
-            padding-top: 12px;
-            font-size: 12px;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            min-width: 50px;
         }
 
-        .sala-msgs {
-            color: #666;
-            font-weight: bold;
-        }
-
-        .btn-ingresar {
+        .sala-msgs-badge {
             background: #0088cc;
-            color: #ffffff;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .btn-ingresar:hover {
-            background: #0077b6;
-            transform: scale(1.05);
-        }
+        /* Ocultar botones viejos y footer */
+        .btn-ingresar { display: none !important; }
+        .btn-borrar-sala { display: none !important; }
+        .sala-footer { display: none !important; }
+        .inicio-footer { display: none !important; }
 
-        .btn-borrar-sala {
-            background: #000000;
-            color: #ffffff;
-            border: 1px solid #444;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
-
-        .btn-borrar-sala:hover {
-            background: #d32f2f;
-            border-color: #ff6b6b;
-        }
-
-        .btn-ingresar:active {
-            transform: scale(0.98);
-        }
-
-        .inicio-footer {
-            padding: 20px;
-            background: #000000;
-            border-top: 1px solid #333;
-        }
+        .sala-card.bloqueada-card { opacity: 0.5; }
 
         .btn-crear-sala {
-            width: 100%;
-            background: #0088cc;
-            color: #fff;
-            border: none;
-            padding: 14px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-crear-sala i {
-            color: #fff;
-            margin-right: 8px;
-        }
-
-        .btn-crear-sala:hover {
-            background: #0077b6;
+            display: none;
         }
 
         /* ===== PANTALLA CREAR SALA ===== */
@@ -2988,16 +3015,13 @@
         /* ===== RESPONSIVE - MOBILE FIRST ===== */
         @media (max-width: 768px) {
             .salas-container {
-                grid-template-columns: 1fr;
-                padding: 12px;
-                gap: 12px;
+                padding: 4px 0;
+                gap: 0;
             }
             .header h1 { font-size: 18px; }
             .header { padding: 10px 14px; }
             .inicio-search { padding: 10px 12px; }
-            .search-input { padding: 10px 12px; font-size: 13px; }
-            .inicio-footer { padding: 10px 12px; }
-            .btn-crear-sala { padding: 12px; font-size: 15px; }
+            .search-input { padding: 10px 16px; font-size: 13px; }
             .form-crear { padding: 24px 16px; }
             /* JUEGOS EN MÓVIL: arriba el juego, abajo el chat */
             .game-window.jugando {
@@ -3168,12 +3192,11 @@
 
         @media (max-width: 400px) {
             .header h1 { font-size: 16px; }
-            .salas-container { padding: 8px; }
+            .salas-container { padding: 0; }
             .burbuja { max-width: 90%; font-size: 13px; }
             .input-msg { font-size: 13px; }
             .header { padding: 8px 12px; }
             .inicio-search { padding: 8px 10px; }
-            .inicio-footer { padding: 8px 10px; }
         }
 
         /* ===== PWA INSTALL BUTTON (en cabecera, lado derecho) ===== */
@@ -3379,7 +3402,7 @@
 
 
         <div class="header">
-            <h1><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA8AAAAPACAYAAAD61hCbAAAeLElEQVR4nO3d23LbxhZAQTDl//9lngcfJbIs8YrbzOquylviAFDCwZoNiJdlWa4LAAAATO6fow8AAAAA9iCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEA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ACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIOF/IC9mVw6yazUAAAAASUVORK5CYII=" alt="SWITCH" class="header-logo-img"></h1>
+            <h1 class="header-brand"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA8AAAAPACAYAAAD61hCbAAAeLElEQVR4nO3d23LbxhZAQTDl//9lngcfJbIs8YrbzOquylviAFDCwZoNiJdlWa4LAAAATO6fow8AAAAA9iCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEA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ACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIEEAAwAAkCCAAQAASBDAAAAAJAhgAAAAEgQwAAAACQIYAACABAEMAABAggAGAAAgQQADAACQIIABAABIEMAAAAAkCGAAAAASBDAAAAAJAhgAAIAEAQwAAECCAAYAACBBAAMAAJAggAEAAEgQwAAAACQIYAAAABIEMAAAAAkCGAAAgAQBDAAAQIIABgAAIOF/IC9mVw6yazUAAAAASUVORK5CYII=" alt="SWITCH" class="header-logo-img"><div class="header-brand-sep"></div><span class="header-brand-name">SWITCH</span></h1>
             <div class="header-divider"></div>
             <div class="header-chat-info" id="header-chat-info">
                 <div class="header-user-details">
@@ -3388,6 +3411,10 @@
                 </div>
                 <button class="btn-home-header" onclick="irInicio()" title="Ir a Inicio"><i class="fas fa-home"></i></button>
             </div>
+            <!-- Botón + para crear sala (siempre visible en inicio) -->
+            <button class="btn-nueva-sala-icon" id="btn-nueva-sala-header" onclick="irCrearSala()" title="Crear nueva sala" style="display:flex;">
+                <i class="fas fa-user-plus" style="font-size:22px;"></i>
+            </button>
             <!-- Botón Instalar app (PWA) — solo si NO está instalada -->
             <button class="pwa-install-btn" id="pwa-install-btn" onclick="instalarPWA()" title="Instalar como aplicación">
                 <i class="fas fa-download"></i><span class="pwa-install-text">Instalar</span>
@@ -4259,11 +4286,13 @@ window.irInicio = function() {
     salaActual = null; salaActualKey = null; usuarioActual = null;
     document.getElementById('header-chat-info').classList.remove('active');
     document.querySelector('.header').classList.remove('chat-on');
+    document.getElementById('btn-nueva-sala-header').style.display = 'flex';
     mostrarPantalla('pantalla-inicio');
 };
 
 window.irCrearSala = function() {
     mostrarPantalla('pantalla-crear');
+    document.getElementById('btn-nueva-sala-header').style.display = 'none';
     document.getElementById('input-nombre').focus();
 };
 
@@ -4321,28 +4350,75 @@ window.renderSalas = function() {
     const filtered  = [...salas].reverse().filter(s => (s.nombre||'').toLowerCase().includes(busqueda));
 
     if (filtered.length === 0) {
-        container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#666;padding:40px;">📭 No hay salas creadas aún</div>';
+        container.innerHTML = '<div style="text-align:center;color:#444;padding:40px;font-size:14px;">📭 No hay salas creadas aún</div>';
         return;
     }
 
     container.innerHTML = filtered.map(sala => {
-        const bloqueadoBadge = sala.bloqueada
-            ? `<span style="background:#dc3545;color:white;padding:2px 8px;border-radius:10px;font-size:10px;margin-left:6px;">🔒 BLOQUEADA</span>`
-            : '';
+        const initials = (sala.nombre||'?').substring(0,2).toUpperCase();
         const msgCount = sala.msgCount || 0;
+        const bloqueadaBadge = sala.bloqueada
+            ? `<span style="background:#dc3545;color:white;padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px;">🔒</span>`
+            : '';
         return `
-        <div class="sala-card" onclick="pedirPassword('${sala._key}')" style="${sala.bloqueada ? 'opacity:0.6;' : ''}">
-            <div class="sala-name">✓ ${sala.nombre}${bloqueadoBadge}</div>
-            <div class="sala-type">${sala.tipo || 'Sala Privada'}</div>
-            <div class="sala-footer">
-                <div class="sala-msgs">💬 ${msgCount} mensajes</div>
-                <div style="display:flex;gap:8px;">
-                    <button class="btn-ingresar" onclick="pedirPassword('${sala._key}');event.stopPropagation();">Ingresar</button>
-                    <button class="btn-borrar-sala" onclick="pedirPasswordBorrar('${sala._key}');event.stopPropagation();">Borrar</button>
-                </div>
+        <div class="sala-card${sala.bloqueada ? ' bloqueada-card' : ''}" 
+             id="sala-card-${sala._key}"
+             data-key="${sala._key}">
+            <div class="sala-avatar">${initials}</div>
+            <div class="sala-card-body">
+                <div class="sala-name">${escapeHtml(sala.nombre)}${bloqueadaBadge}</div>
+                <div class="sala-type">${sala.tipo || 'Sala Privada'}</div>
+            </div>
+            <div class="sala-card-right">
+                ${msgCount > 0 ? `<div class="sala-msgs-badge">${msgCount > 99 ? '99+' : msgCount}</div>` : ''}
             </div>
         </div>`;
     }).join('');
+
+    // Adjuntar eventos: click = ingresar, longpress = borrar
+    filtered.forEach(sala => {
+        const card = document.getElementById('sala-card-' + sala._key);
+        if (!card) return;
+        let pressTimer = null;
+        let didLongPress = false;
+
+        const startPress = (e) => {
+            didLongPress = false;
+            card.classList.add('pressing');
+            pressTimer = setTimeout(() => {
+                didLongPress = true;
+                card.classList.remove('pressing');
+                // Vibración leve si disponible
+                if (navigator.vibrate) navigator.vibrate(60);
+                pedirPasswordBorrar(sala._key);
+            }, 600);
+        };
+
+        const endPress = (e) => {
+            clearTimeout(pressTimer);
+            card.classList.remove('pressing');
+            if (!didLongPress) {
+                pedirPassword(sala._key);
+            }
+        };
+
+        const cancelPress = () => {
+            clearTimeout(pressTimer);
+            card.classList.remove('pressing');
+            didLongPress = true; // evitar click al cancelar
+        };
+
+        // Touch
+        card.addEventListener('touchstart', startPress, { passive: true });
+        card.addEventListener('touchend', endPress);
+        card.addEventListener('touchmove', cancelPress, { passive: true });
+        // Mouse
+        card.addEventListener('mousedown', startPress);
+        card.addEventListener('mouseup', endPress);
+        card.addEventListener('mouseleave', cancelPress);
+        // Evitar menú contextual
+        card.addEventListener('contextmenu', e => e.preventDefault());
+    });
 };
 
 window.buscarSalas = function() { renderSalas(); };
@@ -4445,6 +4521,7 @@ window.guardarNombreUsuario = function() {
     document.getElementById('header-roomname').textContent = salaActual.nombre;
     document.getElementById('header-chat-info').classList.add('active');
     document.querySelector('.header').classList.add('chat-on');
+    document.getElementById('btn-nueva-sala-header').style.display = 'none';
     document.getElementById('nombre-sala').textContent = salaActual.nombre;
     document.getElementById('input-mensaje').focus();
     escucharMensajes();
@@ -5223,6 +5300,25 @@ function escucharInvitacionesJuego() {
     // Marcar como ya vista cualquier invitación previa a este momento, para
     // que al entrar no se dispare un modal con una invitación vieja.
     _ultimoInviteHoraMs = Date.now();
+
+    // ── Escuchar señal de salida de sala (redundancia además de tttSignal) ──
+    let _exitSignalTs = Date.now();
+    const exitSignalRef = ref(db, `gameData/${salaActualKey}/exitSignal`);
+    onValue(exitSignalRef, (snap) => {
+        const data = snap.val();
+        if (!data) return;
+        if (data.de === usuarioActual) return; // ignorar mis propias señales
+        if (data.ts && data.ts <= _exitSignalTs) return; // señal vieja
+        _exitSignalTs = data.ts || Date.now();
+        // Soy el oponente que recibe la señal de salida
+        if (data.tipo === 'player_exit_cd' && !window._tttExitCdTimer) {
+            const nombre = capitalizarNombre(data.nombre || data.de);
+            if (typeof _tttMostrarCountdownSalida === 'function') {
+                _tttMostrarCountdownSalida(nombre);
+            }
+        }
+    });
+
     const invRef = ref(db, `gameInvites/${salaActualKey}`);
     _invitesListener = onValue(invRef, (snap) => {
         const inv = snap.val();
@@ -7671,6 +7767,14 @@ window.cerrarJuegoWindow = function() {
                 setTimeout(enviarSalida, 300);
                 setTimeout(enviarSalida, 800);
                 setTimeout(enviarSalida, 1500);
+
+                // TAMBIÉN escribir señal a nivel de sala (redundancia) para garantizar
+                // que el oponente la recibe aunque su tttSignal listener no esté activo
+                if (salaActualKey) {
+                    const exitPayload = { tipo: 'player_exit_cd', nombre: nombreEmisor, de: usuarioActual, ts: Date.now() };
+                    set(ref(db, `gameData/${salaActualKey}/exitSignal`), exitPayload).catch(() => {});
+                    setTimeout(() => remove(ref(db, `gameData/${salaActualKey}/exitSignal`)).catch(() => {}), 5000);
+                }
             }
             // Mostrar countdown de salida rojo en el solicitante inmediatamente
             _tttMostrarCountdownSalida(nombreEmisor);
@@ -8385,6 +8489,14 @@ window.cerrarJuegoWindow = function() {
                 setFirebaseStatus(true);
                 renderSalas();
                 hideLoading();
+
+                // ── Si el usuario está dentro de una sala y esa sala fue eliminada → modal 2s ──
+                if (salaActualKey) {
+                    const salaAunExiste = salas.some(s => s._key === salaActualKey);
+                    if (!salaAunExiste) {
+                        _mostrarModalSalaEliminada();
+                    }
+                }
             }, (error) => {
                 setFirebaseStatus(false);
                 hideLoading();
