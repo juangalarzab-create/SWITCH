@@ -1,10 +1,8 @@
 /* =========================================================
  * SWITCH — Service Worker unificado
  * Maneja TANTO el caché offline (PWA) COMO las notificaciones
- * push de Firebase Cloud Messaging.
- *
- * Un solo SW evita conflictos de scope entre sw.js y
- * firebase-messaging-sw.js.
+ * push de Firebase Cloud Messaging en un solo archivo,
+ * evitando conflictos de scope entre sw.js y este archivo.
  * ========================================================= */
 
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
@@ -57,7 +55,6 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  // No interceptar Firebase, Telegram, CDNs externos
   if (
     url.hostname.includes('firebaseio.com') ||
     url.hostname.includes('googleapis.com') ||
@@ -68,7 +65,6 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('workers.dev')
   ) return;
 
-  // Network-first para HTML, cache-first para assets
   if (req.destination === 'document') {
     event.respondWith(
       fetch(req).then(res => {
@@ -80,8 +76,10 @@ self.addEventListener('fetch', (event) => {
   } else {
     event.respondWith(
       caches.match(req).then(cached => cached || fetch(req).then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(req, clone));
+        }
         return res;
       }))
     );
@@ -90,19 +88,17 @@ self.addEventListener('fetch', (event) => {
 
 // ── Notificaciones push en segundo plano / app cerrada ──
 messaging.onBackgroundMessage((payload) => {
-  console.log('[FCM-SW] Push recibido en segundo plano:', payload);
-
-  const data = payload.data || {};
+  console.log('[FCM-SW] Push recibido:', payload);
+  const data  = payload.data || {};
   const title = data.title || 'Nuevo mensaje en SWITCH';
   const body  = data.body  || 'Tienes un mensaje nuevo';
   const sala  = data.sala  || '';
   const tag   = data.tag   || ('switch-' + (sala || 'global'));
 
-  const options = {
-    body,
+  return self.registration.showNotification(title, {
+    body, tag,
     icon:               '/icons/icon-192.png',
     badge:              '/icons/badge-72.png',
-    tag,
     renotify:           true,
     requireInteraction: false,
     vibrate:            [200, 100, 200],
@@ -111,21 +107,16 @@ messaging.onBackgroundMessage((payload) => {
       { action: 'open',  title: 'Abrir' },
       { action: 'close', title: 'Cerrar' }
     ]
-  };
-
-  return self.registration.showNotification(title, options);
+  });
 });
 
 // ── Fallback: push crudo por si onBackgroundMessage no lo captura ──
 self.addEventListener('push', (event) => {
   if (!event.data) return;
-
   let payload;
   try { payload = event.data.json(); } catch (e) {
     payload = { data: { title: 'SWITCH', body: event.data.text() } };
   }
-
-  // Si ya tiene clave "notification", el navegador la muestra solo
   if (payload && payload.notification) return;
 
   const data  = (payload && payload.data) || {};
@@ -134,7 +125,7 @@ self.addEventListener('push', (event) => {
   const sala  = data.sala  || '';
   const tag   = data.tag   || ('switch-' + (sala || 'global'));
 
-  const options = {
+  event.waitUntil(self.registration.showNotification(title, {
     body, tag,
     icon:    '/icons/icon-192.png',
     badge:   '/icons/badge-72.png',
@@ -145,18 +136,14 @@ self.addEventListener('push', (event) => {
       { action: 'open',  title: 'Abrir' },
       { action: 'close', title: 'Cerrar' }
     ]
-  };
-
-  event.waitUntil(self.registration.showNotification(title, options));
+  }));
 });
 
 // ── Click en notificación → abrir / enfocar la app ──
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   if (event.action === 'close') return;
-
   const targetUrl = (event.notification.data && event.notification.data.url) || '/';
-
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((winList) => {
       for (const client of winList) {
