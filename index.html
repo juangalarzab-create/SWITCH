@@ -5028,6 +5028,12 @@ window.guardarNombreUsuario = function() {
     if (typeof window._initPresenceAndTyping === 'function') window._initPresenceAndTyping();
     // Pedir permiso y registrar token FCM para esta sala
     pedirPermisoYRegistrarToken();
+    // ── WebRTC: escuchar llamadas entrantes, voz juego y pre-pedir micrófono ──
+    setTimeout(() => {
+        if (typeof escucharLlamadasEntrantes === 'function') escucharLlamadasEntrantes();
+        if (typeof escucharOfertasVozJuego === 'function') escucharOfertasVozJuego();
+        if (typeof _warmUpMicPermission === 'function') _warmUpMicPermission();
+    }, 400);
 };
 
 // Create sala
@@ -10332,14 +10338,31 @@ window.cerrarJuegoWindow = function() {
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' }
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' },
+        // TURN público (Open Relay) — necesario para redes con NAT estricto / móviles
+        {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        },
+        {
+            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+        }
     ];
 
     // ── Pre-calentar permiso de micrófono al entrar a un chat ──
     // Así el permiso ya está listo cuando se inicia la llamada y no
     // se interrumpe la señalización WebRTC mientras el usuario acepta.
     let _micPermWarmedUp = false;
-    async function _warmUpMicPermission() {
+    window._warmUpMicPermission = async function _warmUpMicPermission() {
         if (_micPermWarmedUp) return;
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
         try {
@@ -10423,7 +10446,7 @@ window.cerrarJuegoWindow = function() {
             } catch(e) {
                 micAttempts++;
                 if (micAttempts >= 2 || e.name === 'NotAllowedError') {
-                    showToast('❌ No se pudo acceder al micrófono. Ve a Configuración y permite el micrófono para esta página.');
+                    showToast('❌ Micrófono bloqueado. En tu navegador, toca el candado 🔒 en la barra de direcciones → Permisos → Micrófono → Permitir.');
                     document.getElementById('calling-overlay').classList.remove('active');
                     document.getElementById('btn-call-header')?.classList.remove('calling');
                     _isCaller = false;
@@ -10469,10 +10492,11 @@ window.cerrarJuegoWindow = function() {
             setTimeout(res, 3000);
         });
 
-        // Publicar oferta en Firebase
+        // Publicar oferta en Firebase (incluir callerCandidates para el callee)
         await set(callRef(), {
             caller: getUsuario(),
             offer: _pc.localDescription.toJSON(),
+            callerCandidates: candidates.reduce((a,c,i) => { a[i] = c; return a; }, {}),
             status: 'calling',
             ts: Date.now()
         });
@@ -10523,7 +10547,7 @@ window.cerrarJuegoWindow = function() {
             } catch(e) {
                 micAttempts2++;
                 if (micAttempts2 >= 2 || e.name === 'NotAllowedError') {
-                    showToast('❌ No se pudo acceder al micrófono. Permite el micrófono en Configuración.');
+                    showToast('❌ Micrófono bloqueado. Toca el candado 🔒 en la barra de direcciones → Permisos → Micrófono → Permitir.');
                     return;
                 }
                 await new Promise(r => setTimeout(r, 800));
@@ -10548,6 +10572,13 @@ window.cerrarJuegoWindow = function() {
         };
 
         await _pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+
+        // Agregar ICE candidates del caller (si los hay)
+        if (data.callerCandidates) {
+            Object.values(data.callerCandidates).forEach(c => {
+                _pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+            });
+        }
 
         const calleeCandidates = [];
         _pc.onicecandidate = e => { if (e.candidate) calleeCandidates.push(e.candidate.toJSON()); };
@@ -10620,7 +10651,7 @@ window.cerrarJuegoWindow = function() {
     }
 
     // ── ESCUCHAR LLAMADAS ENTRANTES ──
-    function escucharLlamadasEntrantes() {
+    window.escucharLlamadasEntrantes = function escucharLlamadasEntrantes() {
         if (!getSalaKey()) return;
         onValue(callRef(), snap => {
             const data = snap.val();
@@ -10781,7 +10812,7 @@ window.cerrarJuegoWindow = function() {
     }
 
     // Escuchar ofertas de voz de juego del otro usuario
-    function escucharOfertasVozJuego() {
+    window.escucharOfertasVozJuego = function escucharOfertasVozJuego() {
         if (!getSalaKey()) return;
         onValue(gameVoiceRef(), snap => {
             const d = snap.val();
@@ -10792,18 +10823,7 @@ window.cerrarJuegoWindow = function() {
         });
     }
 
-    // ── HOOK EN guardarNombreUsuario ORIGINAL ──
-    const _origGuardar = window.guardarNombreUsuario;
-    window.guardarNombreUsuario = function() {
-        _origGuardar && _origGuardar();
-        setTimeout(() => {
-            escucharLlamadasEntrantes();
-            escucharOfertasVozJuego();
-            _warmUpMicPermission(); // Pre-pedir permiso micrófono apenas entra al chat
-        }, 500);
-    };
-
-    // Limpiar en irInicio
+    // ── HOOK EN irInicio: limpiar llamadas y voz al salir del chat ──
     const _origIrInicio = window.irInicio;
     window.irInicio = function() {
         limpiarLlamada();
