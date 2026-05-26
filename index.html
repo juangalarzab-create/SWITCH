@@ -2316,11 +2316,11 @@
             border: 2px solid #00cc66;
             border-radius: 20px;
             padding: 28px 32px;
-            z-index: 100002; /* Por encima incluso del modal-game-notify (revancha/salida tiene prioridad absoluta) */
+            z-index: 1012;
             text-align: center;
             max-width: 340px;
             width: 88%;
-            box-shadow: 0 0 40px rgba(0,204,102,0.4), 0 20px 60px rgba(0,0,0,0.7);
+            box-shadow: 0 0 40px rgba(0,204,102,0.4);
             animation: notifyPop 0.3s cubic-bezier(.175,.885,.32,1.275);
         }
         .modal-rematch-cd.active { display: block; }
@@ -2566,11 +2566,11 @@
             border: 2px solid #0088cc;
             border-radius: 20px;
             padding: 32px 28px;
-            z-index: 100001; /* SIEMPRE por encima de cualquier otro modal del juego (final, ganador, etc.) */
+            z-index: 1010;
             text-align: center;
             max-width: 400px;
             width: 90%;
-            box-shadow: 0 0 40px rgba(0,136,204,0.45), 0 20px 60px rgba(0,0,0,0.7);
+            box-shadow: 0 0 40px rgba(0,136,204,0.45);
             animation: notifyPop 0.4s cubic-bezier(.175,.885,.32,1.275);
         }
         .modal-game-notify.active { display: block; }
@@ -4276,6 +4276,15 @@
                 <button class="admin-btn-primary" onclick="enviarAnuncioGlobal()">📢 Enviar a todas las salas</button>
             </div>
 
+            <!-- SECCIÓN: PUSH GLOBAL TODOS CONECTENSE -->
+            <div class="admin-section">
+                <div class="admin-section-title">🔔 Notificación push global</div>
+                <div style="color:#aaa; font-size:11px; margin-bottom:10px;">
+                    Envía una notificación push a TODOS los usuarios, aunque tengan la app cerrada o la pantalla apagada.
+                </div>
+                <button class="admin-btn-primary" style="background:linear-gradient(135deg,#7b1fa2,#4a148c);border-color:#ce93d8;width:100%;" onclick="enviarNotifTodosConectense()">📣 Todos conéctense</button>
+            </div>
+
             <!-- SECCIÓN: GESTIÓN DE SALAS -->
             <div class="admin-section">
                 <div class="admin-section-title">🏠 Gestión de salas (<span id="admin-total-salas">0</span>)</div>
@@ -4508,9 +4517,10 @@ async function initMessaging() {
         onMessage(messaging, (payload) => {
             console.log('[FCM] Mensaje en primer plano:', payload);
             const data = payload.data || {};
-            // Si la app está en primer plano pero el usuario está en OTRA sala → mostrar push real
             const enLaMismaSala = salaActual && data.sala && data.sala === salaActual.nombre;
-            if (!enLaMismaSala && Notification.permission === 'granted') {
+            // Si el usuario está en la misma sala activamente, NO mostrar nada (ya está viendo los mensajes)
+            if (enLaMismaSala) return;
+            if (Notification.permission === 'granted') {
                 try {
                     navigator.serviceWorker.ready.then(reg => {
                         reg.showNotification(data.title || 'Mensaje nuevo', {
@@ -5055,10 +5065,78 @@ window.guardarSala = function() {
             alert(`✅ Sala creada!\nNombre: ${nombre}\nContraseña: ${password}`);
             document.getElementById('input-nombre').value = '';
             document.getElementById('input-password').value = '';
+            _notificarNuevaSalaATodos(nombre).catch(() => {});
             irInicio();
         })
         .catch(e => { hideLoading(); alert('❌ Error al crear sala: ' + e.message); });
 };
+
+// Notificar a TODOS los tokens registrados (todas las salas) que se creó una sala nueva
+async function _notificarNuevaSalaATodos(nombreSala) {
+    if (!WORKER_URL || WORKER_URL.startsWith('REEMPLAZA')) return;
+    try {
+        const allTokensSnap = await get(ref(db, 'tokens'));
+        if (!allTokensSnap.exists()) return;
+        const tokenList = [];
+        allTokensSnap.forEach(salaSnap => {
+            salaSnap.forEach(userSnap => {
+                userSnap.forEach(tokSnap => {
+                    const d = tokSnap.val();
+                    if (d && d.token && !tokenList.find(t => t.token === d.token)) {
+                        tokenList.push({ token: d.token });
+                    }
+                });
+            });
+        });
+        if (!tokenList.length) return;
+        await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tokens: tokenList,
+                title: '🏠 Nueva sala creada',
+                body: '"' + nombreSala + '" ya está disponible. ¡Únete ahora!',
+                sala: nombreSala, salaKey: ''
+            })
+        });
+    } catch(e) { console.warn('[Push] Error notif nueva sala:', e); }
+}
+
+// Botón admin: "Todos conectense" — push a absolutamente todos
+async function enviarNotifTodosConectense() {
+    if (!WORKER_URL || WORKER_URL.startsWith('REEMPLAZA')) { alert('Worker URL no configurado'); return; }
+    if (!confirm('¿Enviar notificación "Todos conéctense" a todos los usuarios?')) return;
+    showLoading('Enviando notificación...');
+    try {
+        const allTokensSnap = await get(ref(db, 'tokens'));
+        if (!allTokensSnap.exists()) { hideLoading(); alert('No hay tokens registrados'); return; }
+        const tokenList = [];
+        allTokensSnap.forEach(salaSnap => {
+            salaSnap.forEach(userSnap => {
+                userSnap.forEach(tokSnap => {
+                    const d = tokSnap.val();
+                    if (d && d.token && !tokenList.find(t => t.token === d.token)) {
+                        tokenList.push({ token: d.token });
+                    }
+                });
+            });
+        });
+        if (!tokenList.length) { hideLoading(); alert('No hay usuarios con notificaciones activas'); return; }
+        const resp = await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tokens: tokenList,
+                title: '📣 ¡Todos conéctense!',
+                body: 'El admin los convoca. ¡Entra ahora a la app!',
+                sala: '', salaKey: ''
+            })
+        });
+        const data = await resp.json().catch(() => ({}));
+        hideLoading();
+        alert('✅ Notificación enviada a ' + tokenList.length + ' dispositivo(s)');
+    } catch(e) { hideLoading(); alert('❌ Error: ' + e.message); }
+}
 
 // ============================================================
 // MENSAJES - Firebase Realtime
@@ -5250,29 +5328,41 @@ async function notificarPushMensaje(msgObj) {
     if (!salaActualKey || !usuarioActual) return;
 
     try {
-        // 1) Leer tokens de todos los usuarios de la sala
-        const tokensSnap = await get(ref(db, `tokens/${salaActualKey}`));
+        // 1) Verificar qué usuarios están presentes en la sala ahora mismo
+        const [tokensSnap, presenceSnap] = await Promise.all([
+            get(ref(db, `tokens/${salaActualKey}`)),
+            get(ref(db, `presence/${salaActualKey}`))
+        ]);
         if (!tokensSnap.exists()) return;
+
+        const ahora = Date.now();
+        const TIMEOUT_PRESENCIA = 70000; // 70s = mismo que el indicador de presencia
+        const presencia = presenceSnap.val() || {};
 
         const tokenList = [];
         tokensSnap.forEach(userSnap => {
             const usuario = userSnap.key;
-            // No notificarte a ti mismo
-            if (usuario === usuarioActual) return;
+            if (usuario === usuarioActual) return; // no notificarte a ti mismo
+
+            // Si el usuario está en la sala y activo, NO enviar notificación
+            const p = presencia[usuario];
+            const estaActivo = p && p.ts && (ahora - p.ts) < TIMEOUT_PRESENCIA;
+            if (estaActivo) return; // está viendo el chat, no necesita notif
+
             userSnap.forEach(tokSnap => {
                 const data = tokSnap.val();
                 if (data && data.token) {
-                    tokenList.push({
-                        token: data.token,
-                        path: `tokens/${salaActualKey}/${usuario}/${tokSnap.key}`
-                    });
+                    // Deduplicar: evitar el mismo token dos veces
+                    if (!tokenList.find(t => t.token === data.token)) {
+                        tokenList.push({ token: data.token, path: `tokens/${salaActualKey}/${usuario}/${tokSnap.key}` });
+                    }
                 }
             });
         });
 
         if (tokenList.length === 0) return;
 
-        // 2) Construir título y cuerpo según el tipo de mensaje
+        // 2) Construir título y cuerpo
         const sala = salas.find(s => s._key === salaActualKey);
         const nombreSala = sala ? sala.nombre : 'Sala';
         let title, body;
@@ -5294,12 +5384,7 @@ async function notificarPushMensaje(msgObj) {
         const resp = await fetch(WORKER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                tokens: tokenList,
-                title, body,
-                sala: nombreSala,
-                salaKey: salaActualKey
-            })
+            body: JSON.stringify({ tokens: tokenList, title, body, sala: nombreSala, salaKey: salaActualKey })
         });
         const data = await resp.json().catch(() => ({}));
         console.log('[Push] Worker resp:', data);
@@ -8674,8 +8759,6 @@ window.cerrarJuegoWindow = function() {
             if (confActivo && confActivo.parentNode) confActivo.parentNode.removeChild(confActivo);
             const quizFinalModal = document.getElementById('quiz-final-modal');
             if (quizFinalModal) quizFinalModal.remove();
-            const quizFinalBackdrop = document.getElementById('quiz-final-backdrop');
-            if (quizFinalBackdrop) quizFinalBackdrop.remove();
             const quizModalSig = document.getElementById('quiz-modal-siguiente');
             if (quizModalSig) quizModalSig.remove();
             const quizCdSig = document.getElementById('quiz-cd-siguiente');
@@ -8701,49 +8784,7 @@ window.cerrarJuegoWindow = function() {
             victorias[usuarioActual] = 0; victorias['Oponente'] = 0;
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             iniciadorTicTacToe = 'X'; tttModoRondas = false; tttRondaActual = 1;
-            // ── RESET COMPLETO DEL QUIZ ──
-            // Detener cualquier countdown / timer del quiz
-            try { _quizLimpiarTimers(); } catch(e) {}
-            // Cerrar el listener de Firebase del quiz (host o cliente)
-            if (typeof _quizRef_listener !== 'undefined' && _quizRef_listener) {
-                try { _quizRef_listener(); } catch(e) {}
-                _quizRef_listener = null;
-            }
-            // Resetear TODO el estado del quiz a cero
-            quizGameState.preguntas = [];
-            quizGameState.preguntaActual = 0;
-            quizGameState.puntajes = { mi: 0, oponente: 0 };
-            quizGameState.historicoTotal = { mi: 0, oponente: 0 };
-            quizGameState.miRespuesta = null;
-            quizGameState.opRespuesta = null;
-            quizGameState._yaFinalizo = false;
-            quizGameState._modoLibre = false;
-            quizGameState._esperandoOp = false;
-            _quizIsHost = false;
-            // Quitar cualquier modal / overlay del quiz que pudiera estar abierto
-            ['quiz-alerta-libre','quiz-final-modal','quiz-final-backdrop','quiz-modal-siguiente','quiz-cd-siguiente']
-                .forEach(id => { const el = document.getElementById(id); if (el) el.remove(); });
-            // Limpiar Firebase del quiz para que la próxima partida arranque desde cero
-            if (salaActualKey) {
-                try { remove(ref(db, `gameData/${salaActualKey}/quiz`)).catch(()=>{}); } catch(e) {}
-            }
-            // Devolver la ventana del quiz a su estado inicial (lobby visible, vista de
-            // pregunta oculta, marcador oculto, botón Comenzar habilitado)
-            const _qLobby = document.getElementById('quiz-lobby');
-            if (_qLobby) _qLobby.style.display = 'flex';
-            const _qQView = document.getElementById('quiz-question-view');
-            if (_qQView) _qQView.classList.remove('active');
-            const _qSb = document.getElementById('quizScoreboard');
-            if (_qSb) _qSb.classList.remove('visible');
-            const _qRound = document.getElementById('quiz-round-indicator');
-            if (_qRound) _qRound.classList.remove('visible');
-            const _qBtnCom = document.getElementById('btn-comenzar-quiz');
-            if (_qBtnCom) { _qBtnCom.disabled = false; _qBtnCom.textContent = 'Comenzar'; }
-            // Marcadores visibles en pantalla a 0
-            const _qMyScore = document.getElementById('quizSbMyScore');
-            if (_qMyScore) _qMyScore.textContent = '0';
-            const _qOpScore = document.getElementById('quizSbOtherScore');
-            if (_qOpScore) _qOpScore.textContent = '0';
+            quizGameState.puntajes = { mi: 0, oponente: 0 }; quizGameState.preguntaActual = 0;
             _tttLimpiarFirebase();
             _tttClearSignal();
             // Limpiar listener redundante del modal-win exitSignal
@@ -8977,14 +9018,15 @@ window.cerrarJuegoWindow = function() {
             preguntaActual: 0,
             totalPreguntas: 5,
             puntajes: { mi: 0, oponente: 0 },
-            modoRondas: false,       // true = hay premio
+            modoRondas: false,
             historicoTotal: { mi: 0, oponente: 0 },
-            miRespuesta: null,       // índice elegido por mí (-1 = tiempo agotado sin responder)
-            opRespuesta: null,       // índice elegido por oponente
+            miRespuesta: null,
+            opRespuesta: null,
             _yaFinalizo: false,
-            _cdInterval: null,       // countdown 5s pregunta
-            _cdNextInterval: null,   // countdown 3s siguiente pregunta
-            _esperandoOp: false,     // estoy esperando al oponente después de responder
+            _resultadoMostrado: false, // true cuando ya se mostró el modal de resultado de esta pregunta
+            _cdInterval: null,
+            _cdNextInterval: null,
+            _esperandoOp: false,
         };
 
         function iniciarQuiz() {
@@ -9049,43 +9091,6 @@ window.cerrarJuegoWindow = function() {
             return a;
         }
 
-        // ── QUIZ: mezcla las opciones de UNA pregunta y ajusta el índice de la
-        // respuesta correcta para que no quede siempre en la misma letra (A/B/C).
-        // Devuelve un nuevo objeto: NO muta el original, porque quizBancoPeguntas
-        // se reutiliza y la próxima partida volvería a usar la misma pregunta.
-        function _quizMezclarOpcionesPregunta(p) {
-            const n = (p.opts || []).length;
-            if (n <= 1) return { ...p };
-            // Permutación aleatoria de índices [0..n-1]
-            const orden = Array.from({ length: n }, (_, i) => i);
-            for (let i = n - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [orden[i], orden[j]] = [orden[j], orden[i]];
-            }
-            const newOpts = orden.map(i => p.opts[i]);
-            const newAns  = orden.indexOf(p.ans);
-            return { ...p, opts: newOpts, ans: newAns };
-        }
-
-        // Mezcla las opciones de TODAS las preguntas y rompe rachas:
-        // si la respuesta correcta cae en la misma posición 3 veces seguidas,
-        // re-mezcla esa pregunta hasta romper el patrón (intento limitado).
-        function _quizMezclarConDistribucion(preguntas) {
-            const out = preguntas.map(p => _quizMezclarOpcionesPregunta(p));
-            for (let i = 2; i < out.length; i++) {
-                let intentos = 0;
-                while (
-                    out[i].ans === out[i - 1].ans &&
-                    out[i].ans === out[i - 2].ans &&
-                    intentos < 8
-                ) {
-                    out[i] = _quizMezclarOpcionesPregunta(preguntas[i]);
-                    intentos++;
-                }
-            }
-            return out;
-        }
-
         // ══════════════════════════════════════════════════════════════
         // QUIZ — Sistema nuevo: 5 preguntas, respuesta simultánea,
         //        conteo 5s, calificación al cierre, 50pts por correcta
@@ -9107,7 +9112,9 @@ window.cerrarJuegoWindow = function() {
             quizGameState.miRespuesta = null;
             quizGameState.opRespuesta = null;
             quizGameState._yaFinalizo = false;
-            quizGameState._modoLibre = !hayPremio;  // sin premio = modo libre sin límite
+            quizGameState._resultadoMostrado = false;
+            quizGameState._inicioConfirmado = false;
+            quizGameState._modoLibre = !hayPremio;
             _quizLimpiarTimers();
 
             document.getElementById('quiz-lobby').style.display = 'none';
@@ -9119,45 +9126,45 @@ window.cerrarJuegoWindow = function() {
 
             if (window._modoBot) {
                 const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                const raw = hayPremio
+                quizGameState.preguntas = hayPremio
                     ? [].concat(...porNivel).slice(0, 5)
                     : [].concat(...porNivel);
-                // Mezclar la posición de la respuesta correcta en cada pregunta
-                quizGameState.preguntas = _quizMezclarConDistribucion(raw);
                 mostrarPreguntaQuiz();
                 return;
             }
 
+            // El HOST siempre genera las preguntas y las escribe en Firebase.
+            // El NO-HOST SIEMPRE lee las preguntas de Firebase — NUNCA genera las suyas.
+            // Esto garantiza que ambos vean EXACTAMENTE las mismas preguntas.
             _quizIsHost = usuarioActual > (oponenteActual || '');
 
             if (_quizIsHost) {
                 const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                // Con premio: 5 preguntas fijas. Sin premio: todas mezcladas (juego libre)
-                const raw = hayPremio
-                    ? [].concat(...porNivel).slice(0, 5)
-                    : [].concat(...porNivel);
-                // Mezclar posición de la respuesta correcta en CADA pregunta.
-                // Esto se hace UNA sola vez en el host y se sube a Firebase, así
-                // ambos jugadores ven la MISMA pregunta con las MISMAS opciones
-                // en el MISMO orden (y por tanto la misma letra correcta).
-                const prgs = _quizMezclarConDistribucion(raw);
+                // Siempre 5 preguntas fijas (modo con o sin premio es igual — ambos juegan las mismas 5)
+                const prgs = [].concat(...porNivel).slice(0, 5);
                 quizGameState.preguntas = prgs;
-                const total = hayPremio ? 5 : prgs.length;
-                const pregsFb = prgs.map((p, idx) => ({ idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total }));
-                set(_quizDbRef(), {
-                    preguntas: pregsFb,
-                    preguntaActual: 0,
-                    puntajes: { [usuarioActual]: 0, [oponenteActual || '__op']: 0 },
-                    respuestas: {},
-                    estado: 'jugando',
-                    modoLibre: !hayPremio
-                }).then(() => {
-                    _quizAdjuntarListener();
-                    mostrarPreguntaQuiz();
-                }).catch(e => { console.error('[QUIZ]', e); mostrarPreguntaQuiz(); });
+                const pregsFb = prgs.map((p, idx) => ({ idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total: 5 }));
+
+                // Limpiar nodo quiz anterior antes de escribir (evita datos residuales de partidas anteriores)
+                remove(_quizDbRef()).catch(() => {}).finally(() => {
+                    set(_quizDbRef(), {
+                        preguntas: pregsFb,
+                        preguntaActual: 0,
+                        puntajes: { [usuarioActual]: 0, [oponenteActual || '__op']: 0 },
+                        respuestas: {},
+                        resultado: null,
+                        estado: 'jugando',
+                        modoLibre: !hayPremio,
+                        hostKey: usuarioActual
+                    }).then(() => {
+                        _quizAdjuntarListener();
+                        mostrarPreguntaQuiz();
+                    }).catch(e => { console.error('[QUIZ]', e); mostrarPreguntaQuiz(); });
+                });
             } else {
+                // El no-host NO genera preguntas propias. Siempre espera las del host.
                 quizGameState.preguntas = [];
-                document.getElementById('quizQuestionText').textContent = '⏳ Esperando preguntas...';
+                document.getElementById('quizQuestionText').textContent = '⏳ Esperando preguntas del anfitrión...';
                 _quizAdjuntarListener();
             }
         }
@@ -9176,9 +9183,16 @@ window.cerrarJuegoWindow = function() {
                 if (!data || !data.preguntas) return;
 
                 const esPrimera = quizGameState.preguntas.length === 0;
-                if (!_quizIsHost || esPrimera) {
+                // El no-host SIEMPRE lee preguntas de Firebase (nunca genera las suyas)
+                if (!_quizIsHost) {
+                    quizGameState.preguntas = data.preguntas;
+                } else if (esPrimera) {
+                    // El host solo lee en caso de reconexión
                     quizGameState.preguntas = data.preguntas;
                 }
+
+                // Sync modo libre
+                if (data.modoLibre !== undefined) quizGameState._modoLibre = data.modoLibre;
 
                 // Sync puntajes
                 const pts = data.puntajes || {};
@@ -9193,26 +9207,98 @@ window.cerrarJuegoWindow = function() {
 
                 const newIdx = data.preguntaActual || 0;
 
-                if (!_quizIsHost && esPrimera && quizGameState.preguntas.length > 0) {
-                    quizGameState.preguntaActual = newIdx;
+                const esPrimeraCarga = !_quizIsHost && quizGameState.preguntaActual === 0 && data.preguntas && data.preguntas.length > 0 && !quizGameState._inicioConfirmado;
+
+                if (esPrimeraCarga) {
+                    quizGameState._inicioConfirmado = true;
+                    quizGameState.preguntaActual = data.preguntaActual || 0;
                     mostrarPreguntaQuiz();
                     return;
                 }
 
-                // Detectar respuesta del oponente
+                // ── SINCRONIZACIÓN REAL DEL RESULTADO ──
+                // El HOST escribe quiz/resultado cuando ambos respondieron.
+                // AMBOS jugadores lo leen aquí y muestran el modal exactamente al mismo tiempo.
+                const resultado = data.resultado;
+                if (resultado && resultado.pregIdx === quizGameState.preguntaActual && !quizGameState._resultadoMostrado) {
+                    quizGameState._resultadoMostrado = true;
+
+                    // Detener conteo si sigue activo
+                    if (quizGameState._cdInterval) {
+                        clearInterval(quizGameState._cdInterval);
+                        quizGameState._cdInterval = null;
+                        const cdTop = document.getElementById('quizCountdownTop');
+                        if (cdTop) cdTop.style.display = 'none';
+                    }
+
+                    // Sincronizar respuestas locales desde el servidor
+                    const opKeyR = oponenteActual || Object.keys(resultado.resps || {}).find(k => k !== usuarioActual) || '';
+                    quizGameState.miRespuesta = resultado.resps[usuarioActual] !== undefined ? resultado.resps[usuarioActual] : (quizGameState.miRespuesta !== null ? quizGameState.miRespuesta : -1);
+                    quizGameState.opRespuesta = resultado.resps[opKeyR] !== undefined ? resultado.resps[opKeyR] : (quizGameState.opRespuesta !== null ? quizGameState.opRespuesta : -1);
+
+                    // Sincronizar puntajes
+                    if (resultado.puntajes) {
+                        quizGameState.puntajes.mi = resultado.puntajes[usuarioActual] !== undefined ? resultado.puntajes[usuarioActual] : quizGameState.puntajes.mi;
+                        quizGameState.puntajes.oponente = resultado.puntajes[opKeyR] !== undefined ? resultado.puntajes[opKeyR] : quizGameState.puntajes.oponente;
+                        actualizarScoreboardQuiz();
+                    }
+
+                    bloquearBotonesQuiz();
+
+                    // Revelar respuestas visualmente
+                    const p = quizGameState.preguntas[quizGameState.preguntaActual];
+                    if (p) {
+                        const correcta = p.ans;
+                        const miIdx = quizGameState.miRespuesta;
+                        const opIdx = quizGameState.opRespuesta;
+                        const PUNTOS = 50;
+                        const yoAcerte = miIdx === correcta;
+                        const opAcerto = opIdx === correcta;
+
+                        document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach((btn, i) => {
+                            btn.style.background = ''; btn.style.borderColor = ''; btn.disabled = true;
+                            if (i === correcta) btn.classList.add('reveal-correct');
+                            if (i === miIdx && miIdx !== correcta && miIdx !== -1) btn.classList.add('wrong');
+                            if (i === miIdx && miIdx === correcta) btn.classList.add('correct');
+                        });
+                        _quizMarcarEstadoJugador(true, true);
+
+                        // Banner resultado
+                        const banner = document.getElementById('quizResultBanner');
+                        let txt = '', cls = 'quiz-result-banner show ';
+                        if (miIdx === -1 && opIdx === -1) { txt = `⏰ Tiempo agotado. Nadie respondió. Correcta: ${['A','B','C'][correcta]}`; cls += 'no-answer-banner'; }
+                        else if (yoAcerte && opAcerto) { txt = `✅ ¡Ambos acertaron! +${PUNTOS} cada uno`; cls += 'correct-banner'; }
+                        else if (yoAcerte) { txt = `✅ ¡Correcto! +${PUNTOS} pts — ${nombreOponente()} falló`; cls += 'correct-banner'; }
+                        else if (opAcerto) { txt = `❌ ${miIdx === -1 ? 'No respondiste' : 'Fallaste'}. ${nombreOponente()} acertó (+${PUNTOS})`; cls += 'wrong-banner'; }
+                        else { txt = `❌ Nadie acertó`; cls += 'wrong-banner'; }
+                        if (banner) { banner.textContent = txt; banner.className = cls; }
+
+                        // Modal simultáneo para ambos
+                        const esUltima = resultado.pregIdx + 1 >= 5;
+                        if (esUltima) {
+                            setTimeout(() => mostrarGanadorFinalQuiz(), 1800);
+                        } else {
+                            _quizMostrarModalSiguiente(yoAcerte, opAcerto, PUNTOS);
+                        }
+                    }
+                    return;
+                }
+
+                // Detectar respuesta del oponente (solo para marcar su estado visualmente)
                 const resps = data.respuestas || {};
                 const opKey2 = oponenteActual || Object.keys(resps).find(k => k !== usuarioActual) || '';
                 const opResp = resps[opKey2];
                 if (opResp && opResp.pregIdx === quizGameState.preguntaActual && quizGameState.opRespuesta === null) {
                     quizGameState.opRespuesta = opResp.optIdx;
                     _quizMarcarEstadoJugador(false, true);
-                    if (quizGameState.miRespuesta !== null) {
-                        _quizCalificarAmbos();
+
+                    // Si YO ya respondí también y soy HOST → publicar resultado para sincronizar ambos
+                    if (quizGameState.miRespuesta !== null && _quizIsHost && !quizGameState._resultadoMostrado) {
+                        _quizPublicarResultado();
                     }
                 }
 
                 if (newIdx > quizGameState.preguntaActual && newIdx < quizGameState.preguntas.length) {
-                    // Ocultar alerta de modo libre si está visible (el otro usuario avanzó primero)
                     const alertaEl = document.getElementById('quiz-alerta-libre');
                     if (alertaEl) alertaEl.remove();
                     quizGameState.preguntaActual = newIdx;
@@ -9223,7 +9309,6 @@ window.cerrarJuegoWindow = function() {
                         mostrarGanadorFinalQuiz();
                     }
                 }
-                // Modo libre: si el host reinicia preguntaActual a 0 (ciclo), sincronizar
                 if (quizGameState._modoLibre && newIdx === 0 && quizGameState.preguntaActual !== 0) {
                     const alertaEl = document.getElementById('quiz-alerta-libre');
                     if (alertaEl) alertaEl.remove();
@@ -9231,6 +9316,40 @@ window.cerrarJuegoWindow = function() {
                     setTimeout(() => mostrarPreguntaQuiz(), 300);
                 }
             });
+        }
+
+        // El HOST publica el resultado oficial en Firebase → ambos lo leen y muestran el modal al mismo tiempo
+        function _quizPublicarResultado() {
+            const p = quizGameState.preguntas[quizGameState.preguntaActual];
+            if (!p || !salaActualKey) return;
+            const correcta = p.ans;
+            const PUNTOS = 50;
+            const miIdx = quizGameState.miRespuesta !== null ? quizGameState.miRespuesta : -1;
+            const opIdx = quizGameState.opRespuesta !== null ? quizGameState.opRespuesta : -1;
+            const yoAcerte = miIdx === correcta;
+            const opAcerto = opIdx === correcta;
+
+            // Calcular puntajes finales
+            const miPtsNuevo = quizGameState.puntajes.mi + (yoAcerte ? PUNTOS : 0);
+            const opPtsNuevo = quizGameState.puntajes.oponente + (opAcerto ? PUNTOS : 0);
+
+            const respsUp = {};
+            respsUp[usuarioActual] = miIdx;
+            respsUp[oponenteActual || '__op'] = opIdx;
+
+            const ptsUp = {};
+            ptsUp[usuarioActual] = miPtsNuevo;
+            ptsUp[oponenteActual || '__op'] = opPtsNuevo;
+
+            // Publicar en Firebase → el listener de AMBOS jugadores lo detecta y muestra el modal
+            set(ref(db, `gameData/${salaActualKey}/quiz/resultado`), {
+                pregIdx: quizGameState.preguntaActual,
+                resps: respsUp,
+                puntajes: ptsUp,
+                ts: Date.now()
+            }).catch(() => {});
+
+            set(ref(db, `gameData/${salaActualKey}/quiz/puntajes`), ptsUp).catch(() => {});
         }
 
         function actualizarScoreboardQuiz() {
@@ -9274,7 +9393,14 @@ window.cerrarJuegoWindow = function() {
             quizGameState.miRespuesta = null;
             quizGameState.opRespuesta = null;
             quizGameState._esperandoOp = false;
+            quizGameState._resultadoMostrado = false;
+            // No resetear _inicioConfirmado aquí (solo se resetea al arrancar el juego)
             _quizLimpiarTimers();
+
+            // Limpiar nodo resultado de Firebase para esta nueva pregunta (solo host)
+            if (!window._modoBot && salaActualKey && _quizIsHost) {
+                set(ref(db, `gameData/${salaActualKey}/quiz/resultado`), null).catch(() => {});
+            }
 
             document.getElementById('quizCategoryBadge').textContent = p.cat;
             // En modo libre: "Pregunta N" sin total. Con premio: "Pregunta N de 5"
@@ -9366,8 +9492,16 @@ window.cerrarJuegoWindow = function() {
                         if (quizGameState.opRespuesta === null) quizGameState.opRespuesta = -1;
                         _quizCalificarAmbos();
                     } else {
-                        if (quizGameState.opRespuesta !== null) {
-                            _quizCalificarAmbos();
+                        // El HOST publica el resultado para sincronizar a ambos
+                        if (_quizIsHost && !quizGameState._resultadoMostrado) {
+                            // Esperar brevemente para que el no-host también registre su -1 si aplica
+                            setTimeout(() => {
+                                if (quizGameState.opRespuesta === null) quizGameState.opRespuesta = -1;
+                                _quizPublicarResultado();
+                            }, 800);
+                        } else if (!_quizIsHost) {
+                            // El no-host espera que el host publique el resultado
+                            // (el listener lo recibirá)
                         }
                     }
                 }
@@ -9378,11 +9512,10 @@ window.cerrarJuegoWindow = function() {
 
         function seleccionarOpcionQuiz(optIdx, btnEl) {
             if (quizGameState.miRespuesta !== null) return;
-            // En modo con premio: requiere que el conteo esté activo. En modo libre: siempre se puede responder.
-            if (!quizGameState._modoLibre && !quizGameState._cdInterval) return; // tiempo agotado en modo premio
+            if (!quizGameState._modoLibre && !quizGameState._cdInterval) return;
 
             quizGameState.miRespuesta = optIdx;
-            // Solo bloquear para mí (no para el oponente aún)
+            // Bloquear mis botones visualmente (pero no calificar aún)
             document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(b => {
                 b.disabled = true;
                 if (parseInt(b.dataset.optIndex) === optIdx) {
@@ -9392,22 +9525,21 @@ window.cerrarJuegoWindow = function() {
             });
             _quizMarcarEstadoJugador(true, false);
 
+            // Guardar mi respuesta en Firebase
             if (!window._modoBot && salaActualKey && oponenteActual) {
                 set(ref(db, `gameData/${salaActualKey}/quiz/respuestas/${usuarioActual}`), {
                     pregIdx: quizGameState.preguntaActual, optIdx, ts: Date.now()
                 }).catch(e => console.warn('[QUIZ]', e));
             }
 
-            // Solo calificar cuando el oponente también haya marcado
-            if (quizGameState.opRespuesta !== null) {
-                _quizCalificarAmbos();
+            // Si el oponente ya respondió Y soy HOST → publicar resultado (yo fui el último)
+            if (quizGameState.opRespuesta !== null && _quizIsHost && !quizGameState._resultadoMostrado) {
+                _quizPublicarResultado();
             }
-            // Si ambos respondieron en modo con premio, detener conteo explícitamente
-            if (!quizGameState._modoLibre && quizGameState.opRespuesta !== null && quizGameState._cdInterval) {
-                clearInterval(quizGameState._cdInterval);
-                quizGameState._cdInterval = null;
-                const cdTop2 = document.getElementById('quizCountdownTop');
-                if (cdTop2) cdTop2.style.display = 'none';
+
+            // Bot mode (sin Firebase): calificar directamente
+            if (window._modoBot && quizGameState.opRespuesta !== null) {
+                _quizCalificarAmbos();
             }
         }
 
@@ -9516,7 +9648,7 @@ window.cerrarJuegoWindow = function() {
                 icono = '💥'; titulo = `${nombreOponente()} acertó`;
                 color = 'linear-gradient(135deg,#b71c1c,#c62828)'; colorBorder = '#ff5252';
             } else {
-                icono = '😅'; titulo = 'Nadie acertó';
+                icono = '⏰'; titulo = 'Nadie obtuvo puntos';
                 color = 'linear-gradient(135deg,#37474f,#546e7a)'; colorBorder = '#90a4ae';
             }
 
@@ -9729,168 +9861,87 @@ window.cerrarJuegoWindow = function() {
             // Limpiar modal anterior si existe
             const prevModal = document.getElementById('quiz-final-modal');
             if (prevModal) prevModal.remove();
-            // Quitar el backdrop si quedó de una partida anterior
-            const prevBackdrop = document.getElementById('quiz-final-backdrop');
-            if (prevBackdrop) prevBackdrop.remove();
 
-            let emoji, titulo, subtitulo, gradColor, glow, glowRgba, yoBorde, opBorde;
+            let emoji, titulo, subtitulo, gradColor, glow;
             if (mi > op) {
                 emoji = '🏆'; titulo = '¡Ganaste!'; subtitulo = `¡Felicitaciones ${yo}!`;
-                gradColor = 'linear-gradient(135deg,#3d2b00,#7c5100,#a47000)';
-                glow = '#ffd700'; glowRgba = 'rgba(255,215,0,0.55)';
-                yoBorde = '#ffd700'; opBorde = 'rgba(255,255,255,0.15)';
+                gradColor = 'linear-gradient(135deg,#1a1a00,#3d2b00,#7c5100)';
+                glow = '#ffd700';
                 lanzarConfetti();
             } else if (op > mi) {
                 emoji = '😔'; titulo = `¡Ganó ${rival}!`; subtitulo = 'Mejor suerte la próxima vez';
                 gradColor = 'linear-gradient(135deg,#1a0a2e,#2d1458,#4a1a6e)';
-                glow = '#9c27b0'; glowRgba = 'rgba(156,39,176,0.45)';
-                yoBorde = 'rgba(255,255,255,0.15)'; opBorde = '#9c27b0';
+                glow = '#9c27b0';
             } else {
                 emoji = '🤝'; titulo = '¡Empate!'; subtitulo = 'Ninguno pudo con el otro';
                 gradColor = 'linear-gradient(135deg,#0a1a2e,#1a3a5e,#1a4a7e)';
-                glow = '#2196f3'; glowRgba = 'rgba(33,150,243,0.45)';
-                yoBorde = '#2196f3'; opBorde = '#2196f3';
+                glow = '#2196f3';
                 lanzarConfetti();
             }
 
-            // Inyectar keyframes propios para la animación del modal y del emoji
-            if (!document.getElementById('quiz-final-anims')) {
-                const sty = document.createElement('style');
-                sty.id = 'quiz-final-anims';
-                sty.textContent = `
-                    @keyframes quizFinalCardIn {
-                        0%   { transform: translate(-50%, -50%) scale(0.4) rotate(-8deg); opacity: 0; }
-                        60%  { transform: translate(-50%, -50%) scale(1.06) rotate(2deg);  opacity: 1; }
-                        100% { transform: translate(-50%, -50%) scale(1)    rotate(0);    opacity: 1; }
-                    }
-                    @keyframes quizFinalEmojiBounce {
-                        0%, 100% { transform: scale(1)   translateY(0); }
-                        25%      { transform: scale(1.18) translateY(-6px); }
-                        50%      { transform: scale(1)    translateY(0); }
-                        75%      { transform: scale(1.12) translateY(-4px); }
-                    }
-                    @keyframes quizFinalGlowPulse {
-                        0%, 100% { box-shadow: 0 0 30px var(--qf-glow), 0 20px 50px rgba(0,0,0,0.7); }
-                        50%      { box-shadow: 0 0 55px var(--qf-glow), 0 25px 60px rgba(0,0,0,0.7); }
-                    }
-                    @keyframes quizFinalBackdropIn {
-                        from { opacity: 0; } to { opacity: 1; }
-                    }
-                    @keyframes quizFinalShineSweep {
-                        0%   { left: -80%; }
-                        100% { left: 120%; }
-                    }
-                `;
-                document.head.appendChild(sty);
-            }
-
-            // Backdrop muy sutil — NO cubre todo el contenido, solo enfoca un poco el modal.
-            // El user pidió: "no presentes al ganador en toda la pantalla, solo modal vistoso".
-            const backdrop = document.createElement('div');
-            backdrop.id = 'quiz-final-backdrop';
-            backdrop.style.cssText = `
-                position:fixed; inset:0; z-index:10000;
-                background: radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%);
-                animation: quizFinalBackdropIn 0.35s ease forwards;
-                pointer-events: auto;
-            `;
-            document.body.appendChild(backdrop);
-
             const modal = document.createElement('div');
             modal.id = 'quiz-final-modal';
-            modal.style.setProperty('--qf-glow', glowRgba);
-            modal.style.cssText += `
-                position:fixed; top:50%; left:50%;
-                transform: translate(-50%, -50%);
-                background: ${gradColor};
-                border: 3px solid ${glow};
-                border-radius: 22px;
-                padding: 22px 22px 20px;
-                z-index: 10001;
-                max-width: 360px; width: 92%;
-                color: #fff; text-align: center;
-                overflow: hidden;
-                box-shadow: 0 0 40px ${glowRgba}, 0 20px 60px rgba(0,0,0,0.7);
-                animation: quizFinalCardIn 0.55s cubic-bezier(.175,.885,.32,1.275), quizFinalGlowPulse 2.2s ease-in-out 0.6s infinite;
-                --qf-glow: ${glowRgba};
-            `;
-
-            // Banda de brillo que cruza el modal (efecto "shine")
-            const shineHTML = `
-                <div style="
-                    position:absolute; top:0; left:-80%; width:60%; height:100%;
-                    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
-                    transform: skewX(-20deg);
-                    animation: quizFinalShineSweep 2.4s ease-in-out 0.4s infinite;
-                    pointer-events: none;
-                "></div>
+            modal.style.cssText = `
+                position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001;
+                background:${gradColor}; display:flex; flex-direction:column;
+                align-items:center; justify-content:center; padding:20px;
+                animation:quizAlertaIn 0.4s ease;
             `;
 
             let premioHTML = '';
             if (miPremio || opPremio) {
                 premioHTML = `
-                <div style="margin:10px 0 4px;display:flex;flex-direction:column;gap:6px;">
-                    ${miPremio ? `<div style="background:rgba(255,215,0,0.14);border:2px solid #ffd700;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:8px;animation:prizeGlow 2s ease-in-out infinite alternate;">
-                        <span style="font-size:20px">🎁</span>
-                        <div style="text-align:left;flex:1;"><div style="font-size:10px;opacity:0.75;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${yo}</div><div style="font-size:13px;font-weight:800;color:#ffd700">${miPremio}</div></div>
+                <div style="margin:14px 0;display:flex;flex-direction:column;gap:8px;width:100%;max-width:340px;">
+                    ${miPremio ? `<div style="background:rgba(255,215,0,0.12);border:2px solid #ffd700;border-radius:14px;padding:10px 18px;display:flex;align-items:center;gap:10px;animation:prizeGlow 2s ease-in-out infinite alternate;">
+                        <span style="font-size:24px">🎁</span>
+                        <div><div style="font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${yo}</div><div style="font-size:15px;font-weight:800;color:#ffd700">${miPremio}</div></div>
                     </div>` : ''}
-                    ${opPremio ? `<div style="background:rgba(255,165,0,0.14);border:2px solid #ff9800;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:8px;animation:prizeGlow 2s ease-in-out infinite alternate;">
-                        <span style="font-size:20px">🎁</span>
-                        <div style="text-align:left;flex:1;"><div style="font-size:10px;opacity:0.75;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${rival}</div><div style="font-size:13px;font-weight:800;color:#ff9800">${opPremio}</div></div>
+                    ${opPremio ? `<div style="background:rgba(255,165,0,0.12);border:2px solid #ff9800;border-radius:14px;padding:10px 18px;display:flex;align-items:center;gap:10px;animation:prizeGlow 2s ease-in-out infinite alternate;">
+                        <span style="font-size:24px">🎁</span>
+                        <div><div style="font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${rival}</div><div style="font-size:15px;font-weight:800;color:#ff9800">${opPremio}</div></div>
                     </div>` : ''}
                 </div>`;
             }
 
             modal.innerHTML = `
-                ${shineHTML}
-                <div style="position:relative;z-index:1;">
-                    <div style="font-size:56px;margin-bottom:6px;animation:quizFinalEmojiBounce 1.4s ease-in-out infinite;display:inline-block;">${emoji}</div>
-                    <div style="font-size:26px;font-weight:900;color:#fff;text-shadow:0 0 18px ${glow};margin-bottom:4px;line-height:1.1;">${titulo}</div>
-                    <div style="font-size:13px;color:rgba(255,255,255,0.78);margin-bottom:14px;">${subtitulo}</div>
-                    <div style="display:flex;gap:10px;margin-bottom:10px;justify-content:center;">
-                        <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid ${yoBorde};border-radius:12px;padding:10px 6px;text-align:center;${mi>op?'box-shadow:0 0 14px '+glow+';':''}">
-                            <div style="font-size:11px;color:${mi>op?glow:'#aaa'};font-weight:700;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.4px;">${yo}</div>
-                            <div style="font-size:26px;font-weight:900;color:#fff;line-height:1;">${mi}</div>
-                            <div style="font-size:10px;color:#aaa;margin-top:2px;">puntos</div>
-                        </div>
-                        <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid ${opBorde};border-radius:12px;padding:10px 6px;text-align:center;${op>mi?'box-shadow:0 0 14px '+glow+';':''}">
-                            <div style="font-size:11px;color:${op>mi?glow:'#aaa'};font-weight:700;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.4px;">${rival}</div>
-                            <div style="font-size:26px;font-weight:900;color:#fff;line-height:1;">${op}</div>
-                            <div style="font-size:10px;color:#aaa;margin-top:2px;">puntos</div>
-                        </div>
+                <div style="font-size:80px;margin-bottom:10px;animation:quizAlertaIn 0.5s ease">${emoji}</div>
+                <div style="font-size:34px;font-weight:900;color:#fff;text-shadow:0 0 20px ${glow};margin-bottom:6px">${titulo}</div>
+                <div style="font-size:15px;color:rgba(255,255,255,0.7);margin-bottom:18px">${subtitulo}</div>
+                <div style="display:flex;gap:24px;margin-bottom:16px;width:100%;max-width:320px;justify-content:center;">
+                    <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid rgba(76,175,80,0.5);border-radius:14px;padding:14px 8px;text-align:center;">
+                        <div style="font-size:12px;color:#4caf50;font-weight:700;margin-bottom:4px">${yo}</div>
+                        <div style="font-size:32px;font-weight:900;color:#fff">${mi}</div>
+                        <div style="font-size:11px;color:#aaa">puntos</div>
                     </div>
-                    ${premioHTML}
-                    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:center;">
-                        <button id="quiz-final-revancha" style="
-                            background:linear-gradient(135deg,#7b1fa2,#4a148c);
-                            border:2px solid #ce93d8;color:#fff;padding:11px 22px;
-                            border-radius:50px;font-size:14px;cursor:pointer;font-weight:700;
-                            box-shadow:0 4px 18px rgba(156,39,176,0.45);
-                        ">🔁 Revancha</button>
-                        <button id="quiz-final-salir" style="
-                            background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.3);
-                            color:rgba(255,255,255,0.85);padding:11px 22px;
-                            border-radius:50px;font-size:14px;cursor:pointer;font-weight:600;
-                        ">🚪 Salir</button>
+                    <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid rgba(255,152,0,0.5);border-radius:14px;padding:14px 8px;text-align:center;">
+                        <div style="font-size:12px;color:#ff9800;font-weight:700;margin-bottom:4px">${rival}</div>
+                        <div style="font-size:32px;font-weight:900;color:#fff">${op}</div>
+                        <div style="font-size:11px;color:#aaa">puntos</div>
                     </div>
+                </div>
+                ${premioHTML}
+                <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
+                    <button id="quiz-final-revancha" style="
+                        background:linear-gradient(135deg,#7b1fa2,#4a148c);
+                        border:2px solid #ce93d8;color:#fff;padding:14px 28px;
+                        border-radius:50px;font-size:16px;cursor:pointer;font-weight:700;
+                        box-shadow:0 4px 20px rgba(156,39,176,0.4);
+                    ">🔁 Revancha</button>
+                    <button id="quiz-final-salir" style="
+                        background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.3);
+                        color:rgba(255,255,255,0.8);padding:14px 28px;
+                        border-radius:50px;font-size:16px;cursor:pointer;font-weight:600;
+                    ">🚪 Salir</button>
                 </div>
             `;
             document.body.appendChild(modal);
 
-            // Helper para limpiar el modal y el backdrop juntos
-            const cerrarModalFinal = () => {
-                const m = document.getElementById('quiz-final-modal');
-                if (m) m.remove();
-                const b = document.getElementById('quiz-final-backdrop');
-                if (b) b.remove();
-            };
-
             document.getElementById('quiz-final-revancha').onclick = () => {
-                cerrarModalFinal();
+                modal.remove();
                 _quizPedirRevancha();
             };
             document.getElementById('quiz-final-salir').onclick = () => {
-                cerrarModalFinal();
+                modal.remove();
                 cerrarJuegoWindow();
             };
         }
@@ -9931,8 +9982,6 @@ window.cerrarJuegoWindow = function() {
             // Limpiar modales propios del quiz
             const finalModal = document.getElementById('quiz-final-modal');
             if (finalModal) finalModal.remove();
-            const finalBackdrop = document.getElementById('quiz-final-backdrop');
-            if (finalBackdrop) finalBackdrop.remove();
             document.getElementById('modal-win').classList.remove('active');
 
             // Resetear premios y estado para volver a elegir
@@ -9970,8 +10019,6 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('modal-win').classList.remove('active');
             const finalModal = document.getElementById('quiz-final-modal');
             if (finalModal) finalModal.remove();
-            const finalBackdrop = document.getElementById('quiz-final-backdrop');
-            if (finalBackdrop) finalBackdrop.remove();
             let secs = 3;
             _showNotify('🔁', `¡Revancha con ${solicitante}!`, `Comenzando en ${secs}...`, []);
             const interval = setInterval(() => {
@@ -10283,8 +10330,29 @@ window.cerrarJuegoWindow = function() {
 
     const ICE_SERVERS = [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' }
     ];
+
+    // ── Pre-calentar permiso de micrófono al entrar a un chat ──
+    // Así el permiso ya está listo cuando se inicia la llamada y no
+    // se interrumpe la señalización WebRTC mientras el usuario acepta.
+    let _micPermWarmedUp = false;
+    async function _warmUpMicPermission() {
+        if (_micPermWarmedUp) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+        try {
+            const perm = await navigator.permissions.query({ name: 'microphone' }).catch(() => ({ state: 'prompt' }));
+            if (perm.state === 'granted') { _micPermWarmedUp = true; return; }
+            // Solo pedir si no fue denegado
+            if (perm.state !== 'denied') {
+                const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+                s.getTracks().forEach(t => t.stop()); // liberar inmediatamente
+                _micPermWarmedUp = true;
+            }
+        } catch(e) { /* El usuario canceló, se manejará en iniciarLlamada */ }
+    }
 
     // ── Helpers ──
     function getOtherUser() {
@@ -10329,7 +10397,6 @@ window.cerrarJuegoWindow = function() {
     window.iniciarLlamada = async function() {
         if (!getSalaKey() || !getUsuario()) { showToast('Debes estar en un chat'); return; }
         if (_pc) { showToast('Ya hay una llamada activa'); return; }
-        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
 
         _isCaller = true;
 
@@ -10337,32 +10404,55 @@ window.cerrarJuegoWindow = function() {
         const callingName = document.getElementById('calling-name');
         const callingAvatar = document.getElementById('calling-avatar');
         const otherName = document.getElementById('nombre-usuario')?.textContent || 'Usuario';
-        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
         if (callingName) callingName.textContent = otherName;
         if (callingAvatar) callingAvatar.textContent = otherName.substring(0,2).toUpperCase();
         document.getElementById('calling-overlay').classList.add('active');
         document.getElementById('btn-call-header')?.classList.add('calling');
 
-        // Obtener micrófono
-        try {
-            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1, googEchoCancellation: true, googAutoGainControl: true, googNoiseSuppression: true, googHighpassFilter: true, googEchoCancellation2: true, googNoiseSuppression2: true }, video: false });
-            _localStream = _aplicarFiltroAudio(_localStream);
-        } catch(e) {
-            showToast('❌ No se pudo acceder al micrófono');
-            document.getElementById('calling-overlay').classList.remove('active');
-            return;
+        // Obtener micrófono — reintentar hasta 2 veces si el permiso aún no está listo
+        let micAttempts = 0;
+        while (micAttempts < 2) {
+            try {
+                _localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+                             sampleRate: 48000, channelCount: 1 },
+                    video: false
+                });
+                _localStream = _aplicarFiltroAudio(_localStream);
+                break;
+            } catch(e) {
+                micAttempts++;
+                if (micAttempts >= 2 || e.name === 'NotAllowedError') {
+                    showToast('❌ No se pudo acceder al micrófono. Ve a Configuración y permite el micrófono para esta página.');
+                    document.getElementById('calling-overlay').classList.remove('active');
+                    document.getElementById('btn-call-header')?.classList.remove('calling');
+                    _isCaller = false;
+                    return;
+                }
+                await new Promise(r => setTimeout(r, 800));
+            }
         }
+
+        // Limpiar nodo Firebase anterior (puede que existan datos residuales del borrado manual)
+        try { await remove(callRef()); } catch(e) {}
+        await new Promise(r => setTimeout(r, 300));
 
         // Crear peer connection
         _pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         _localStream.getTracks().forEach(t => _pc.addTrack(t, _localStream));
 
         _pc.ontrack = e => {
-            const audio = document.createElement('audio');
+            let audio = document.getElementById('call-remote-audio');
+            if (!audio) { audio = document.createElement('audio'); audio.id = 'call-remote-audio'; document.body.appendChild(audio); }
             audio.autoplay = true;
             audio.srcObject = e.streams[0];
-            document.body.appendChild(audio);
-            audio.id = 'call-remote-audio';
+        };
+
+        _pc.oniceconnectionstatechange = () => {
+            if (_pc && (_pc.iceConnectionState === 'failed' || _pc.iceConnectionState === 'disconnected')) {
+                showToast('📵 Conexión perdida');
+                limpiarLlamada();
+            }
         };
 
         // Colectar ICE candidates y subirlos
@@ -10420,22 +10510,41 @@ window.cerrarJuegoWindow = function() {
         document.getElementById('call-modal-overlay').classList.remove('active');
         _isCaller = false;
 
-        try {
-            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1, googEchoCancellation: true, googAutoGainControl: true, googNoiseSuppression: true, googHighpassFilter: true, googEchoCancellation2: true, googNoiseSuppression2: true }, video: false });
-            _localStream = _aplicarFiltroAudio(_localStream);
-        } catch(e) {
-            showToast('❌ No se pudo acceder al micrófono'); return;
+        let micAttempts2 = 0;
+        while (micAttempts2 < 2) {
+            try {
+                _localStream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+                             sampleRate: 48000, channelCount: 1 },
+                    video: false
+                });
+                _localStream = _aplicarFiltroAudio(_localStream);
+                break;
+            } catch(e) {
+                micAttempts2++;
+                if (micAttempts2 >= 2 || e.name === 'NotAllowedError') {
+                    showToast('❌ No se pudo acceder al micrófono. Permite el micrófono en Configuración.');
+                    return;
+                }
+                await new Promise(r => setTimeout(r, 800));
+            }
         }
 
         _pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         _localStream.getTracks().forEach(t => _pc.addTrack(t, _localStream));
 
         _pc.ontrack = e => {
-            const audio = document.createElement('audio');
+            let audio = document.getElementById('call-remote-audio');
+            if (!audio) { audio = document.createElement('audio'); audio.id = 'call-remote-audio'; document.body.appendChild(audio); }
             audio.autoplay = true;
             audio.srcObject = e.streams[0];
-            document.body.appendChild(audio);
-            audio.id = 'call-remote-audio';
+        };
+
+        _pc.oniceconnectionstatechange = () => {
+            if (_pc && (_pc.iceConnectionState === 'failed' || _pc.iceConnectionState === 'disconnected')) {
+                showToast('📵 Conexión perdida');
+                limpiarLlamada();
+            }
         };
 
         await _pc.setRemoteDescription(new RTCSessionDescription(data.offer));
@@ -10690,6 +10799,7 @@ window.cerrarJuegoWindow = function() {
         setTimeout(() => {
             escucharLlamadasEntrantes();
             escucharOfertasVozJuego();
+            _warmUpMicPermission(); // Pre-pedir permiso micrófono apenas entra al chat
         }, 500);
     };
 
