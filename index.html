@@ -2316,11 +2316,11 @@
             border: 2px solid #00cc66;
             border-radius: 20px;
             padding: 28px 32px;
-            z-index: 1012;
+            z-index: 100002; /* Por encima incluso del modal-game-notify (revancha/salida tiene prioridad absoluta) */
             text-align: center;
             max-width: 340px;
             width: 88%;
-            box-shadow: 0 0 40px rgba(0,204,102,0.4);
+            box-shadow: 0 0 40px rgba(0,204,102,0.4), 0 20px 60px rgba(0,0,0,0.7);
             animation: notifyPop 0.3s cubic-bezier(.175,.885,.32,1.275);
         }
         .modal-rematch-cd.active { display: block; }
@@ -2566,11 +2566,11 @@
             border: 2px solid #0088cc;
             border-radius: 20px;
             padding: 32px 28px;
-            z-index: 1010;
+            z-index: 100001; /* SIEMPRE por encima de cualquier otro modal del juego (final, ganador, etc.) */
             text-align: center;
             max-width: 400px;
             width: 90%;
-            box-shadow: 0 0 40px rgba(0,136,204,0.45);
+            box-shadow: 0 0 40px rgba(0,136,204,0.45), 0 20px 60px rgba(0,0,0,0.7);
             animation: notifyPop 0.4s cubic-bezier(.175,.885,.32,1.275);
         }
         .modal-game-notify.active { display: block; }
@@ -8674,6 +8674,8 @@ window.cerrarJuegoWindow = function() {
             if (confActivo && confActivo.parentNode) confActivo.parentNode.removeChild(confActivo);
             const quizFinalModal = document.getElementById('quiz-final-modal');
             if (quizFinalModal) quizFinalModal.remove();
+            const quizFinalBackdrop = document.getElementById('quiz-final-backdrop');
+            if (quizFinalBackdrop) quizFinalBackdrop.remove();
             const quizModalSig = document.getElementById('quiz-modal-siguiente');
             if (quizModalSig) quizModalSig.remove();
             const quizCdSig = document.getElementById('quiz-cd-siguiente');
@@ -8699,7 +8701,49 @@ window.cerrarJuegoWindow = function() {
             victorias[usuarioActual] = 0; victorias['Oponente'] = 0;
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             iniciadorTicTacToe = 'X'; tttModoRondas = false; tttRondaActual = 1;
-            quizGameState.puntajes = { mi: 0, oponente: 0 }; quizGameState.preguntaActual = 0;
+            // ── RESET COMPLETO DEL QUIZ ──
+            // Detener cualquier countdown / timer del quiz
+            try { _quizLimpiarTimers(); } catch(e) {}
+            // Cerrar el listener de Firebase del quiz (host o cliente)
+            if (typeof _quizRef_listener !== 'undefined' && _quizRef_listener) {
+                try { _quizRef_listener(); } catch(e) {}
+                _quizRef_listener = null;
+            }
+            // Resetear TODO el estado del quiz a cero
+            quizGameState.preguntas = [];
+            quizGameState.preguntaActual = 0;
+            quizGameState.puntajes = { mi: 0, oponente: 0 };
+            quizGameState.historicoTotal = { mi: 0, oponente: 0 };
+            quizGameState.miRespuesta = null;
+            quizGameState.opRespuesta = null;
+            quizGameState._yaFinalizo = false;
+            quizGameState._modoLibre = false;
+            quizGameState._esperandoOp = false;
+            _quizIsHost = false;
+            // Quitar cualquier modal / overlay del quiz que pudiera estar abierto
+            ['quiz-alerta-libre','quiz-final-modal','quiz-final-backdrop','quiz-modal-siguiente','quiz-cd-siguiente']
+                .forEach(id => { const el = document.getElementById(id); if (el) el.remove(); });
+            // Limpiar Firebase del quiz para que la próxima partida arranque desde cero
+            if (salaActualKey) {
+                try { remove(ref(db, `gameData/${salaActualKey}/quiz`)).catch(()=>{}); } catch(e) {}
+            }
+            // Devolver la ventana del quiz a su estado inicial (lobby visible, vista de
+            // pregunta oculta, marcador oculto, botón Comenzar habilitado)
+            const _qLobby = document.getElementById('quiz-lobby');
+            if (_qLobby) _qLobby.style.display = 'flex';
+            const _qQView = document.getElementById('quiz-question-view');
+            if (_qQView) _qQView.classList.remove('active');
+            const _qSb = document.getElementById('quizScoreboard');
+            if (_qSb) _qSb.classList.remove('visible');
+            const _qRound = document.getElementById('quiz-round-indicator');
+            if (_qRound) _qRound.classList.remove('visible');
+            const _qBtnCom = document.getElementById('btn-comenzar-quiz');
+            if (_qBtnCom) { _qBtnCom.disabled = false; _qBtnCom.textContent = 'Comenzar'; }
+            // Marcadores visibles en pantalla a 0
+            const _qMyScore = document.getElementById('quizSbMyScore');
+            if (_qMyScore) _qMyScore.textContent = '0';
+            const _qOpScore = document.getElementById('quizSbOtherScore');
+            if (_qOpScore) _qOpScore.textContent = '0';
             _tttLimpiarFirebase();
             _tttClearSignal();
             // Limpiar listener redundante del modal-win exitSignal
@@ -9005,6 +9049,43 @@ window.cerrarJuegoWindow = function() {
             return a;
         }
 
+        // ── QUIZ: mezcla las opciones de UNA pregunta y ajusta el índice de la
+        // respuesta correcta para que no quede siempre en la misma letra (A/B/C).
+        // Devuelve un nuevo objeto: NO muta el original, porque quizBancoPeguntas
+        // se reutiliza y la próxima partida volvería a usar la misma pregunta.
+        function _quizMezclarOpcionesPregunta(p) {
+            const n = (p.opts || []).length;
+            if (n <= 1) return { ...p };
+            // Permutación aleatoria de índices [0..n-1]
+            const orden = Array.from({ length: n }, (_, i) => i);
+            for (let i = n - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [orden[i], orden[j]] = [orden[j], orden[i]];
+            }
+            const newOpts = orden.map(i => p.opts[i]);
+            const newAns  = orden.indexOf(p.ans);
+            return { ...p, opts: newOpts, ans: newAns };
+        }
+
+        // Mezcla las opciones de TODAS las preguntas y rompe rachas:
+        // si la respuesta correcta cae en la misma posición 3 veces seguidas,
+        // re-mezcla esa pregunta hasta romper el patrón (intento limitado).
+        function _quizMezclarConDistribucion(preguntas) {
+            const out = preguntas.map(p => _quizMezclarOpcionesPregunta(p));
+            for (let i = 2; i < out.length; i++) {
+                let intentos = 0;
+                while (
+                    out[i].ans === out[i - 1].ans &&
+                    out[i].ans === out[i - 2].ans &&
+                    intentos < 8
+                ) {
+                    out[i] = _quizMezclarOpcionesPregunta(preguntas[i]);
+                    intentos++;
+                }
+            }
+            return out;
+        }
+
         // ══════════════════════════════════════════════════════════════
         // QUIZ — Sistema nuevo: 5 preguntas, respuesta simultánea,
         //        conteo 5s, calificación al cierre, 50pts por correcta
@@ -9038,9 +9119,11 @@ window.cerrarJuegoWindow = function() {
 
             if (window._modoBot) {
                 const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                quizGameState.preguntas = hayPremio
+                const raw = hayPremio
                     ? [].concat(...porNivel).slice(0, 5)
                     : [].concat(...porNivel);
+                // Mezclar la posición de la respuesta correcta en cada pregunta
+                quizGameState.preguntas = _quizMezclarConDistribucion(raw);
                 mostrarPreguntaQuiz();
                 return;
             }
@@ -9050,9 +9133,14 @@ window.cerrarJuegoWindow = function() {
             if (_quizIsHost) {
                 const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
                 // Con premio: 5 preguntas fijas. Sin premio: todas mezcladas (juego libre)
-                const prgs = hayPremio
+                const raw = hayPremio
                     ? [].concat(...porNivel).slice(0, 5)
                     : [].concat(...porNivel);
+                // Mezclar posición de la respuesta correcta en CADA pregunta.
+                // Esto se hace UNA sola vez en el host y se sube a Firebase, así
+                // ambos jugadores ven la MISMA pregunta con las MISMAS opciones
+                // en el MISMO orden (y por tanto la misma letra correcta).
+                const prgs = _quizMezclarConDistribucion(raw);
                 quizGameState.preguntas = prgs;
                 const total = hayPremio ? 5 : prgs.length;
                 const pregsFb = prgs.map((p, idx) => ({ idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total }));
@@ -9641,87 +9729,168 @@ window.cerrarJuegoWindow = function() {
             // Limpiar modal anterior si existe
             const prevModal = document.getElementById('quiz-final-modal');
             if (prevModal) prevModal.remove();
+            // Quitar el backdrop si quedó de una partida anterior
+            const prevBackdrop = document.getElementById('quiz-final-backdrop');
+            if (prevBackdrop) prevBackdrop.remove();
 
-            let emoji, titulo, subtitulo, gradColor, glow;
+            let emoji, titulo, subtitulo, gradColor, glow, glowRgba, yoBorde, opBorde;
             if (mi > op) {
                 emoji = '🏆'; titulo = '¡Ganaste!'; subtitulo = `¡Felicitaciones ${yo}!`;
-                gradColor = 'linear-gradient(135deg,#1a1a00,#3d2b00,#7c5100)';
-                glow = '#ffd700';
+                gradColor = 'linear-gradient(135deg,#3d2b00,#7c5100,#a47000)';
+                glow = '#ffd700'; glowRgba = 'rgba(255,215,0,0.55)';
+                yoBorde = '#ffd700'; opBorde = 'rgba(255,255,255,0.15)';
                 lanzarConfetti();
             } else if (op > mi) {
                 emoji = '😔'; titulo = `¡Ganó ${rival}!`; subtitulo = 'Mejor suerte la próxima vez';
                 gradColor = 'linear-gradient(135deg,#1a0a2e,#2d1458,#4a1a6e)';
-                glow = '#9c27b0';
+                glow = '#9c27b0'; glowRgba = 'rgba(156,39,176,0.45)';
+                yoBorde = 'rgba(255,255,255,0.15)'; opBorde = '#9c27b0';
             } else {
                 emoji = '🤝'; titulo = '¡Empate!'; subtitulo = 'Ninguno pudo con el otro';
                 gradColor = 'linear-gradient(135deg,#0a1a2e,#1a3a5e,#1a4a7e)';
-                glow = '#2196f3';
+                glow = '#2196f3'; glowRgba = 'rgba(33,150,243,0.45)';
+                yoBorde = '#2196f3'; opBorde = '#2196f3';
                 lanzarConfetti();
             }
 
+            // Inyectar keyframes propios para la animación del modal y del emoji
+            if (!document.getElementById('quiz-final-anims')) {
+                const sty = document.createElement('style');
+                sty.id = 'quiz-final-anims';
+                sty.textContent = `
+                    @keyframes quizFinalCardIn {
+                        0%   { transform: translate(-50%, -50%) scale(0.4) rotate(-8deg); opacity: 0; }
+                        60%  { transform: translate(-50%, -50%) scale(1.06) rotate(2deg);  opacity: 1; }
+                        100% { transform: translate(-50%, -50%) scale(1)    rotate(0);    opacity: 1; }
+                    }
+                    @keyframes quizFinalEmojiBounce {
+                        0%, 100% { transform: scale(1)   translateY(0); }
+                        25%      { transform: scale(1.18) translateY(-6px); }
+                        50%      { transform: scale(1)    translateY(0); }
+                        75%      { transform: scale(1.12) translateY(-4px); }
+                    }
+                    @keyframes quizFinalGlowPulse {
+                        0%, 100% { box-shadow: 0 0 30px var(--qf-glow), 0 20px 50px rgba(0,0,0,0.7); }
+                        50%      { box-shadow: 0 0 55px var(--qf-glow), 0 25px 60px rgba(0,0,0,0.7); }
+                    }
+                    @keyframes quizFinalBackdropIn {
+                        from { opacity: 0; } to { opacity: 1; }
+                    }
+                    @keyframes quizFinalShineSweep {
+                        0%   { left: -80%; }
+                        100% { left: 120%; }
+                    }
+                `;
+                document.head.appendChild(sty);
+            }
+
+            // Backdrop muy sutil — NO cubre todo el contenido, solo enfoca un poco el modal.
+            // El user pidió: "no presentes al ganador en toda la pantalla, solo modal vistoso".
+            const backdrop = document.createElement('div');
+            backdrop.id = 'quiz-final-backdrop';
+            backdrop.style.cssText = `
+                position:fixed; inset:0; z-index:10000;
+                background: radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0) 100%);
+                animation: quizFinalBackdropIn 0.35s ease forwards;
+                pointer-events: auto;
+            `;
+            document.body.appendChild(backdrop);
+
             const modal = document.createElement('div');
             modal.id = 'quiz-final-modal';
-            modal.style.cssText = `
-                position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001;
-                background:${gradColor}; display:flex; flex-direction:column;
-                align-items:center; justify-content:center; padding:20px;
-                animation:quizAlertaIn 0.4s ease;
+            modal.style.setProperty('--qf-glow', glowRgba);
+            modal.style.cssText += `
+                position:fixed; top:50%; left:50%;
+                transform: translate(-50%, -50%);
+                background: ${gradColor};
+                border: 3px solid ${glow};
+                border-radius: 22px;
+                padding: 22px 22px 20px;
+                z-index: 10001;
+                max-width: 360px; width: 92%;
+                color: #fff; text-align: center;
+                overflow: hidden;
+                box-shadow: 0 0 40px ${glowRgba}, 0 20px 60px rgba(0,0,0,0.7);
+                animation: quizFinalCardIn 0.55s cubic-bezier(.175,.885,.32,1.275), quizFinalGlowPulse 2.2s ease-in-out 0.6s infinite;
+                --qf-glow: ${glowRgba};
+            `;
+
+            // Banda de brillo que cruza el modal (efecto "shine")
+            const shineHTML = `
+                <div style="
+                    position:absolute; top:0; left:-80%; width:60%; height:100%;
+                    background: linear-gradient(120deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%);
+                    transform: skewX(-20deg);
+                    animation: quizFinalShineSweep 2.4s ease-in-out 0.4s infinite;
+                    pointer-events: none;
+                "></div>
             `;
 
             let premioHTML = '';
             if (miPremio || opPremio) {
                 premioHTML = `
-                <div style="margin:14px 0;display:flex;flex-direction:column;gap:8px;width:100%;max-width:340px;">
-                    ${miPremio ? `<div style="background:rgba(255,215,0,0.12);border:2px solid #ffd700;border-radius:14px;padding:10px 18px;display:flex;align-items:center;gap:10px;animation:prizeGlow 2s ease-in-out infinite alternate;">
-                        <span style="font-size:24px">🎁</span>
-                        <div><div style="font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${yo}</div><div style="font-size:15px;font-weight:800;color:#ffd700">${miPremio}</div></div>
+                <div style="margin:10px 0 4px;display:flex;flex-direction:column;gap:6px;">
+                    ${miPremio ? `<div style="background:rgba(255,215,0,0.14);border:2px solid #ffd700;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:8px;animation:prizeGlow 2s ease-in-out infinite alternate;">
+                        <span style="font-size:20px">🎁</span>
+                        <div style="text-align:left;flex:1;"><div style="font-size:10px;opacity:0.75;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${yo}</div><div style="font-size:13px;font-weight:800;color:#ffd700">${miPremio}</div></div>
                     </div>` : ''}
-                    ${opPremio ? `<div style="background:rgba(255,165,0,0.12);border:2px solid #ff9800;border-radius:14px;padding:10px 18px;display:flex;align-items:center;gap:10px;animation:prizeGlow 2s ease-in-out infinite alternate;">
-                        <span style="font-size:24px">🎁</span>
-                        <div><div style="font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${rival}</div><div style="font-size:15px;font-weight:800;color:#ff9800">${opPremio}</div></div>
+                    ${opPremio ? `<div style="background:rgba(255,165,0,0.14);border:2px solid #ff9800;border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:8px;animation:prizeGlow 2s ease-in-out infinite alternate;">
+                        <span style="font-size:20px">🎁</span>
+                        <div style="text-align:left;flex:1;"><div style="font-size:10px;opacity:0.75;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${rival}</div><div style="font-size:13px;font-weight:800;color:#ff9800">${opPremio}</div></div>
                     </div>` : ''}
                 </div>`;
             }
 
             modal.innerHTML = `
-                <div style="font-size:80px;margin-bottom:10px;animation:quizAlertaIn 0.5s ease">${emoji}</div>
-                <div style="font-size:34px;font-weight:900;color:#fff;text-shadow:0 0 20px ${glow};margin-bottom:6px">${titulo}</div>
-                <div style="font-size:15px;color:rgba(255,255,255,0.7);margin-bottom:18px">${subtitulo}</div>
-                <div style="display:flex;gap:24px;margin-bottom:16px;width:100%;max-width:320px;justify-content:center;">
-                    <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid rgba(76,175,80,0.5);border-radius:14px;padding:14px 8px;text-align:center;">
-                        <div style="font-size:12px;color:#4caf50;font-weight:700;margin-bottom:4px">${yo}</div>
-                        <div style="font-size:32px;font-weight:900;color:#fff">${mi}</div>
-                        <div style="font-size:11px;color:#aaa">puntos</div>
+                ${shineHTML}
+                <div style="position:relative;z-index:1;">
+                    <div style="font-size:56px;margin-bottom:6px;animation:quizFinalEmojiBounce 1.4s ease-in-out infinite;display:inline-block;">${emoji}</div>
+                    <div style="font-size:26px;font-weight:900;color:#fff;text-shadow:0 0 18px ${glow};margin-bottom:4px;line-height:1.1;">${titulo}</div>
+                    <div style="font-size:13px;color:rgba(255,255,255,0.78);margin-bottom:14px;">${subtitulo}</div>
+                    <div style="display:flex;gap:10px;margin-bottom:10px;justify-content:center;">
+                        <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid ${yoBorde};border-radius:12px;padding:10px 6px;text-align:center;${mi>op?'box-shadow:0 0 14px '+glow+';':''}">
+                            <div style="font-size:11px;color:${mi>op?glow:'#aaa'};font-weight:700;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.4px;">${yo}</div>
+                            <div style="font-size:26px;font-weight:900;color:#fff;line-height:1;">${mi}</div>
+                            <div style="font-size:10px;color:#aaa;margin-top:2px;">puntos</div>
+                        </div>
+                        <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid ${opBorde};border-radius:12px;padding:10px 6px;text-align:center;${op>mi?'box-shadow:0 0 14px '+glow+';':''}">
+                            <div style="font-size:11px;color:${op>mi?glow:'#aaa'};font-weight:700;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.4px;">${rival}</div>
+                            <div style="font-size:26px;font-weight:900;color:#fff;line-height:1;">${op}</div>
+                            <div style="font-size:10px;color:#aaa;margin-top:2px;">puntos</div>
+                        </div>
                     </div>
-                    <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid rgba(255,152,0,0.5);border-radius:14px;padding:14px 8px;text-align:center;">
-                        <div style="font-size:12px;color:#ff9800;font-weight:700;margin-bottom:4px">${rival}</div>
-                        <div style="font-size:32px;font-weight:900;color:#fff">${op}</div>
-                        <div style="font-size:11px;color:#aaa">puntos</div>
+                    ${premioHTML}
+                    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:center;">
+                        <button id="quiz-final-revancha" style="
+                            background:linear-gradient(135deg,#7b1fa2,#4a148c);
+                            border:2px solid #ce93d8;color:#fff;padding:11px 22px;
+                            border-radius:50px;font-size:14px;cursor:pointer;font-weight:700;
+                            box-shadow:0 4px 18px rgba(156,39,176,0.45);
+                        ">🔁 Revancha</button>
+                        <button id="quiz-final-salir" style="
+                            background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.3);
+                            color:rgba(255,255,255,0.85);padding:11px 22px;
+                            border-radius:50px;font-size:14px;cursor:pointer;font-weight:600;
+                        ">🚪 Salir</button>
                     </div>
-                </div>
-                ${premioHTML}
-                <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
-                    <button id="quiz-final-revancha" style="
-                        background:linear-gradient(135deg,#7b1fa2,#4a148c);
-                        border:2px solid #ce93d8;color:#fff;padding:14px 28px;
-                        border-radius:50px;font-size:16px;cursor:pointer;font-weight:700;
-                        box-shadow:0 4px 20px rgba(156,39,176,0.4);
-                    ">🔁 Revancha</button>
-                    <button id="quiz-final-salir" style="
-                        background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.3);
-                        color:rgba(255,255,255,0.8);padding:14px 28px;
-                        border-radius:50px;font-size:16px;cursor:pointer;font-weight:600;
-                    ">🚪 Salir</button>
                 </div>
             `;
             document.body.appendChild(modal);
 
+            // Helper para limpiar el modal y el backdrop juntos
+            const cerrarModalFinal = () => {
+                const m = document.getElementById('quiz-final-modal');
+                if (m) m.remove();
+                const b = document.getElementById('quiz-final-backdrop');
+                if (b) b.remove();
+            };
+
             document.getElementById('quiz-final-revancha').onclick = () => {
-                modal.remove();
+                cerrarModalFinal();
                 _quizPedirRevancha();
             };
             document.getElementById('quiz-final-salir').onclick = () => {
-                modal.remove();
+                cerrarModalFinal();
                 cerrarJuegoWindow();
             };
         }
@@ -9762,6 +9931,8 @@ window.cerrarJuegoWindow = function() {
             // Limpiar modales propios del quiz
             const finalModal = document.getElementById('quiz-final-modal');
             if (finalModal) finalModal.remove();
+            const finalBackdrop = document.getElementById('quiz-final-backdrop');
+            if (finalBackdrop) finalBackdrop.remove();
             document.getElementById('modal-win').classList.remove('active');
 
             // Resetear premios y estado para volver a elegir
@@ -9799,6 +9970,8 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('modal-win').classList.remove('active');
             const finalModal = document.getElementById('quiz-final-modal');
             if (finalModal) finalModal.remove();
+            const finalBackdrop = document.getElementById('quiz-final-backdrop');
+            if (finalBackdrop) finalBackdrop.remove();
             let secs = 3;
             _showNotify('🔁', `¡Revancha con ${solicitante}!`, `Comenzando en ${secs}...`, []);
             const interval = setInterval(() => {
