@@ -3050,7 +3050,7 @@
             border-radius: 10px;
             align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            gap: 12px;
         }
         .quiz-scoreboard.visible { display: flex; }
 
@@ -3060,68 +3060,6 @@
         .quiz-sb-other .quiz-sb-name { color: #ff9800; }
         .quiz-sb-score { color: #fff; font-size: 26px; font-weight: bold; }
         .quiz-sb-divider { color: #888; font-size: 14px; font-style: italic; padding: 0 8px; }
-        .quiz-sb-center-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
-
-        /* Premio badge en el scoreboard */
-        .quiz-sb-premio {
-            margin-top: 4px;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 3px 8px;
-            border-radius: 20px;
-            letter-spacing: 0.3px;
-            animation: prizeGlow 2s ease-in-out infinite alternate;
-            max-width: 120px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .quiz-sb-mine .quiz-sb-premio {
-            background: linear-gradient(135deg, #1b5e20, #388e3c);
-            color: #b9f6ca;
-            border: 1px solid #69f0ae;
-            box-shadow: 0 0 6px rgba(105,240,174,0.4);
-        }
-        .quiz-sb-other .quiz-sb-premio {
-            background: linear-gradient(135deg, #e65100, #f57c00);
-            color: #fff8e1;
-            border: 1px solid #ffca28;
-            box-shadow: 0 0 6px rgba(255,202,40,0.4);
-        }
-        @keyframes prizeGlow {
-            from { box-shadow: 0 0 4px rgba(255,215,0,0.3); }
-            to   { box-shadow: 0 0 10px rgba(255,215,0,0.7); }
-        }
-
-        /* Contador circular en scoreboard (arriba) */
-        .quiz-countdown-top {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .quiz-countdown-top-ring {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            border: 4px solid rgba(255,152,0,0.25);
-            border-top-color: #ff9800;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: cdSpin 1s linear infinite;
-        }
-        .quiz-countdown-top-ring.done {
-            border-top-color: #9c27b0;
-            border-color: rgba(156,39,176,0.25);
-            animation-play-state: paused;
-        }
-        .quiz-countdown-top-num {
-            position: absolute;
-            font-size: 18px;
-            font-weight: bold;
-            color: #fff;
-        }
 
         .quiz-lobby {
             display: flex;
@@ -3263,20 +3201,54 @@
             min-height: 20px;
         }
 
-        .quiz-top-info-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-            max-width: 640px;
-            gap: 8px;
-        }
-        .quiz-left-box { flex: 1; display: flex; align-items: center; justify-content: flex-start; }
-        .quiz-right-box { flex: 1; }
-        .quiz-center-info { flex: 2; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-
         .quiz-countdown-box {
             display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            margin: 6px auto 2px;
+            padding: 6px 16px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            max-width: fit-content;
+        }
+        .quiz-countdown-box.visible { display: flex; }
+        /* Fase pregunta: naranja/rojo */
+        .quiz-countdown-box[data-fase="pregunta"] .quiz-countdown-ring {
+            border-color: rgba(255,152,0,0.25);
+            border-top-color: #ff9800;
+        }
+        /* Fase siguiente: morado */
+        .quiz-countdown-box[data-fase="siguiente"] .quiz-countdown-ring {
+            border-color: rgba(156,39,176,0.25);
+            border-top-color: #ce93d8;
+        }
+        .quiz-countdown-ring {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 5px solid rgba(156,39,176,0.25);
+            border-top-color: #ce93d8;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .quiz-countdown-ring.spinning-cd { animation: cdSpin 1s linear infinite; }
+        @keyframes cdSpin { to { transform: rotate(360deg); } }
+        .quiz-countdown-num {
+            position: absolute;
+            font-size: 26px;
+            font-weight: bold;
+            color: #fff;
+            animation: none;
+        }
+        .quiz-countdown-label {
+            font-size: 11px;
+            color: #aaa;
+            letter-spacing: 0.5px;
+            text-align: center;
         }
         .quiz-exit-btn {
             background: transparent;
@@ -4181,25 +4153,15 @@
                 <div class="quiz-sb-player quiz-sb-mine">
                     <div class="quiz-sb-name" id="quizSbMyName">Tú</div>
                     <div class="quiz-sb-score" id="quizSbMyScore">0</div>
-                    <div class="quiz-sb-premio" id="quizSbMyPremio" style="display:none;"></div>
                 </div>
-                <div class="quiz-sb-center-col">
-                    <div class="quiz-sb-divider">vs</div>
-                    <!-- Contador arriba centrado -->
-                    <div class="quiz-countdown-top" id="quizCountdownTop" style="display:none;">
-                        <div class="quiz-countdown-top-ring" id="quizCountdownTopRing">
-                            <span class="quiz-countdown-top-num" id="quizCountdownTopNum">12</span>
-                        </div>
-                    </div>
-                </div>
+                <div class="quiz-sb-divider">vs</div>
                 <div class="quiz-sb-player quiz-sb-other">
                     <div class="quiz-sb-name" id="quizSbOtherName">Rival</div>
                     <div class="quiz-sb-score" id="quizSbOtherScore">0</div>
-                    <div class="quiz-sb-premio" id="quizSbOtherPremio" style="display:none;"></div>
                 </div>
             </div>
 
-            <div class="round-indicator" id="quiz-round-indicator">RONDA 1 / 5</div>
+            <div class="round-indicator" id="quiz-round-indicator">PREGUNTA 1 / 10</div>
 
             <!-- LOBBY QUIZ -->
             <div class="quiz-lobby" id="quiz-lobby">
@@ -4223,16 +4185,8 @@
 
             <!-- VISTA PREGUNTA -->
             <div class="quiz-question-view" id="quiz-question-view">
-                <div class="quiz-top-info-row">
-                    <div class="quiz-left-box" id="quizLeftBox">
-                        <!-- El contador de 12s irá aquí en el scoreboard arriba -->
-                    </div>
-                    <div class="quiz-center-info">
-                        <div class="quiz-category-badge" id="quizCategoryBadge">Cultura General</div>
-                        <div class="quiz-question-number" id="quizQuestionNumber">Pregunta 1 de 5</div>
-                    </div>
-                    <div class="quiz-right-box"></div>
-                </div>
+                <div class="quiz-category-badge" id="quizCategoryBadge">Cultura General</div>
+                <div class="quiz-question-number" id="quizQuestionNumber">Pregunta 1 de 10</div>
                 <div class="quiz-question-text" id="quizQuestionText">¿Cargando pregunta...?</div>
 
                 <div class="quiz-players-row">
@@ -4252,6 +4206,12 @@
 
                 <div class="quiz-result-banner" id="quizResultBanner"></div>
 
+                <div class="quiz-countdown-box" id="quizCountdownBox">
+                    <div class="quiz-countdown-ring spinning-cd">
+                        <span class="quiz-countdown-num" id="quizCountdownNum">12</span>
+                    </div>
+                    <div class="quiz-countdown-label">Siguiente pregunta...</div>
+                </div>
                 <button class="quiz-exit-btn" id="quizExitBtn" onclick="cerrarJuegoWindow()" style="display:none;">Salir al menú de juegos</button>
             </div>
 
@@ -4274,15 +4234,6 @@
                 </div>
                 <textarea class="admin-input" id="admin-anuncio-texto" rows="3" placeholder="Escribe tu anuncio aquí..."></textarea>
                 <button class="admin-btn-primary" onclick="enviarAnuncioGlobal()">📢 Enviar a todas las salas</button>
-            </div>
-
-            <!-- SECCIÓN: PUSH GLOBAL TODOS CONECTENSE -->
-            <div class="admin-section">
-                <div class="admin-section-title">🔔 Notificación push global</div>
-                <div style="color:#aaa; font-size:11px; margin-bottom:10px;">
-                    Envía una notificación push a TODOS los usuarios, aunque tengan la app cerrada o la pantalla apagada.
-                </div>
-                <button class="admin-btn-primary" style="background:linear-gradient(135deg,#7b1fa2,#4a148c);border-color:#ce93d8;width:100%;" onclick="enviarNotifTodosConectense()">📣 Todos conéctense</button>
             </div>
 
             <!-- SECCIÓN: GESTIÓN DE SALAS -->
@@ -4517,10 +4468,9 @@ async function initMessaging() {
         onMessage(messaging, (payload) => {
             console.log('[FCM] Mensaje en primer plano:', payload);
             const data = payload.data || {};
+            // Si la app está en primer plano pero el usuario está en OTRA sala → mostrar push real
             const enLaMismaSala = salaActual && data.sala && data.sala === salaActual.nombre;
-            // Si el usuario está en la misma sala activamente, NO mostrar nada (ya está viendo los mensajes)
-            if (enLaMismaSala) return;
-            if (Notification.permission === 'granted') {
+            if (!enLaMismaSala && Notification.permission === 'granted') {
                 try {
                     navigator.serviceWorker.ready.then(reg => {
                         reg.showNotification(data.title || 'Mensaje nuevo', {
@@ -5028,12 +4978,6 @@ window.guardarNombreUsuario = function() {
     if (typeof window._initPresenceAndTyping === 'function') window._initPresenceAndTyping();
     // Pedir permiso y registrar token FCM para esta sala
     pedirPermisoYRegistrarToken();
-    // ── WebRTC: escuchar llamadas entrantes, voz juego y pre-pedir micrófono ──
-    setTimeout(() => {
-        if (typeof escucharLlamadasEntrantes === 'function') escucharLlamadasEntrantes();
-        if (typeof escucharOfertasVozJuego === 'function') escucharOfertasVozJuego();
-        if (typeof _warmUpMicPermission === 'function') _warmUpMicPermission();
-    }, 400);
 };
 
 // Create sala
@@ -5071,78 +5015,10 @@ window.guardarSala = function() {
             alert(`✅ Sala creada!\nNombre: ${nombre}\nContraseña: ${password}`);
             document.getElementById('input-nombre').value = '';
             document.getElementById('input-password').value = '';
-            _notificarNuevaSalaATodos(nombre).catch(() => {});
             irInicio();
         })
         .catch(e => { hideLoading(); alert('❌ Error al crear sala: ' + e.message); });
 };
-
-// Notificar a TODOS los tokens registrados (todas las salas) que se creó una sala nueva
-async function _notificarNuevaSalaATodos(nombreSala) {
-    if (!WORKER_URL || WORKER_URL.startsWith('REEMPLAZA')) return;
-    try {
-        const allTokensSnap = await get(ref(db, 'tokens'));
-        if (!allTokensSnap.exists()) return;
-        const tokenList = [];
-        allTokensSnap.forEach(salaSnap => {
-            salaSnap.forEach(userSnap => {
-                userSnap.forEach(tokSnap => {
-                    const d = tokSnap.val();
-                    if (d && d.token && !tokenList.find(t => t.token === d.token)) {
-                        tokenList.push({ token: d.token });
-                    }
-                });
-            });
-        });
-        if (!tokenList.length) return;
-        await fetch(WORKER_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                tokens: tokenList,
-                title: '🏠 Nueva sala creada',
-                body: '"' + nombreSala + '" ya está disponible. ¡Únete ahora!',
-                sala: nombreSala, salaKey: ''
-            })
-        });
-    } catch(e) { console.warn('[Push] Error notif nueva sala:', e); }
-}
-
-// Botón admin: "Todos conectense" — push a absolutamente todos
-async function enviarNotifTodosConectense() {
-    if (!WORKER_URL || WORKER_URL.startsWith('REEMPLAZA')) { alert('Worker URL no configurado'); return; }
-    if (!confirm('¿Enviar notificación "Todos conéctense" a todos los usuarios?')) return;
-    showLoading('Enviando notificación...');
-    try {
-        const allTokensSnap = await get(ref(db, 'tokens'));
-        if (!allTokensSnap.exists()) { hideLoading(); alert('No hay tokens registrados'); return; }
-        const tokenList = [];
-        allTokensSnap.forEach(salaSnap => {
-            salaSnap.forEach(userSnap => {
-                userSnap.forEach(tokSnap => {
-                    const d = tokSnap.val();
-                    if (d && d.token && !tokenList.find(t => t.token === d.token)) {
-                        tokenList.push({ token: d.token });
-                    }
-                });
-            });
-        });
-        if (!tokenList.length) { hideLoading(); alert('No hay usuarios con notificaciones activas'); return; }
-        const resp = await fetch(WORKER_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                tokens: tokenList,
-                title: '📣 ¡Todos conéctense!',
-                body: 'El admin los convoca. ¡Entra ahora a la app!',
-                sala: '', salaKey: ''
-            })
-        });
-        const data = await resp.json().catch(() => ({}));
-        hideLoading();
-        alert('✅ Notificación enviada a ' + tokenList.length + ' dispositivo(s)');
-    } catch(e) { hideLoading(); alert('❌ Error: ' + e.message); }
-}
 
 // ============================================================
 // MENSAJES - Firebase Realtime
@@ -5334,41 +5210,29 @@ async function notificarPushMensaje(msgObj) {
     if (!salaActualKey || !usuarioActual) return;
 
     try {
-        // 1) Verificar qué usuarios están presentes en la sala ahora mismo
-        const [tokensSnap, presenceSnap] = await Promise.all([
-            get(ref(db, `tokens/${salaActualKey}`)),
-            get(ref(db, `presence/${salaActualKey}`))
-        ]);
+        // 1) Leer tokens de todos los usuarios de la sala
+        const tokensSnap = await get(ref(db, `tokens/${salaActualKey}`));
         if (!tokensSnap.exists()) return;
-
-        const ahora = Date.now();
-        const TIMEOUT_PRESENCIA = 70000; // 70s = mismo que el indicador de presencia
-        const presencia = presenceSnap.val() || {};
 
         const tokenList = [];
         tokensSnap.forEach(userSnap => {
             const usuario = userSnap.key;
-            if (usuario === usuarioActual) return; // no notificarte a ti mismo
-
-            // Si el usuario está en la sala y activo, NO enviar notificación
-            const p = presencia[usuario];
-            const estaActivo = p && p.ts && (ahora - p.ts) < TIMEOUT_PRESENCIA;
-            if (estaActivo) return; // está viendo el chat, no necesita notif
-
+            // No notificarte a ti mismo
+            if (usuario === usuarioActual) return;
             userSnap.forEach(tokSnap => {
                 const data = tokSnap.val();
                 if (data && data.token) {
-                    // Deduplicar: evitar el mismo token dos veces
-                    if (!tokenList.find(t => t.token === data.token)) {
-                        tokenList.push({ token: data.token, path: `tokens/${salaActualKey}/${usuario}/${tokSnap.key}` });
-                    }
+                    tokenList.push({
+                        token: data.token,
+                        path: `tokens/${salaActualKey}/${usuario}/${tokSnap.key}`
+                    });
                 }
             });
         });
 
         if (tokenList.length === 0) return;
 
-        // 2) Construir título y cuerpo
+        // 2) Construir título y cuerpo según el tipo de mensaje
         const sala = salas.find(s => s._key === salaActualKey);
         const nombreSala = sala ? sala.nombre : 'Sala';
         let title, body;
@@ -5390,7 +5254,12 @@ async function notificarPushMensaje(msgObj) {
         const resp = await fetch(WORKER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tokens: tokenList, title, body, sala: nombreSala, salaKey: salaActualKey })
+            body: JSON.stringify({
+                tokens: tokenList,
+                title, body,
+                sala: nombreSala,
+                salaKey: salaActualKey
+            })
         });
         const data = await resp.json().catch(() => ({}));
         console.log('[Push] Worker resp:', data);
@@ -7570,8 +7439,8 @@ window.cerrarJuegoWindow = function() {
                         { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
                             _tttClearSignal();
                             _tttSendSignal('quiz_rematch_declined');
-                            _hideNotify();
-                            // El receptor se queda en la pantalla final
+                            _quizResetCompleto();
+                            salirAlMenuJuegos();
                         }}]
                     );
                     break;
@@ -7583,9 +7452,10 @@ window.cerrarJuegoWindow = function() {
                 case 'quiz_rematch_declined':
                     _hideNotify();
                     _tttClearSignal();
-                    _showNotify('😔', 'Revancha rechazada', `${nombre} ha rechazado la revancha.`,
-                        [{ label: 'OK', cls: 'btn-notify-ok', cb: () => { _hideNotify(); }}],
-                        () => _hideNotify()
+                    _quizResetCompleto();
+                    _showNotify('😔', 'Revancha rechazada', `${nombre} ha decidido no jugar de nuevo.`,
+                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
+                        () => salirAlMenuJuegos()
                     );
                     break;
 
@@ -7596,31 +7466,6 @@ window.cerrarJuegoWindow = function() {
                         const alertaEl = document.getElementById('quiz-alerta-libre');
                         if (alertaEl) alertaEl.remove();
                         avanzarPreguntaQuiz();
-                    }
-                    break;
-
-                // ── Siguiente pregunta modo con premio Quiz ──
-                case 'quiz_premio_siguiente':
-                    {
-                        // El oponente pulsó Siguiente primero: mostrar countdown 3s y avanzar
-                        const modalSig = document.getElementById('quiz-modal-siguiente');
-                        if (modalSig) modalSig.remove();
-                        const cdSig = document.getElementById('quiz-cd-siguiente');
-                        if (!cdSig) {
-                            // Mostrar propio countdown
-                            const overlay2 = document.createElement('div');
-                            overlay2.id = 'quiz-cd-siguiente';
-                            overlay2.style.cssText = `position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(30,20,60,0.97);border:2px solid #9c27b0;color:#fff;border-radius:16px;padding:20px 40px;z-index:10000;text-align:center;box-shadow:0 6px 30px rgba(0,0,0,0.7);font-size:16px;font-weight:600;`;
-                            overlay2.innerHTML = `<div style="font-size:28px;margin-bottom:6px">⏱️</div><div>Yendo a la siguiente pregunta...</div><div style="font-size:36px;font-weight:800;margin-top:8px" id="quiz-cd-sig-num">3</div>`;
-                            document.body.appendChild(overlay2);
-                            let s2 = 3;
-                            const iv2 = setInterval(() => {
-                                s2--;
-                                const numEl2 = document.getElementById('quiz-cd-sig-num');
-                                if (numEl2) numEl2.textContent = s2;
-                                if (s2 <= 0) { clearInterval(iv2); overlay2.remove(); avanzarPreguntaQuiz(); }
-                            }, 1000);
-                        }
                     }
                     break;
             }
@@ -8763,12 +8608,6 @@ window.cerrarJuegoWindow = function() {
             remove(ref(db, `gameData/${salaActualKey}/stopScore`)).catch(() => {});
             const confActivo = document.getElementById('confetti-active');
             if (confActivo && confActivo.parentNode) confActivo.parentNode.removeChild(confActivo);
-            const quizFinalModal = document.getElementById('quiz-final-modal');
-            if (quizFinalModal) quizFinalModal.remove();
-            const quizModalSig = document.getElementById('quiz-modal-siguiente');
-            if (quizModalSig) quizModalSig.remove();
-            const quizCdSig = document.getElementById('quiz-cd-siguiente');
-            if (quizCdSig) quizCdSig.remove();
             document.getElementById('modal-win').classList.remove('active');
             _hideNotify();
             document.getElementById('tictactoe-window').classList.remove('active', 'jugando');
@@ -9024,15 +8863,14 @@ window.cerrarJuegoWindow = function() {
             preguntaActual: 0,
             totalPreguntas: 5,
             puntajes: { mi: 0, oponente: 0 },
-            modoRondas: false,
+            modoRondas: false,       // true = hay premio
             historicoTotal: { mi: 0, oponente: 0 },
-            miRespuesta: null,
-            opRespuesta: null,
+            miRespuesta: null,       // índice elegido por mí (-1 = tiempo agotado sin responder)
+            opRespuesta: null,       // índice elegido por oponente
             _yaFinalizo: false,
-            _resultadoMostrado: false, // true cuando ya se mostró el modal de resultado de esta pregunta
-            _cdInterval: null,
-            _cdNextInterval: null,
-            _esperandoOp: false,
+            _cdInterval: null,       // countdown 5s pregunta
+            _cdNextInterval: null,   // countdown 3s siguiente pregunta
+            _esperandoOp: false,     // estoy esperando al oponente después de responder
         };
 
         function iniciarQuiz() {
@@ -9118,9 +8956,7 @@ window.cerrarJuegoWindow = function() {
             quizGameState.miRespuesta = null;
             quizGameState.opRespuesta = null;
             quizGameState._yaFinalizo = false;
-            quizGameState._resultadoMostrado = false;
-            quizGameState._inicioConfirmado = false;
-            quizGameState._modoLibre = !hayPremio;
+            quizGameState._modoLibre = !hayPremio;  // sin premio = modo libre sin límite
             _quizLimpiarTimers();
 
             document.getElementById('quiz-lobby').style.display = 'none';
@@ -9139,38 +8975,31 @@ window.cerrarJuegoWindow = function() {
                 return;
             }
 
-            // El HOST siempre genera las preguntas y las escribe en Firebase.
-            // El NO-HOST SIEMPRE lee las preguntas de Firebase — NUNCA genera las suyas.
-            // Esto garantiza que ambos vean EXACTAMENTE las mismas preguntas.
             _quizIsHost = usuarioActual > (oponenteActual || '');
 
             if (_quizIsHost) {
                 const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                // Siempre 5 preguntas fijas (modo con o sin premio es igual — ambos juegan las mismas 5)
-                const prgs = [].concat(...porNivel).slice(0, 5);
+                // Con premio: 5 preguntas fijas. Sin premio: todas mezcladas (juego libre)
+                const prgs = hayPremio
+                    ? [].concat(...porNivel).slice(0, 5)
+                    : [].concat(...porNivel);
                 quizGameState.preguntas = prgs;
-                const pregsFb = prgs.map((p, idx) => ({ idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total: 5 }));
-
-                // Limpiar nodo quiz anterior antes de escribir (evita datos residuales de partidas anteriores)
-                remove(_quizDbRef()).catch(() => {}).finally(() => {
-                    set(_quizDbRef(), {
-                        preguntas: pregsFb,
-                        preguntaActual: 0,
-                        puntajes: { [usuarioActual]: 0, [oponenteActual || '__op']: 0 },
-                        respuestas: {},
-                        resultado: null,
-                        estado: 'jugando',
-                        modoLibre: !hayPremio,
-                        hostKey: usuarioActual
-                    }).then(() => {
-                        _quizAdjuntarListener();
-                        mostrarPreguntaQuiz();
-                    }).catch(e => { console.error('[QUIZ]', e); mostrarPreguntaQuiz(); });
-                });
+                const total = hayPremio ? 5 : prgs.length;
+                const pregsFb = prgs.map((p, idx) => ({ idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total }));
+                set(_quizDbRef(), {
+                    preguntas: pregsFb,
+                    preguntaActual: 0,
+                    puntajes: { [usuarioActual]: 0, [oponenteActual || '__op']: 0 },
+                    respuestas: {},
+                    estado: 'jugando',
+                    modoLibre: !hayPremio
+                }).then(() => {
+                    _quizAdjuntarListener();
+                    mostrarPreguntaQuiz();
+                }).catch(e => { console.error('[QUIZ]', e); mostrarPreguntaQuiz(); });
             } else {
-                // El no-host NO genera preguntas propias. Siempre espera las del host.
                 quizGameState.preguntas = [];
-                document.getElementById('quizQuestionText').textContent = '⏳ Esperando preguntas del anfitrión...';
+                document.getElementById('quizQuestionText').textContent = '⏳ Esperando preguntas...';
                 _quizAdjuntarListener();
             }
         }
@@ -9189,16 +9018,9 @@ window.cerrarJuegoWindow = function() {
                 if (!data || !data.preguntas) return;
 
                 const esPrimera = quizGameState.preguntas.length === 0;
-                // El no-host SIEMPRE lee preguntas de Firebase (nunca genera las suyas)
-                if (!_quizIsHost) {
-                    quizGameState.preguntas = data.preguntas;
-                } else if (esPrimera) {
-                    // El host solo lee en caso de reconexión
+                if (!_quizIsHost || esPrimera) {
                     quizGameState.preguntas = data.preguntas;
                 }
-
-                // Sync modo libre
-                if (data.modoLibre !== undefined) quizGameState._modoLibre = data.modoLibre;
 
                 // Sync puntajes
                 const pts = data.puntajes || {};
@@ -9213,98 +9035,26 @@ window.cerrarJuegoWindow = function() {
 
                 const newIdx = data.preguntaActual || 0;
 
-                const esPrimeraCarga = !_quizIsHost && quizGameState.preguntaActual === 0 && data.preguntas && data.preguntas.length > 0 && !quizGameState._inicioConfirmado;
-
-                if (esPrimeraCarga) {
-                    quizGameState._inicioConfirmado = true;
-                    quizGameState.preguntaActual = data.preguntaActual || 0;
+                if (!_quizIsHost && esPrimera && quizGameState.preguntas.length > 0) {
+                    quizGameState.preguntaActual = newIdx;
                     mostrarPreguntaQuiz();
                     return;
                 }
 
-                // ── SINCRONIZACIÓN REAL DEL RESULTADO ──
-                // El HOST escribe quiz/resultado cuando ambos respondieron.
-                // AMBOS jugadores lo leen aquí y muestran el modal exactamente al mismo tiempo.
-                const resultado = data.resultado;
-                if (resultado && resultado.pregIdx === quizGameState.preguntaActual && !quizGameState._resultadoMostrado) {
-                    quizGameState._resultadoMostrado = true;
-
-                    // Detener conteo si sigue activo
-                    if (quizGameState._cdInterval) {
-                        clearInterval(quizGameState._cdInterval);
-                        quizGameState._cdInterval = null;
-                        const cdTop = document.getElementById('quizCountdownTop');
-                        if (cdTop) cdTop.style.display = 'none';
-                    }
-
-                    // Sincronizar respuestas locales desde el servidor
-                    const opKeyR = oponenteActual || Object.keys(resultado.resps || {}).find(k => k !== usuarioActual) || '';
-                    quizGameState.miRespuesta = resultado.resps[usuarioActual] !== undefined ? resultado.resps[usuarioActual] : (quizGameState.miRespuesta !== null ? quizGameState.miRespuesta : -1);
-                    quizGameState.opRespuesta = resultado.resps[opKeyR] !== undefined ? resultado.resps[opKeyR] : (quizGameState.opRespuesta !== null ? quizGameState.opRespuesta : -1);
-
-                    // Sincronizar puntajes
-                    if (resultado.puntajes) {
-                        quizGameState.puntajes.mi = resultado.puntajes[usuarioActual] !== undefined ? resultado.puntajes[usuarioActual] : quizGameState.puntajes.mi;
-                        quizGameState.puntajes.oponente = resultado.puntajes[opKeyR] !== undefined ? resultado.puntajes[opKeyR] : quizGameState.puntajes.oponente;
-                        actualizarScoreboardQuiz();
-                    }
-
-                    bloquearBotonesQuiz();
-
-                    // Revelar respuestas visualmente
-                    const p = quizGameState.preguntas[quizGameState.preguntaActual];
-                    if (p) {
-                        const correcta = p.ans;
-                        const miIdx = quizGameState.miRespuesta;
-                        const opIdx = quizGameState.opRespuesta;
-                        const PUNTOS = 50;
-                        const yoAcerte = miIdx === correcta;
-                        const opAcerto = opIdx === correcta;
-
-                        document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach((btn, i) => {
-                            btn.style.background = ''; btn.style.borderColor = ''; btn.disabled = true;
-                            if (i === correcta) btn.classList.add('reveal-correct');
-                            if (i === miIdx && miIdx !== correcta && miIdx !== -1) btn.classList.add('wrong');
-                            if (i === miIdx && miIdx === correcta) btn.classList.add('correct');
-                        });
-                        _quizMarcarEstadoJugador(true, true);
-
-                        // Banner resultado
-                        const banner = document.getElementById('quizResultBanner');
-                        let txt = '', cls = 'quiz-result-banner show ';
-                        if (miIdx === -1 && opIdx === -1) { txt = `⏰ Tiempo agotado. Nadie respondió. Correcta: ${['A','B','C'][correcta]}`; cls += 'no-answer-banner'; }
-                        else if (yoAcerte && opAcerto) { txt = `✅ ¡Ambos acertaron! +${PUNTOS} cada uno`; cls += 'correct-banner'; }
-                        else if (yoAcerte) { txt = `✅ ¡Correcto! +${PUNTOS} pts — ${nombreOponente()} falló`; cls += 'correct-banner'; }
-                        else if (opAcerto) { txt = `❌ ${miIdx === -1 ? 'No respondiste' : 'Fallaste'}. ${nombreOponente()} acertó (+${PUNTOS})`; cls += 'wrong-banner'; }
-                        else { txt = `❌ Nadie acertó`; cls += 'wrong-banner'; }
-                        if (banner) { banner.textContent = txt; banner.className = cls; }
-
-                        // Modal simultáneo para ambos
-                        const esUltima = resultado.pregIdx + 1 >= 5;
-                        if (esUltima) {
-                            setTimeout(() => mostrarGanadorFinalQuiz(), 1800);
-                        } else {
-                            _quizMostrarModalSiguiente(yoAcerte, opAcerto, PUNTOS);
-                        }
-                    }
-                    return;
-                }
-
-                // Detectar respuesta del oponente (solo para marcar su estado visualmente)
+                // Detectar respuesta del oponente
                 const resps = data.respuestas || {};
                 const opKey2 = oponenteActual || Object.keys(resps).find(k => k !== usuarioActual) || '';
                 const opResp = resps[opKey2];
                 if (opResp && opResp.pregIdx === quizGameState.preguntaActual && quizGameState.opRespuesta === null) {
                     quizGameState.opRespuesta = opResp.optIdx;
                     _quizMarcarEstadoJugador(false, true);
-
-                    // Si YO ya respondí también y soy HOST → publicar resultado para sincronizar ambos
-                    if (quizGameState.miRespuesta !== null && _quizIsHost && !quizGameState._resultadoMostrado) {
-                        _quizPublicarResultado();
+                    if (quizGameState.miRespuesta !== null) {
+                        _quizCalificarAmbos();
                     }
                 }
 
                 if (newIdx > quizGameState.preguntaActual && newIdx < quizGameState.preguntas.length) {
+                    // Ocultar alerta de modo libre si está visible (el otro usuario avanzó primero)
                     const alertaEl = document.getElementById('quiz-alerta-libre');
                     if (alertaEl) alertaEl.remove();
                     quizGameState.preguntaActual = newIdx;
@@ -9315,6 +9065,7 @@ window.cerrarJuegoWindow = function() {
                         mostrarGanadorFinalQuiz();
                     }
                 }
+                // Modo libre: si el host reinicia preguntaActual a 0 (ciclo), sincronizar
                 if (quizGameState._modoLibre && newIdx === 0 && quizGameState.preguntaActual !== 0) {
                     const alertaEl = document.getElementById('quiz-alerta-libre');
                     if (alertaEl) alertaEl.remove();
@@ -9322,40 +9073,6 @@ window.cerrarJuegoWindow = function() {
                     setTimeout(() => mostrarPreguntaQuiz(), 300);
                 }
             });
-        }
-
-        // El HOST publica el resultado oficial en Firebase → ambos lo leen y muestran el modal al mismo tiempo
-        function _quizPublicarResultado() {
-            const p = quizGameState.preguntas[quizGameState.preguntaActual];
-            if (!p || !salaActualKey) return;
-            const correcta = p.ans;
-            const PUNTOS = 50;
-            const miIdx = quizGameState.miRespuesta !== null ? quizGameState.miRespuesta : -1;
-            const opIdx = quizGameState.opRespuesta !== null ? quizGameState.opRespuesta : -1;
-            const yoAcerte = miIdx === correcta;
-            const opAcerto = opIdx === correcta;
-
-            // Calcular puntajes finales
-            const miPtsNuevo = quizGameState.puntajes.mi + (yoAcerte ? PUNTOS : 0);
-            const opPtsNuevo = quizGameState.puntajes.oponente + (opAcerto ? PUNTOS : 0);
-
-            const respsUp = {};
-            respsUp[usuarioActual] = miIdx;
-            respsUp[oponenteActual || '__op'] = opIdx;
-
-            const ptsUp = {};
-            ptsUp[usuarioActual] = miPtsNuevo;
-            ptsUp[oponenteActual || '__op'] = opPtsNuevo;
-
-            // Publicar en Firebase → el listener de AMBOS jugadores lo detecta y muestra el modal
-            set(ref(db, `gameData/${salaActualKey}/quiz/resultado`), {
-                pregIdx: quizGameState.preguntaActual,
-                resps: respsUp,
-                puntajes: ptsUp,
-                ts: Date.now()
-            }).catch(() => {});
-
-            set(ref(db, `gameData/${salaActualKey}/quiz/puntajes`), ptsUp).catch(() => {});
         }
 
         function actualizarScoreboardQuiz() {
@@ -9366,28 +9083,6 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('quizSbOtherScore').textContent = quizGameState.puntajes.oponente;
             document.getElementById('quizP1Name').textContent = yo;
             document.getElementById('quizP2Name').textContent = window._modoBot ? '🤖 Sistema' : nombreOponente();
-
-            // Mostrar premios en el scoreboard si hay alguno elegido
-            const miPremio = premiosJuego.quiz.mi;
-            const opPremio = premiosJuego.quiz.oponente;
-            const myPremioEl = document.getElementById('quizSbMyPremio');
-            const opPremioEl = document.getElementById('quizSbOtherPremio');
-            if (myPremioEl) {
-                if (miPremio) {
-                    myPremioEl.style.display = 'block';
-                    myPremioEl.textContent = `🎁 ${miPremio}`;
-                } else {
-                    myPremioEl.style.display = 'none';
-                }
-            }
-            if (opPremioEl) {
-                if (opPremio) {
-                    opPremioEl.style.display = 'block';
-                    opPremioEl.textContent = `🎁 ${opPremio}`;
-                } else {
-                    opPremioEl.style.display = 'none';
-                }
-            }
         }
 
         function mostrarPreguntaQuiz() {
@@ -9399,14 +9094,7 @@ window.cerrarJuegoWindow = function() {
             quizGameState.miRespuesta = null;
             quizGameState.opRespuesta = null;
             quizGameState._esperandoOp = false;
-            quizGameState._resultadoMostrado = false;
-            // No resetear _inicioConfirmado aquí (solo se resetea al arrancar el juego)
             _quizLimpiarTimers();
-
-            // Limpiar nodo resultado de Firebase para esta nueva pregunta (solo host)
-            if (!window._modoBot && salaActualKey && _quizIsHost) {
-                set(ref(db, `gameData/${salaActualKey}/quiz/resultado`), null).catch(() => {});
-            }
 
             document.getElementById('quizCategoryBadge').textContent = p.cat;
             // En modo libre: "Pregunta N" sin total. Con premio: "Pregunta N de 5"
@@ -9414,16 +9102,15 @@ window.cerrarJuegoWindow = function() {
                 document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1}`;
             } else {
                 document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1} de 5`;
-                document.getElementById('quiz-round-indicator').textContent = `RONDA ${idx + 1} / 5`;
+                document.getElementById('quiz-round-indicator').textContent = `PREGUNTA ${idx + 1} / 5`;
                 document.getElementById('quiz-round-indicator').classList.add('visible');
             }
             document.getElementById('quizQuestionText').textContent = p.q;
             document.getElementById('quizBuzzStatus').textContent = '';
             document.getElementById('quizResultBanner').className = 'quiz-result-banner';
             document.getElementById('quizResultBanner').textContent = '';
-            // Ocultar contador top al iniciar pregunta (se muestra cuando inicia el conteo)
-            const cdTop = document.getElementById('quizCountdownTop');
-            if (cdTop) cdTop.style.display = 'none';
+            const cdBox = document.getElementById('quizCountdownBox');
+            if (cdBox) { cdBox.classList.remove('visible'); cdBox.dataset.fase = 'pregunta'; }
             const exitBtn = document.getElementById('quizExitBtn');
             if (exitBtn) exitBtn.style.display = 'none';
 
@@ -9458,32 +9145,30 @@ window.cerrarJuegoWindow = function() {
 
         function _quizIniciarConteo12s() {
             let secs = 12;
-            const cdTop = document.getElementById('quizCountdownTop');
-            const cdTopRing = document.getElementById('quizCountdownTopRing');
-            const cdTopNum = document.getElementById('quizCountdownTopNum');
-            if (cdTop) cdTop.style.display = 'flex';
-            if (cdTopRing) cdTopRing.classList.remove('done');
-            if (cdTopNum) cdTopNum.textContent = secs;
+            const cdBox = document.getElementById('quizCountdownBox');
+            const cdNum = document.getElementById('quizCountdownNum');
+            const cdLabel = document.querySelector('.quiz-countdown-label');
+            if (cdBox) {
+                cdBox.classList.add('visible');
+                cdBox.dataset.fase = 'pregunta';
+                if (cdLabel) cdLabel.textContent = 'Tiempo para responder';
+            }
+            if (cdNum) cdNum.textContent = secs;
 
             quizGameState._cdInterval = setInterval(() => {
                 // Si ambos ya respondieron, detener el conteo
                 if (quizGameState.miRespuesta !== null && quizGameState.opRespuesta !== null) {
                     clearInterval(quizGameState._cdInterval);
                     quizGameState._cdInterval = null;
-                    if (cdTop) cdTop.style.display = 'none';
+                    if (cdBox) cdBox.classList.remove('visible');
                     return;
                 }
                 secs--;
-                if (cdTopNum) cdTopNum.textContent = secs;
-                if (secs <= 3 && cdTopRing) {
-                    cdTopRing.style.borderTopColor = '#f44336';
-                    cdTopRing.style.borderColor = 'rgba(244,67,54,0.25)';
-                }
+                if (cdNum) cdNum.textContent = secs;
                 if (secs <= 0) {
                     clearInterval(quizGameState._cdInterval);
                     quizGameState._cdInterval = null;
-                    if (cdTop) cdTop.style.display = 'none';
-                    if (cdTopRing) { cdTopRing.style.borderTopColor = ''; cdTopRing.style.borderColor = ''; }
+                    if (cdBox) cdBox.classList.remove('visible');
                     bloquearBotonesQuiz();
                     if (quizGameState.miRespuesta === null) {
                         quizGameState.miRespuesta = -1;
@@ -9498,16 +9183,8 @@ window.cerrarJuegoWindow = function() {
                         if (quizGameState.opRespuesta === null) quizGameState.opRespuesta = -1;
                         _quizCalificarAmbos();
                     } else {
-                        // El HOST publica el resultado para sincronizar a ambos
-                        if (_quizIsHost && !quizGameState._resultadoMostrado) {
-                            // Esperar brevemente para que el no-host también registre su -1 si aplica
-                            setTimeout(() => {
-                                if (quizGameState.opRespuesta === null) quizGameState.opRespuesta = -1;
-                                _quizPublicarResultado();
-                            }, 800);
-                        } else if (!_quizIsHost) {
-                            // El no-host espera que el host publique el resultado
-                            // (el listener lo recibirá)
+                        if (quizGameState.opRespuesta !== null) {
+                            _quizCalificarAmbos();
                         }
                     }
                 }
@@ -9518,10 +9195,11 @@ window.cerrarJuegoWindow = function() {
 
         function seleccionarOpcionQuiz(optIdx, btnEl) {
             if (quizGameState.miRespuesta !== null) return;
-            if (!quizGameState._modoLibre && !quizGameState._cdInterval) return;
+            // En modo con premio: requiere que el conteo esté activo. En modo libre: siempre se puede responder.
+            if (!quizGameState._modoLibre && !quizGameState._cdInterval) return; // tiempo agotado en modo premio
 
             quizGameState.miRespuesta = optIdx;
-            // Bloquear mis botones visualmente (pero no calificar aún)
+            // Solo bloquear para mí (no para el oponente aún)
             document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(b => {
                 b.disabled = true;
                 if (parseInt(b.dataset.optIndex) === optIdx) {
@@ -9531,21 +9209,22 @@ window.cerrarJuegoWindow = function() {
             });
             _quizMarcarEstadoJugador(true, false);
 
-            // Guardar mi respuesta en Firebase
             if (!window._modoBot && salaActualKey && oponenteActual) {
                 set(ref(db, `gameData/${salaActualKey}/quiz/respuestas/${usuarioActual}`), {
                     pregIdx: quizGameState.preguntaActual, optIdx, ts: Date.now()
                 }).catch(e => console.warn('[QUIZ]', e));
             }
 
-            // Si el oponente ya respondió Y soy HOST → publicar resultado (yo fui el último)
-            if (quizGameState.opRespuesta !== null && _quizIsHost && !quizGameState._resultadoMostrado) {
-                _quizPublicarResultado();
-            }
-
-            // Bot mode (sin Firebase): calificar directamente
-            if (window._modoBot && quizGameState.opRespuesta !== null) {
+            // Solo calificar cuando el oponente también haya marcado
+            if (quizGameState.opRespuesta !== null) {
                 _quizCalificarAmbos();
+            }
+            // Si ambos respondieron en modo con premio, detener conteo explícitamente
+            if (!quizGameState._modoLibre && quizGameState.opRespuesta !== null && quizGameState._cdInterval) {
+                clearInterval(quizGameState._cdInterval);
+                quizGameState._cdInterval = null;
+                const cdBox = document.getElementById('quizCountdownBox');
+                if (cdBox) cdBox.classList.remove('visible');
             }
         }
 
@@ -9568,8 +9247,8 @@ window.cerrarJuegoWindow = function() {
             if (quizGameState._cdInterval) {
                 clearInterval(quizGameState._cdInterval);
                 quizGameState._cdInterval = null;
-                const cdTop3 = document.getElementById('quizCountdownTop');
-                if (cdTop3) cdTop3.style.display = 'none';
+                const cdBox = document.getElementById('quizCountdownBox');
+                if (cdBox) cdBox.classList.remove('visible');
             }
             bloquearBotonesQuiz();
 
@@ -9627,100 +9306,14 @@ window.cerrarJuegoWindow = function() {
                 // MODO LIBRE: mostrar alerta vistosa en tiempo real (quien ganó esta pregunta) y botón siguiente
                 _quizMostrarAlertaLibre(yoAcerte, opAcerto, PUNTOS);
             } else {
-                // MODO CON PREMIO: mostrar modal vistoso con botón Siguiente (sincronizado)
+                // MODO CON PREMIO: ir al siguiente automáticamente con countdown 3s
                 const esUltima = quizGameState.preguntaActual + 1 >= 5;
                 if (esUltima) {
                     setTimeout(() => mostrarGanadorFinalQuiz(), 2000);
                 } else {
-                    _quizMostrarModalSiguiente(yoAcerte, opAcerto, PUNTOS);
+                    _quizIniciarConteo3sNext();
                 }
             }
-        }
-
-        function _quizMostrarModalSiguiente(yoAcerte, opAcerto, puntos) {
-            // Quitar modal anterior si existe
-            const existing = document.getElementById('quiz-modal-siguiente');
-            if (existing) existing.remove();
-
-            const pregActual = quizGameState.preguntaActual;
-            let icono, titulo, color, colorBorder;
-            if (yoAcerte && opAcerto) {
-                icono = '✅'; titulo = '¡Ambos acertaron!';
-                color = 'linear-gradient(135deg,#1b5e20,#388e3c)'; colorBorder = '#69f0ae';
-            } else if (yoAcerte) {
-                icono = '🎯'; titulo = '¡Correcto!';
-                color = 'linear-gradient(135deg,#1b5e20,#388e3c)'; colorBorder = '#69f0ae';
-            } else if (opAcerto) {
-                icono = '💥'; titulo = `${nombreOponente()} acertó`;
-                color = 'linear-gradient(135deg,#b71c1c,#c62828)'; colorBorder = '#ff5252';
-            } else {
-                icono = '⏰'; titulo = 'Nadie obtuvo puntos';
-                color = 'linear-gradient(135deg,#37474f,#546e7a)'; colorBorder = '#90a4ae';
-            }
-
-            const modal = document.createElement('div');
-            modal.id = 'quiz-modal-siguiente';
-            modal.style.cssText = `
-                position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-                background:${color}; border:3px solid ${colorBorder};
-                color:#fff; border-radius:20px; padding:28px 36px; z-index:9999;
-                text-align:center; box-shadow:0 10px 50px rgba(0,0,0,0.7);
-                min-width:270px; animation:quizAlertaIn 0.3s ease;
-            `;
-            modal.innerHTML = `
-                <div style="font-size:46px;margin-bottom:10px">${icono}</div>
-                <div style="font-size:20px;font-weight:800;margin-bottom:6px">${titulo}</div>
-                <div style="font-size:13px;opacity:0.85;margin-bottom:4px">+${puntos} pts ${yoAcerte ? 'para ti' : opAcerto ? `para ${nombreOponente()}` : ''}</div>
-                <div style="font-size:13px;margin-bottom:18px;opacity:0.8">
-                    ${capitalizarNombre(usuarioActual)||'Tú'}: <b>${quizGameState.puntajes.mi} pts</b> &nbsp;|&nbsp; ${nombreOponente()||'Rival'}: <b>${quizGameState.puntajes.oponente} pts</b>
-                </div>
-                <button id="quiz-btn-siguiente-modal" style="
-                    background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.6);
-                    color:#fff; padding:12px 32px; border-radius:50px; font-size:16px;
-                    cursor:pointer; font-weight:700; letter-spacing:0.5px;
-                ">▶ Siguiente pregunta</button>
-            `;
-            document.body.appendChild(modal);
-
-            document.getElementById('quiz-btn-siguiente-modal').onclick = () => {
-                modal.remove();
-                _quizSiguienteConPremio(pregActual);
-            };
-        }
-
-        function _quizSiguienteConPremio(pregActual) {
-            // Mostrar mini-countdown de 3s y luego avanzar ambos
-            const overlay = document.createElement('div');
-            overlay.id = 'quiz-cd-siguiente';
-            overlay.style.cssText = `
-                position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-                background:rgba(30,20,60,0.97); border:2px solid #9c27b0;
-                color:#fff; border-radius:16px; padding:20px 40px; z-index:10000;
-                text-align:center; box-shadow:0 6px 30px rgba(0,0,0,0.7);
-                font-size:16px; font-weight:600;
-            `;
-            overlay.innerHTML = `<div style="font-size:28px;margin-bottom:6px">⏱️</div><div id="quiz-cd-sig-msg">Yendo a la siguiente pregunta...</div><div style="font-size:36px;font-weight:800;margin-top:8px" id="quiz-cd-sig-num">3</div>`;
-            document.body.appendChild(overlay);
-
-            // Enviar señal al oponente para que también avance
-            if (!window._modoBot && salaActualKey) {
-                _tttSendSignal('quiz_premio_siguiente', { pregIdx: pregActual });
-                if (_quizIsHost) {
-                    set(ref(db, `gameData/${salaActualKey}/quiz/respuestas`), {}).catch(() => {});
-                }
-            }
-
-            let s = 3;
-            const iv = setInterval(() => {
-                s--;
-                const numEl = document.getElementById('quiz-cd-sig-num');
-                if (numEl) numEl.textContent = s;
-                if (s <= 0) {
-                    clearInterval(iv);
-                    overlay.remove();
-                    avanzarPreguntaQuiz();
-                }
-            }, 1000);
         }
 
         function _quizMostrarAlertaLibre(yoAcerte, opAcerto, puntos) {
@@ -9822,8 +9415,25 @@ window.cerrarJuegoWindow = function() {
         }
 
         function _quizIniciarConteo3sNext() {
-            // Fallback: avanzar directamente (el modal de siguiente ya maneja la transición)
-            avanzarPreguntaQuiz();
+            let secs = 3;
+            const cdBox = document.getElementById('quizCountdownBox');
+            const cdNum = document.getElementById('quizCountdownNum');
+            const cdLabel = document.querySelector('.quiz-countdown-label');
+            if (cdBox) {
+                cdBox.classList.add('visible');
+                if (cdLabel) cdLabel.textContent = 'Siguiente pregunta...';
+            }
+            if (cdNum) cdNum.textContent = secs;
+            quizGameState._cdNextInterval = setInterval(() => {
+                secs--;
+                if (cdNum) cdNum.textContent = secs;
+                if (secs <= 0) {
+                    clearInterval(quizGameState._cdNextInterval);
+                    quizGameState._cdNextInterval = null;
+                    if (cdBox) cdBox.classList.remove('visible');
+                    avanzarPreguntaQuiz();
+                }
+            }, 1000);
         }
 
         function avanzarPreguntaQuiz() {
@@ -9859,97 +9469,56 @@ window.cerrarJuegoWindow = function() {
 
             const miPremio = premiosJuego.quiz.mi;
             const opPremio = premiosJuego.quiz.oponente;
-            const yo = capitalizarNombre(usuarioActual) || 'Tú';
-            const rival = nombreOponente() || 'Rival';
+
+            const winEl = document.getElementById('modal-win');
+            const titleEl = document.getElementById('win-title');
+            const msgEl = document.getElementById('win-msg');
+            const btnPlay = document.getElementById('btn-play-again-win');
+            const btnExit = winEl.querySelector('.btn-exit');
             const exitBtnQ = document.getElementById('quizExitBtn');
             if (exitBtnQ) exitBtnQ.style.display = '';
 
-            // Limpiar modal anterior si existe
-            const prevModal = document.getElementById('quiz-final-modal');
-            if (prevModal) prevModal.remove();
+            let titulo, subtitulo;
+            const yo = capitalizarNombre(usuarioActual) || 'Tú';
+            const rival = nombreOponente() || 'Rival';
 
-            let emoji, titulo, subtitulo, gradColor, glow;
             if (mi > op) {
-                emoji = '🏆'; titulo = '¡Ganaste!'; subtitulo = `¡Felicitaciones ${yo}!`;
-                gradColor = 'linear-gradient(135deg,#1a1a00,#3d2b00,#7c5100)';
-                glow = '#ffd700';
-                lanzarConfetti();
+                titulo = '🏆 ¡Ganaste!';
+                subtitulo = `${yo}: ${mi} pts — ${rival}: ${op} pts`;
             } else if (op > mi) {
-                emoji = '😔'; titulo = `¡Ganó ${rival}!`; subtitulo = 'Mejor suerte la próxima vez';
-                gradColor = 'linear-gradient(135deg,#1a0a2e,#2d1458,#4a1a6e)';
-                glow = '#9c27b0';
+                titulo = '😔 Perdiste';
+                subtitulo = `${yo}: ${mi} pts — ${rival}: ${op} pts`;
             } else {
-                emoji = '🤝'; titulo = '¡Empate!'; subtitulo = 'Ninguno pudo con el otro';
-                gradColor = 'linear-gradient(135deg,#0a1a2e,#1a3a5e,#1a4a7e)';
-                glow = '#2196f3';
-                lanzarConfetti();
+                titulo = '🤝 ¡Empate!';
+                subtitulo = `Ambos: ${mi} pts`;
             }
 
-            const modal = document.createElement('div');
-            modal.id = 'quiz-final-modal';
-            modal.style.cssText = `
-                position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001;
-                background:${gradColor}; display:flex; flex-direction:column;
-                align-items:center; justify-content:center; padding:20px;
-                animation:quizAlertaIn 0.4s ease;
-            `;
+            if (titleEl) titleEl.textContent = titulo;
 
-            let premioHTML = '';
+            // Construir mensaje con premios
+            let premioMsg = subtitulo;
             if (miPremio || opPremio) {
-                premioHTML = `
-                <div style="margin:14px 0;display:flex;flex-direction:column;gap:8px;width:100%;max-width:340px;">
-                    ${miPremio ? `<div style="background:rgba(255,215,0,0.12);border:2px solid #ffd700;border-radius:14px;padding:10px 18px;display:flex;align-items:center;gap:10px;animation:prizeGlow 2s ease-in-out infinite alternate;">
-                        <span style="font-size:24px">🎁</span>
-                        <div><div style="font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${yo}</div><div style="font-size:15px;font-weight:800;color:#ffd700">${miPremio}</div></div>
-                    </div>` : ''}
-                    ${opPremio ? `<div style="background:rgba(255,165,0,0.12);border:2px solid #ff9800;border-radius:14px;padding:10px 18px;display:flex;align-items:center;gap:10px;animation:prizeGlow 2s ease-in-out infinite alternate;">
-                        <span style="font-size:24px">🎁</span>
-                        <div><div style="font-size:11px;opacity:0.7;font-weight:600;text-transform:uppercase;letter-spacing:0.5px">Premio de ${rival}</div><div style="font-size:15px;font-weight:800;color:#ff9800">${opPremio}</div></div>
-                    </div>` : ''}
-                </div>`;
+                premioMsg += '\n\n';
+                if (miPremio) premioMsg += `🎁 Tu premio: ${miPremio}\n`;
+                if (opPremio) premioMsg += `🎁 Premio de ${rival}: ${opPremio}`;
+            }
+            if (msgEl) {
+                msgEl.style.whiteSpace = 'pre-line';
+                msgEl.textContent = premioMsg;
             }
 
-            modal.innerHTML = `
-                <div style="font-size:80px;margin-bottom:10px;animation:quizAlertaIn 0.5s ease">${emoji}</div>
-                <div style="font-size:34px;font-weight:900;color:#fff;text-shadow:0 0 20px ${glow};margin-bottom:6px">${titulo}</div>
-                <div style="font-size:15px;color:rgba(255,255,255,0.7);margin-bottom:18px">${subtitulo}</div>
-                <div style="display:flex;gap:24px;margin-bottom:16px;width:100%;max-width:320px;justify-content:center;">
-                    <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid rgba(76,175,80,0.5);border-radius:14px;padding:14px 8px;text-align:center;">
-                        <div style="font-size:12px;color:#4caf50;font-weight:700;margin-bottom:4px">${yo}</div>
-                        <div style="font-size:32px;font-weight:900;color:#fff">${mi}</div>
-                        <div style="font-size:11px;color:#aaa">puntos</div>
-                    </div>
-                    <div style="flex:1;background:rgba(255,255,255,0.08);border:2px solid rgba(255,152,0,0.5);border-radius:14px;padding:14px 8px;text-align:center;">
-                        <div style="font-size:12px;color:#ff9800;font-weight:700;margin-bottom:4px">${rival}</div>
-                        <div style="font-size:32px;font-weight:900;color:#fff">${op}</div>
-                        <div style="font-size:11px;color:#aaa">puntos</div>
-                    </div>
-                </div>
-                ${premioHTML}
-                <div style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;justify-content:center;">
-                    <button id="quiz-final-revancha" style="
-                        background:linear-gradient(135deg,#7b1fa2,#4a148c);
-                        border:2px solid #ce93d8;color:#fff;padding:14px 28px;
-                        border-radius:50px;font-size:16px;cursor:pointer;font-weight:700;
-                        box-shadow:0 4px 20px rgba(156,39,176,0.4);
-                    ">🔁 Revancha</button>
-                    <button id="quiz-final-salir" style="
-                        background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.3);
-                        color:rgba(255,255,255,0.8);padding:14px 28px;
-                        border-radius:50px;font-size:16px;cursor:pointer;font-weight:600;
-                    ">🚪 Salir</button>
-                </div>
-            `;
-            document.body.appendChild(modal);
-
-            document.getElementById('quiz-final-revancha').onclick = () => {
-                modal.remove();
-                _quizPedirRevancha();
-            };
-            document.getElementById('quiz-final-salir').onclick = () => {
-                modal.remove();
-                cerrarJuegoWindow();
-            };
+            // Botón Revancha
+            if (btnPlay) {
+                btnPlay.textContent = '🔁 Revancha';
+                btnPlay.onclick = () => { winEl.classList.remove('active'); _quizPedirRevancha(); };
+            }
+            // Botón Salir
+            if (btnExit) {
+                btnExit.textContent = '🚪 Salir';
+                btnExit.onclick = () => { winEl.classList.remove('active'); cerrarJuegoWindow(); };
+            }
+            winEl.classList.add('active');
+            if (mi > op) lanzarConfetti();
         }
 
         function _quizPedirJugarDeNuevo() {
@@ -9985,22 +9554,20 @@ window.cerrarJuegoWindow = function() {
 
         function _doRevanchaQuizReal() {
             _hideNotify();
-            // Limpiar modales propios del quiz
-            const finalModal = document.getElementById('quiz-final-modal');
-            if (finalModal) finalModal.remove();
             document.getElementById('modal-win').classList.remove('active');
-
-            // Resetear premios y estado para volver a elegir
-            _quizResetCompleto();
-
-            // Volver al lobby de elección de premios
-            document.getElementById('quiz-lobby').style.display = 'flex';
-            document.getElementById('quiz-question-view').classList.remove('active');
-            document.getElementById('quizScoreboard').classList.remove('visible');
-            document.getElementById('quiz-round-indicator').classList.remove('visible');
-            actualizarLobbyQuiz();
-            const btnComenzar = document.getElementById('btn-comenzar-quiz');
-            if (btnComenzar) { btnComenzar.disabled = false; btnComenzar.textContent = 'Comenzar'; }
+            document.getElementById('quiz-lobby').style.display = 'none';
+            document.getElementById('quizScoreboard').classList.add('visible');
+            document.getElementById('quiz-question-view').classList.add('active');
+            quizGameState.preguntaActual = 0;
+            quizGameState.puntajes = { mi: 0, oponente: 0 };
+            quizGameState.miRespuesta = null;
+            quizGameState.opRespuesta = null;
+            quizGameState._yaFinalizo = false;
+            quizGameState._modoLibre = quizGameState._modoLibre; // mantener el modo actual
+            _quizLimpiarTimers();
+            if (salaActualKey) { remove(_quizDbRef()).catch(() => {}); }
+            actualizarScoreboardQuiz();
+            arrancarQuiz();
         }
 
         function _quizMostrarCountdownJugarDeNuevo(solicitante) {
@@ -10023,8 +9590,6 @@ window.cerrarJuegoWindow = function() {
         function _quizMostrarCountdownRevancha(solicitante) {
             _hideNotify();
             document.getElementById('modal-win').classList.remove('active');
-            const finalModal = document.getElementById('quiz-final-modal');
-            if (finalModal) finalModal.remove();
             let secs = 3;
             _showNotify('🔁', `¡Revancha con ${solicitante}!`, `Comenzando en ${secs}...`, []);
             const interval = setInterval(() => {
@@ -10336,46 +9901,8 @@ window.cerrarJuegoWindow = function() {
 
     const ICE_SERVERS = [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
-        // TURN público (Open Relay) — necesario para redes con NAT estricto / móviles
-        {
-            urls: 'turn:openrelay.metered.ca:80',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        },
-        {
-            urls: 'turn:openrelay.metered.ca:443',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        },
-        {
-            urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-        }
+        { urls: 'stun:stun1.l.google.com:19302' }
     ];
-
-    // ── Pre-calentar permiso de micrófono al entrar a un chat ──
-    // Así el permiso ya está listo cuando se inicia la llamada y no
-    // se interrumpe la señalización WebRTC mientras el usuario acepta.
-    let _micPermWarmedUp = false;
-    window._warmUpMicPermission = async function _warmUpMicPermission() {
-        if (_micPermWarmedUp) return;
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
-        try {
-            const perm = await navigator.permissions.query({ name: 'microphone' }).catch(() => ({ state: 'prompt' }));
-            if (perm.state === 'granted') { _micPermWarmedUp = true; return; }
-            // Solo pedir si no fue denegado
-            if (perm.state !== 'denied') {
-                const s = await navigator.mediaDevices.getUserMedia({ audio: true });
-                s.getTracks().forEach(t => t.stop()); // liberar inmediatamente
-                _micPermWarmedUp = true;
-            }
-        } catch(e) { /* El usuario canceló, se manejará en iniciarLlamada */ }
-    }
 
     // ── Helpers ──
     function getOtherUser() {
@@ -10420,6 +9947,7 @@ window.cerrarJuegoWindow = function() {
     window.iniciarLlamada = async function() {
         if (!getSalaKey() || !getUsuario()) { showToast('Debes estar en un chat'); return; }
         if (_pc) { showToast('Ya hay una llamada activa'); return; }
+        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
 
         _isCaller = true;
 
@@ -10427,55 +9955,32 @@ window.cerrarJuegoWindow = function() {
         const callingName = document.getElementById('calling-name');
         const callingAvatar = document.getElementById('calling-avatar');
         const otherName = document.getElementById('nombre-usuario')?.textContent || 'Usuario';
+        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
         if (callingName) callingName.textContent = otherName;
         if (callingAvatar) callingAvatar.textContent = otherName.substring(0,2).toUpperCase();
         document.getElementById('calling-overlay').classList.add('active');
         document.getElementById('btn-call-header')?.classList.add('calling');
 
-        // Obtener micrófono — reintentar hasta 2 veces si el permiso aún no está listo
-        let micAttempts = 0;
-        while (micAttempts < 2) {
-            try {
-                _localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true,
-                             sampleRate: 48000, channelCount: 1 },
-                    video: false
-                });
-                _localStream = _aplicarFiltroAudio(_localStream);
-                break;
-            } catch(e) {
-                micAttempts++;
-                if (micAttempts >= 2 || e.name === 'NotAllowedError') {
-                    showToast('❌ Micrófono bloqueado. En tu navegador, toca el candado 🔒 en la barra de direcciones → Permisos → Micrófono → Permitir.');
-                    document.getElementById('calling-overlay').classList.remove('active');
-                    document.getElementById('btn-call-header')?.classList.remove('calling');
-                    _isCaller = false;
-                    return;
-                }
-                await new Promise(r => setTimeout(r, 800));
-            }
+        // Obtener micrófono
+        try {
+            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1, googEchoCancellation: true, googAutoGainControl: true, googNoiseSuppression: true, googHighpassFilter: true, googEchoCancellation2: true, googNoiseSuppression2: true }, video: false });
+            _localStream = _aplicarFiltroAudio(_localStream);
+        } catch(e) {
+            showToast('❌ No se pudo acceder al micrófono');
+            document.getElementById('calling-overlay').classList.remove('active');
+            return;
         }
-
-        // Limpiar nodo Firebase anterior (puede que existan datos residuales del borrado manual)
-        try { await remove(callRef()); } catch(e) {}
-        await new Promise(r => setTimeout(r, 300));
 
         // Crear peer connection
         _pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         _localStream.getTracks().forEach(t => _pc.addTrack(t, _localStream));
 
         _pc.ontrack = e => {
-            let audio = document.getElementById('call-remote-audio');
-            if (!audio) { audio = document.createElement('audio'); audio.id = 'call-remote-audio'; document.body.appendChild(audio); }
+            const audio = document.createElement('audio');
             audio.autoplay = true;
             audio.srcObject = e.streams[0];
-        };
-
-        _pc.oniceconnectionstatechange = () => {
-            if (_pc && (_pc.iceConnectionState === 'failed' || _pc.iceConnectionState === 'disconnected')) {
-                showToast('📵 Conexión perdida');
-                limpiarLlamada();
-            }
+            document.body.appendChild(audio);
+            audio.id = 'call-remote-audio';
         };
 
         // Colectar ICE candidates y subirlos
@@ -10492,11 +9997,10 @@ window.cerrarJuegoWindow = function() {
             setTimeout(res, 3000);
         });
 
-        // Publicar oferta en Firebase (incluir callerCandidates para el callee)
+        // Publicar oferta en Firebase
         await set(callRef(), {
             caller: getUsuario(),
             offer: _pc.localDescription.toJSON(),
-            callerCandidates: candidates.reduce((a,c,i) => { a[i] = c; return a; }, {}),
             status: 'calling',
             ts: Date.now()
         });
@@ -10534,51 +10038,25 @@ window.cerrarJuegoWindow = function() {
         document.getElementById('call-modal-overlay').classList.remove('active');
         _isCaller = false;
 
-        let micAttempts2 = 0;
-        while (micAttempts2 < 2) {
-            try {
-                _localStream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true,
-                             sampleRate: 48000, channelCount: 1 },
-                    video: false
-                });
-                _localStream = _aplicarFiltroAudio(_localStream);
-                break;
-            } catch(e) {
-                micAttempts2++;
-                if (micAttempts2 >= 2 || e.name === 'NotAllowedError') {
-                    showToast('❌ Micrófono bloqueado. Toca el candado 🔒 en la barra de direcciones → Permisos → Micrófono → Permitir.');
-                    return;
-                }
-                await new Promise(r => setTimeout(r, 800));
-            }
+        try {
+            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1, googEchoCancellation: true, googAutoGainControl: true, googNoiseSuppression: true, googHighpassFilter: true, googEchoCancellation2: true, googNoiseSuppression2: true }, video: false });
+            _localStream = _aplicarFiltroAudio(_localStream);
+        } catch(e) {
+            showToast('❌ No se pudo acceder al micrófono'); return;
         }
 
         _pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         _localStream.getTracks().forEach(t => _pc.addTrack(t, _localStream));
 
         _pc.ontrack = e => {
-            let audio = document.getElementById('call-remote-audio');
-            if (!audio) { audio = document.createElement('audio'); audio.id = 'call-remote-audio'; document.body.appendChild(audio); }
+            const audio = document.createElement('audio');
             audio.autoplay = true;
             audio.srcObject = e.streams[0];
-        };
-
-        _pc.oniceconnectionstatechange = () => {
-            if (_pc && (_pc.iceConnectionState === 'failed' || _pc.iceConnectionState === 'disconnected')) {
-                showToast('📵 Conexión perdida');
-                limpiarLlamada();
-            }
+            document.body.appendChild(audio);
+            audio.id = 'call-remote-audio';
         };
 
         await _pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-        // Agregar ICE candidates del caller (si los hay)
-        if (data.callerCandidates) {
-            Object.values(data.callerCandidates).forEach(c => {
-                _pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
-            });
-        }
 
         const calleeCandidates = [];
         _pc.onicecandidate = e => { if (e.candidate) calleeCandidates.push(e.candidate.toJSON()); };
@@ -10651,7 +10129,7 @@ window.cerrarJuegoWindow = function() {
     }
 
     // ── ESCUCHAR LLAMADAS ENTRANTES ──
-    window.escucharLlamadasEntrantes = function escucharLlamadasEntrantes() {
+    function escucharLlamadasEntrantes() {
         if (!getSalaKey()) return;
         onValue(callRef(), snap => {
             const data = snap.val();
@@ -10812,7 +10290,7 @@ window.cerrarJuegoWindow = function() {
     }
 
     // Escuchar ofertas de voz de juego del otro usuario
-    window.escucharOfertasVozJuego = function escucharOfertasVozJuego() {
+    function escucharOfertasVozJuego() {
         if (!getSalaKey()) return;
         onValue(gameVoiceRef(), snap => {
             const d = snap.val();
@@ -10823,7 +10301,17 @@ window.cerrarJuegoWindow = function() {
         });
     }
 
-    // ── HOOK EN irInicio: limpiar llamadas y voz al salir del chat ──
+    // ── HOOK EN guardarNombreUsuario ORIGINAL ──
+    const _origGuardar = window.guardarNombreUsuario;
+    window.guardarNombreUsuario = function() {
+        _origGuardar && _origGuardar();
+        setTimeout(() => {
+            escucharLlamadasEntrantes();
+            escucharOfertasVozJuego();
+        }, 500);
+    };
+
+    // Limpiar en irInicio
     const _origIrInicio = window.irInicio;
     window.irInicio = function() {
         limpiarLlamada();
