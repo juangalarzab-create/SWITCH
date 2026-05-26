@@ -80,15 +80,12 @@
             height: 100%;
             height: -webkit-fill-available;
             height: 100dvh;
-            /* Ocultar barra de navegación del sistema en standalone/PWA */
+            /* Respetar notch/status-bar en todos los modos (browser y PWA) */
             padding-bottom: env(safe-area-inset-bottom, 0px);
-            padding-top: env(safe-area-inset-top, 0px);
+            padding-top: 0px; /* el header absorbe el safe-area-inset-top */
         }
 
-        @media all and (display-mode: standalone),
-               all and (display-mode: fullscreen) {
-            body { padding-bottom: 0 !important; padding-top: 0 !important; }
-        }
+        /* NOTA: NO se resetea el safe-area en standalone; el header ya lo absorbe */
         /* Ocultar scrollbar del sistema */
         ::-webkit-scrollbar { width: 0; height: 0; }
 
@@ -132,12 +129,14 @@
         .header {
             background: #000000;
             padding: 12px 16px;
+            /* Absorbe el notch/status-bar de iPhone (Safari browser y PWA) */
+            padding-top: calc(12px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: 56px;
+            min-height: calc(56px + env(safe-area-inset-top, 0px));
             position: sticky;
             top: 0;
             z-index: 100;
@@ -5433,11 +5432,13 @@ let audioStream;
         input.addEventListener('keyup', _checkTypingState);
     }
 
-    // Clear typing state on send
+    // Clear typing state on send + activar presencia al primer mensaje
     const origEnviar = window.enviarMensaje;
     window.enviarMensaje = async function() {
         _publishTyping('idle');
         _lastTypingState = null;
+        // Activar presencia al enviar el primer mensaje
+        if (typeof window._activarPresencia === 'function') window._activarPresencia();
         if (origEnviar) return origEnviar.apply(this, arguments);
     };
 
@@ -5451,76 +5452,93 @@ let audioStream;
         _typingListener = onValue(typingRef, (snap) => {
             const data = snap.val() || {};
             // Find the OTHER user's typing state
-            const otherKey = Object.keys(data).find(k => k !== usuarioActual);
-            if (!otherKey) return;
-            const entry = data[otherKey];
             const statusEl = document.getElementById('header-typing-status');
             if (!statusEl) return;
-            const nombre = capitalizarNombre(otherKey);
-            if (entry && entry.state === 'typing') {
-                statusEl.textContent = `${nombre} está escribiendo…`;
-            } else if (entry && entry.state === 'deleted') {
-                statusEl.textContent = `${nombre} borró su mensaje`;
-                // Clear after 3s
-                setTimeout(() => {
-                    if (statusEl.textContent.includes('borró')) statusEl.textContent = '';
-                }, 3000);
+            // Contar cuántos usuarios (excluyendo yo) están escribiendo
+            const ahora = Date.now();
+            const escribiendo = Object.entries(data)
+                .filter(([k, v]) => k !== usuarioActual && v.state === 'typing' && v.ts && (ahora - v.ts) < 15000);
+            const borraron = Object.entries(data)
+                .filter(([k, v]) => k !== usuarioActual && v.state === 'deleted' && v.ts && (ahora - v.ts) < 5000);
+
+            if (escribiendo.length === 1) {
+                statusEl.textContent = `${capitalizarNombre(escribiendo[0][0])} está escribiendo…`;
+            } else if (escribiendo.length > 1) {
+                statusEl.textContent = `${escribiendo.length} usuarios están escribiendo…`;
+            } else if (borraron.length === 1) {
+                statusEl.textContent = `${capitalizarNombre(borraron[0][0])} borró su mensaje`;
+                setTimeout(() => { if (statusEl.textContent.includes('borró')) statusEl.textContent = ''; }, 3000);
+            } else if (borraron.length > 1) {
+                statusEl.textContent = `${borraron.length} usuarios borraron su mensaje`;
+                setTimeout(() => { if (statusEl.textContent.includes('borraron')) statusEl.textContent = ''; }, 3000);
             } else {
                 statusEl.textContent = '';
             }
         });
 
-        // ── Presence: publish my heartbeat every 20s ──
+        // ── Presence: publish my heartbeat al enviar primer mensaje y luego cada 25s ──
         if (_presencePingInterval) clearInterval(_presencePingInterval);
         function _pingPresence() {
             if (!salaActualKey || !usuarioActual) return;
             set(ref(db, `presence/${salaActualKey}/${usuarioActual}`), {
-                ts: Date.now()
+                ts: Date.now(), nombre: usuarioActual
             }).catch(() => {});
+            // Limpiar mi presencia si me voy (onDisconnect)
+            onDisconnect(ref(db, `presence/${salaActualKey}/${usuarioActual}`)).remove();
         }
-        _pingPresence();
-        _presencePingInterval = setInterval(_pingPresence, 20000);
+        // No publicar presencia inmediatamente — esperar al primer mensaje
+        // (se activa desde activarPresencia() que se llama al enviar mensaje)
+        window._activarPresencia = function() {
+            if (window._presenciaActiva) return;
+            window._presenciaActiva = true;
+            _pingPresence();
+            _presencePingInterval = setInterval(_pingPresence, 25000);
+        };
 
-        // ── Presence: listen to opponent's heartbeat ──
+        // ── Presence: escuchar TODOS los usuarios de la sala ──
         if (_presenceListener) { _presenceListener(); _presenceListener = null; }
         if (_presenceCheckInterval) clearInterval(_presenceCheckInterval);
 
         const presenceRef = ref(db, `presence/${salaActualKey}`);
-        let _lastOpponentTs = null;
+
+        function _actualizarIndicadorPresencia(data) {
+            const dot = document.getElementById('presence-dot');
+            const label = document.getElementById('presence-label');
+            const nameEl = document.getElementById('nombre-usuario');
+            if (!dot || !label) return;
+            const ahora = Date.now();
+            const TIMEOUT = 70000; // 70s sin ping = offline
+            const usuarios = Object.entries(data || {});
+            // Contar usuarios activos (con ts reciente) excluyéndome
+            const activos = usuarios.filter(([k, v]) => k !== usuarioActual && v.ts && (ahora - v.ts) < TIMEOUT);
+            const totalOnline = activos.length;
+            const totalOffline = usuarios.filter(([k, v]) => k !== usuarioActual && (!v.ts || (ahora - v.ts) >= TIMEOUT)).length;
+
+            // Mostrar nombre-usuario solo si hay 1 activo, conteo si hay más
+            if (totalOnline === 1) {
+                const nombre = activos[0][1].nombre || activos[0][0];
+                if (nameEl) nameEl.textContent = nombre.toUpperCase();
+            } else if (totalOnline > 1) {
+                if (nameEl) nameEl.textContent = `${totalOnline} USUARIOS`;
+            } else {
+                if (nameEl) nameEl.textContent = 'SIN USUARIOS';
+            }
+
+            const hayOnline = totalOnline > 0;
+            dot.className = 'presence-dot ' + (hayOnline ? 'online' : 'offline');
+            label.className = 'presence-label' + (hayOnline ? '' : ' offline');
+            label.textContent = hayOnline ? `${totalOnline} online` : (totalOffline > 0 ? `${totalOffline} offline` : 'offline');
+        }
 
         _presenceListener = onValue(presenceRef, (snap) => {
-            const data = snap.val() || {};
-            const otherKey = Object.keys(data).find(k => k !== usuarioActual);
-            if (otherKey && data[otherKey] && data[otherKey].ts) {
-                _lastOpponentTs = data[otherKey].ts;
-                // Mostrar nombre del otro usuario
-                const nameEl = document.getElementById('nombre-usuario');
-                if (nameEl) nameEl.textContent = otherKey.toUpperCase();
-            }
+            _actualizarIndicadorPresencia(snap.val() || {});
         });
 
-        // Check presence status every 15s
+        // Verificar cada 30s por si algún usuario no limpió su presencia
         _presenceCheckInterval = setInterval(() => {
-            const dot = document.getElementById('presence-dot');
-            const label = document.getElementById('presence-label');
-            if (!dot || !label) return;
-            const now = Date.now();
-            const isOnline = _lastOpponentTs && (now - _lastOpponentTs) < 60000;
-            dot.className = 'presence-dot ' + (isOnline ? 'online' : 'offline');
-            label.className = 'presence-label' + (isOnline ? '' : ' offline');
-            label.textContent = isOnline ? 'en línea' : 'offline';
-        }, 5000);
-
-        // Initial check after 2s
-        setTimeout(() => {
-            const dot = document.getElementById('presence-dot');
-            const label = document.getElementById('presence-label');
-            if (!dot || !label) return;
-            const isOnline = _lastOpponentTs && (Date.now() - _lastOpponentTs) < 60000;
-            dot.className = 'presence-dot ' + (isOnline ? 'online' : 'offline');
-            label.className = 'presence-label' + (isOnline ? '' : ' offline');
-            label.textContent = isOnline ? 'en línea' : 'offline';
-        }, 2000);
+            // Leer snapshot actual y re-evaluar
+            get(presenceRef).then(s => _actualizarIndicadorPresencia(s.val() || {})).catch(() => {});
+        }, 30000);
     };
 
     // Cleanup on exit
@@ -5894,18 +5912,22 @@ function escucharInvitacionesJuego() {
 
         // Invitación PENDING — soy receptor (no fui yo quien la envió)
         if (inv.estado === 'pending' && inv.deUsuario !== usuarioActual && esNueva) {
-            // No volver a abrir si ya está abierta
-            const modal = document.getElementById('modal-game-invite');
-            if (!modal.classList.contains('active')) {
-                juegoActual = inv.juego;
-                // Guardar el nombre real del que me invitó como oponente
-                oponenteActual = inv.deUsuario;
-                document.getElementById('invite-game-title').textContent =
-                    `${capitalizarNombre(inv.deUsuario)} te invita a jugar ${_nombreJuego(inv.juego)}. ¿Aceptas?`;
-                modal.classList.add('active');
-                try { reproducirSonidoMsg(); } catch(e) {}
+            // No mostrar si ya hay una partida en curso (aUsuario ya asignado)
+            if (inv.aUsuario && inv.aUsuario !== usuarioActual) {
+                // Ya está jugando otra persona, ignorar
+                _ultimoInviteHoraMs = inv.horaMs;
+            } else {
+                const modal = document.getElementById('modal-game-invite');
+                if (!modal.classList.contains('active')) {
+                    juegoActual = inv.juego;
+                    oponenteActual = inv.deUsuario;
+                    document.getElementById('invite-game-title').textContent =
+                        `${capitalizarNombre(inv.deUsuario)} te invita a jugar ${_nombreJuego(inv.juego)}. ¿Aceptas?`;
+                    modal.classList.add('active');
+                    try { reproducirSonidoMsg(); } catch(e) {}
+                }
+                _ultimoInviteHoraMs = inv.horaMs;
             }
-            _ultimoInviteHoraMs = inv.horaMs;
         }
         // ACCEPTED — soy el invitador
         if (inv.estado === 'accepted' && inv.deUsuario === usuarioActual && _miInviteEnVuelo) {
@@ -5946,22 +5968,96 @@ async function _iniciarInvitacion(juego) {
         alert('⚠️ Debes estar en una sala para jugar');
         return;
     }
+
+    // Detectar si hay otros usuarios activos en la sala
+    let hayOtrosUsuarios = false;
+    try {
+        const presSnap = await get(ref(db, `presence/${salaActualKey}`));
+        const presData = presSnap.val() || {};
+        const ahora = Date.now();
+        const otrosActivos = Object.entries(presData).filter(([k, v]) => k !== usuarioActual && v.ts && (ahora - v.ts) < 70000);
+        hayOtrosUsuarios = otrosActivos.length > 0;
+    } catch(e) { hayOtrosUsuarios = false; }
+
+    if (!hayOtrosUsuarios) {
+        // Ofrecer jugar contra el sistema (bot)
+        const quiere = confirm(`No hay otros usuarios en la sala. ¿Deseas jugar ${_nombreJuego(juego)} contra el Sistema (bot)?`);
+        if (!quiere) return;
+        juegoActual = juego;
+        oponenteActual = '__bot__';
+        pushMensaje({ usuario: 'Sistema', texto: `🤖 ${usuarioActual} está jugando ${_nombreJuego(juego)} contra el Sistema`, tipo: 'texto' });
+        _entrarAJuego(juego);
+        // Activar modo bot
+        window._modoBot = true;
+        _activarBotParaJuego(juego);
+        return;
+    }
+
+    window._modoBot = false;
     juegoActual = juego;
     _miInviteEnVuelo = true;
     showLoading('Esperando respuesta del otro usuario...');
     const ok = await _enviarInvitacionJuego(juego);
     if (!ok) { _miInviteEnVuelo = false; hideLoading(); return; }
-    pushMensaje({ usuario: 'Sistema', texto: `<i class='fas fa-gamepad'></i> ${usuarioActual} invitó a jugar ${_nombreJuego(juego)}`, tipo: 'texto' });
+    pushMensaje({ usuario: 'Sistema', texto: `🎮 ${usuarioActual} invitó a jugar ${_nombreJuego(juego)}`, tipo: 'texto' });
     // Timeout: si nadie responde en 60s, cancelar
     setTimeout(async () => {
         if (_miInviteEnVuelo) {
             _miInviteEnVuelo = false;
             hideLoading();
             try { await remove(ref(db, `gameInvites/${salaActualKey}`)); } catch(e){}
-            alert('⏱️ Nadie aceptó la invitación.');
+            showToast('⏱️ Nadie aceptó la invitación.');
         }
     }, 60000);
 }
+
+// ── Bot automático para jugar solo ──
+function _activarBotParaJuego(juego) {
+    if (juego === 'quiz') {
+        // Bot responde después de 1.5-3s con 50% de acierto
+        window._botQuizInterval = null;
+        window._botRespondioQuiz = function() {
+            if (!window._modoBot) return;
+            const state = quizGameState;
+            if (!state || state.respondioAlguien) return;
+            const p = state.preguntas[state.preguntaActual];
+            if (!p) return;
+            // Bot acierta 50% de las veces
+            const acierta = Math.random() < 0.5;
+            const botIdx = acierta ? p.ans : ([0,1,2].filter(i=>i!==p.ans)[Math.floor(Math.random()*2)]);
+            // Simular que el bot respondió
+            quizGameState.respondioAlguien = true;
+            quizGameState.buzzeadoPor = 'oponente';
+            const buttons = document.querySelectorAll('#quizOptionsGrid .quiz-option-btn');
+            buttons.forEach(b => b.disabled = true);
+            document.getElementById('quizP2Status').textContent = '⚡ ¡PULSÓ!';
+            document.getElementById('quizStatusP2').classList.add('buzzed');
+            document.getElementById('quizBuzzStatus').textContent = '⚡ Sistema respondió primero';
+            setTimeout(() => { resolverRespuestaQuiz(botIdx, 'oponente'); }, 400);
+        };
+    } else if (juego === 'tictactoe') {
+        // El bot de TicTacToe se activa cuando es su turno
+        window._botTttJugar = function() {
+            if (!window._modoBot) return;
+            // Buscar casilla libre y jugar
+            setTimeout(() => {
+                const celdas = document.querySelectorAll('.ttt-cell:not(.played)');
+                if (celdas.length > 0) {
+                    const rand = celdas[Math.floor(Math.random() * celdas.length)];
+                    rand.click();
+                }
+            }, 800 + Math.random() * 1200);
+        };
+    }
+}
+
+// Limpiar modo bot al salir
+const _origSalirJuego = window.salirAlMenuJuegos;
+window.salirAlMenuJuegos = function() {
+    window._modoBot = false;
+    oponenteActual = null;
+    if (_origSalirJuego) _origSalirJuego.apply(this, arguments);
+};
 
 window.iniciarTicTacToe = function() { _iniciarInvitacion('tictactoe'); };
 window.iniciarStop      = function() { _iniciarInvitacion('stop'); };
@@ -5995,7 +6091,13 @@ window.rechazarJuego = async function() {
     document.getElementById('modal-game-invite').classList.remove('active');
     if (salaActualKey) {
         try {
-            await update(ref(db, `gameInvites/${salaActualKey}`), { estado: 'rejected' });
+            // Solo marcar el rechazo del ESTE usuario, no cancelar toda la invitación
+            // para que otros puedan seguir aceptando o ya estén en llamada
+            await update(ref(db, `gameInvites/${salaActualKey}`), {
+                estado: 'rejected',
+                rechazadoPor: usuarioActual,
+                horaMs: Date.now()
+            });
         } catch (e) { console.warn('[Invite] update rejected:', e); }
     }
     pushMensaje({ usuario: 'Sistema', texto: '❌ ' + usuarioActual + ' rechazó la invitación', tipo: 'texto' });
@@ -8597,70 +8699,82 @@ window.cerrarJuegoWindow = function() {
 
         // ===== QUIZ GAME =====
         const quizBancoPeguntas = [
-            // CULTURA GENERAL
-            { cat: 'Cultura General', q: '¿Cuál es el país más grande del mundo por superficie?', opts: ['China', 'Rusia', 'Canadá'], ans: 1 },
-            { cat: 'Cultura General', q: '¿En qué año llegó el hombre a la Luna por primera vez?', opts: ['1965', '1969', '1972'], ans: 1 },
-            { cat: 'Cultura General', q: '¿Cuántos continentes tiene la Tierra?', opts: ['5', '6', '7'], ans: 2 },
-            { cat: 'Cultura General', q: '¿Cuál es el océano más grande del planeta?', opts: ['Atlántico', 'Índico', 'Pacífico'], ans: 2 },
-            { cat: 'Cultura General', q: '¿Cuál es la capital de Australia?', opts: ['Sídney', 'Melbourne', 'Canberra'], ans: 2 },
-            { cat: 'Cultura General', q: '¿Qué idioma tiene más hablantes nativos en el mundo?', opts: ['Inglés', 'Mandarín', 'Español'], ans: 1 },
-            { cat: 'Cultura General', q: '¿Cuál es el río más largo del mundo?', opts: ['Amazonas', 'Nilo', 'Yangtsé'], ans: 1 },
-            { cat: 'Cultura General', q: '¿Cuántas estrellas tiene la bandera de los EE.UU.?', opts: ['48', '50', '52'], ans: 1 },
-            { cat: 'Cultura General', q: '¿Qué moneda usa Japón?', opts: ['Won', 'Yen', 'Yuan'], ans: 1 },
-            { cat: 'Cultura General', q: '¿Cuál es la montaña más alta del mundo?', opts: ['K2', 'Aconcagua', 'Everest'], ans: 2 },
-            // CIENCIA
-            { cat: 'Ciencia', q: '¿Qué planeta es conocido como el planeta rojo?', opts: ['Venus', 'Marte', 'Júpiter'], ans: 1 },
-            { cat: 'Ciencia', q: '¿Cuántos cromosomas tiene una célula humana normal?', opts: ['23', '46', '48'], ans: 1 },
-            { cat: 'Ciencia', q: '¿Cuál es el símbolo químico del agua?', opts: ['HO', 'H2O', 'OH2'], ans: 1 },
-            { cat: 'Ciencia', q: '¿A qué velocidad viaja la luz?', opts: ['200.000 km/s', '300.000 km/s', '400.000 km/s'], ans: 1 },
-            { cat: 'Ciencia', q: '¿Qué vitamina produce el cuerpo al exponerse al sol?', opts: ['Vitamina A', 'Vitamina C', 'Vitamina D'], ans: 2 },
-            { cat: 'Ciencia', q: '¿Qué elemento es el más abundante en la corteza terrestre?', opts: ['Hierro', 'Oxígeno', 'Silicio'], ans: 1 },
-            { cat: 'Ciencia', q: '¿Cuántos huesos tiene el cuerpo humano adulto?', opts: ['196', '206', '216'], ans: 1 },
-            { cat: 'Ciencia', q: '¿Cuál es el gas más abundante en la atmósfera terrestre?', opts: ['Oxígeno', 'Nitrógeno', 'Dióxido de carbono'], ans: 1 },
-            { cat: 'Ciencia', q: '¿Qué científico formuló la teoría de la relatividad?', opts: ['Newton', 'Einstein', 'Hawking'], ans: 1 },
-            { cat: 'Ciencia', q: '¿Cuántos planetas tiene el Sistema Solar?', opts: ['7', '8', '9'], ans: 1 },
-            // LITERATURA MUNDIAL
-            { cat: 'Literatura', q: '¿Quién escribió "Don Quijote de la Mancha"?', opts: ['Lope de Vega', 'Cervantes', 'Quevedo'], ans: 1 },
-            { cat: 'Literatura', q: '¿Cuál es la obra más famosa de William Shakespeare?', opts: ['Otelo', 'Hamlet', 'Macbeth'], ans: 1 },
-            { cat: 'Literatura', q: '¿Quién escribió "Cien años de soledad"?', opts: ['Cortázar', 'Borges', 'García Márquez'], ans: 2 },
-            { cat: 'Literatura', q: '¿En qué país nació el escritor Franz Kafka?', opts: ['Austria', 'República Checa', 'Alemania'], ans: 1 },
-            { cat: 'Literatura', q: '¿Quién escribió "Orgullo y Prejuicio"?', opts: ['Charlotte Brontë', 'Jane Austen', 'Mary Shelley'], ans: 1 },
-            { cat: 'Literatura', q: '¿Cuál es el nombre del protagonista de "El Principito"?', opts: ['El Principito', 'El Piloto', 'El Zorro'], ans: 0 },
-            { cat: 'Literatura', q: '¿Quién escribió "1984"?', opts: ['Aldous Huxley', 'George Orwell', 'Ray Bradbury'], ans: 1 },
-            { cat: 'Literatura', q: '¿De dónde es el escritor Haruki Murakami?', opts: ['China', 'Corea', 'Japón'], ans: 2 },
-            { cat: 'Literatura', q: '¿Qué novela empieza con "Llamadme Ismael"?', opts: ['La letra escarlata', 'Moby Dick', 'El viejo y el mar'], ans: 1 },
-            { cat: 'Literatura', q: '¿Quién escribió "Los Miserables"?', opts: ['Balzac', 'Flaubert', 'Víctor Hugo'], ans: 2 },
-            // HISTORIA
-            { cat: 'Historia', q: '¿En qué año comenzó la Primera Guerra Mundial?', opts: ['1912', '1914', '1916'], ans: 1 },
-            { cat: 'Historia', q: '¿Quién fue el primer presidente de los Estados Unidos?', opts: ['Abraham Lincoln', 'George Washington', 'Thomas Jefferson'], ans: 1 },
-            { cat: 'Historia', q: '¿En qué año cayó el Muro de Berlín?', opts: ['1987', '1989', '1991'], ans: 1 },
-            { cat: 'Historia', q: '¿Qué civilización construyó el Coliseo Romano?', opts: ['Griega', 'Romana', 'Egipcia'], ans: 1 },
-            { cat: 'Historia', q: '¿Quién lideró la Revolución Cubana?', opts: ['Ernesto Guevara', 'Fidel Castro', 'Raúl Castro'], ans: 1 },
-            // ARTE Y MÚSICA
-            { cat: 'Arte y Música', q: '¿Quién pintó la Mona Lisa?', opts: ['Rafael', 'Miguel Ángel', 'Leonardo da Vinci'], ans: 2 },
-            { cat: 'Arte y Música', q: '¿De qué país era el compositor Ludwig van Beethoven?', opts: ['Austria', 'Alemania', 'Francia'], ans: 1 },
-            { cat: 'Arte y Música', q: '¿Cuántas notas tiene la escala musical?', opts: ['5', '7', '12'], ans: 1 },
-            { cat: 'Arte y Música', q: '¿Quién pintó "La noche estrellada"?', opts: ['Monet', 'Picasso', 'Van Gogh'], ans: 2 },
-            { cat: 'Arte y Música', q: '¿En qué ciudad nació el flamenco?', opts: ['Madrid', 'Sevilla', 'Granada'], ans: 1 },
-            // DEPORTES
-            { cat: 'Deportes', q: '¿En qué país se inventó el fútbol moderno?', opts: ['España', 'Brasil', 'Inglaterra'], ans: 2 },
-            { cat: 'Deportes', q: '¿Cuántos jugadores hay en un equipo de baloncesto?', opts: ['4', '5', '6'], ans: 1 },
-            { cat: 'Deportes', q: '¿Cada cuántos años se celebra la Copa del Mundo de fútbol?', opts: ['2 años', '4 años', '6 años'], ans: 1 },
-            { cat: 'Deportes', q: '¿En qué deporte se usa un "puck"?', opts: ['Béisbol', 'Hockey sobre hielo', 'Polo'], ans: 1 },
-            { cat: 'Deportes', q: '¿Cuántos puntos vale un touchdown en fútbol americano?', opts: ['3', '6', '7'], ans: 1 },
-            // GEOGRAFÍA
-            { cat: 'Geografía', q: '¿Cuál es el desierto más grande del mundo?', opts: ['Sahara', 'Gobi', 'Antártico'], ans: 2 },
-            { cat: 'Geografía', q: '¿Cuántos países tiene América del Sur?', opts: ['10', '12', '14'], ans: 1 },
-            { cat: 'Geografía', q: '¿Cuál es el lago más profundo del mundo?', opts: ['Titicaca', 'Baikal', 'Superior'], ans: 1 },
-            { cat: 'Geografía', q: '¿En qué continente está Marruecos?', opts: ['Asia', 'América', 'África'], ans: 2 },
-            { cat: 'Geografía', q: '¿Cuál es el país más pequeño del mundo?', opts: ['Mónaco', 'Vaticano', 'San Marino'], ans: 1 },
-            // TECNOLOGÍA
-            { cat: 'Tecnología', q: '¿Quién fundó Apple?', opts: ['Bill Gates', 'Steve Jobs', 'Mark Zuckerberg'], ans: 1 },
-            { cat: 'Tecnología', q: '¿En qué año se lanzó el primer iPhone?', opts: ['2005', '2007', '2009'], ans: 1 },
-            { cat: 'Tecnología', q: '¿Qué significa "HTML"?', opts: ['HyperText Markup Language', 'High Transfer Markup Logic', 'Hyperlink Text Mode Link'], ans: 0 },
-            { cat: 'Tecnología', q: '¿Cuál es la red social con más usuarios activos en el mundo?', opts: ['Instagram', 'Facebook', 'TikTok'], ans: 1 },
-            { cat: 'Tecnología', q: '¿Qué empresa creó Android?', opts: ['Apple', 'Samsung', 'Google'], ans: 2 },
-        ];
+            // ── NIVEL 1: FÁCIL ── (preguntas 1-15)
+            // CULTURA GENERAL FÁCIL
+            { cat: 'Cultura General', q: '¿Cuántos continentes tiene la Tierra?', opts: ['5', '6', '7'], ans: 2, dif: 1 },
+            { cat: 'Cultura General', q: '¿Cuál es el océano más grande del planeta?', opts: ['Atlántico', 'Índico', 'Pacífico'], ans: 2, dif: 1 },
+            { cat: 'Cultura General', q: '¿Qué moneda usa Japón?', opts: ['Won', 'Yen', 'Yuan'], ans: 1, dif: 1 },
+            { cat: 'Cultura General', q: '¿Cuántas estrellas tiene la bandera de los EE.UU.?', opts: ['48', '50', '52'], ans: 1, dif: 1 },
+            { cat: 'Ciencia', q: '¿Qué planeta es conocido como el planeta rojo?', opts: ['Venus', 'Marte', 'Júpiter'], ans: 1, dif: 1 },
+            { cat: 'Ciencia', q: '¿Cuál es el símbolo químico del agua?', opts: ['HO', 'H2O', 'OH2'], ans: 1, dif: 1 },
+            { cat: 'Ciencia', q: '¿Cuántos planetas tiene el Sistema Solar?', opts: ['7', '8', '9'], ans: 1, dif: 1 },
+            { cat: 'Deportes', q: '¿Cuántos jugadores hay en un equipo de fútbol?', opts: ['9', '11', '13'], ans: 1, dif: 1 },
+            { cat: 'Deportes', q: '¿Cada cuántos años se celebra la Copa del Mundo?', opts: ['2 años', '4 años', '6 años'], ans: 1, dif: 1 },
+            { cat: 'Arte', q: '¿Quién pintó la Mona Lisa?', opts: ['Rafael', 'Miguel Ángel', 'Leonardo da Vinci'], ans: 2, dif: 1 },
+            { cat: 'Arte', q: '¿Quién pintó "La noche estrellada"?', opts: ['Monet', 'Picasso', 'Van Gogh'], ans: 2, dif: 1 },
+            { cat: 'Tecnología', q: '¿Qué empresa creó Android?', opts: ['Apple', 'Samsung', 'Google'], ans: 2, dif: 1 },
+            { cat: 'Tecnología', q: '¿En qué año se lanzó el primer iPhone?', opts: ['2005', '2007', '2009'], ans: 1, dif: 1 },
+            { cat: 'Geografía', q: '¿Cuál es la capital de Francia?', opts: ['Lyon', 'París', 'Marsella'], ans: 1, dif: 1 },
+            { cat: 'Historia', q: '¿Quién fue el primer presidente de los EE.UU.?', opts: ['Abraham Lincoln', 'George Washington', 'Thomas Jefferson'], ans: 1, dif: 1 },
+
+            // ── NIVEL 2: MEDIO ── (preguntas 16-35)
+            { cat: 'Cultura General', q: '¿Cuál es el país más grande del mundo por superficie?', opts: ['China', 'Rusia', 'Canadá'], ans: 1, dif: 2 },
+            { cat: 'Cultura General', q: '¿En qué año llegó el hombre a la Luna?', opts: ['1965', '1969', '1972'], ans: 1, dif: 2 },
+            { cat: 'Cultura General', q: '¿Cuál es la capital de Australia?', opts: ['Sídney', 'Melbourne', 'Canberra'], ans: 2, dif: 2 },
+            { cat: 'Cultura General', q: '¿Qué idioma tiene más hablantes nativos?', opts: ['Inglés', 'Mandarín', 'Español'], ans: 1, dif: 2 },
+            { cat: 'Ciencia', q: '¿Cuántos cromosomas tiene una célula humana normal?', opts: ['23', '46', '48'], ans: 1, dif: 2 },
+            { cat: 'Ciencia', q: '¿A qué velocidad viaja la luz?', opts: ['200.000 km/s', '300.000 km/s', '400.000 km/s'], ans: 1, dif: 2 },
+            { cat: 'Ciencia', q: '¿Cuántos huesos tiene el cuerpo humano adulto?', opts: ['196', '206', '216'], ans: 1, dif: 2 },
+            { cat: 'Ciencia', q: '¿Qué vitamina produce el cuerpo al exponerse al sol?', opts: ['Vitamina A', 'Vitamina C', 'Vitamina D'], ans: 2, dif: 2 },
+            { cat: 'Literatura', q: '¿Quién escribió "Don Quijote de la Mancha"?', opts: ['Lope de Vega', 'Cervantes', 'Quevedo'], ans: 1, dif: 2 },
+            { cat: 'Literatura', q: '¿Quién escribió "Cien años de soledad"?', opts: ['Cortázar', 'Borges', 'García Márquez'], ans: 2, dif: 2 },
+            { cat: 'Literatura', q: '¿Quién escribió "1984"?', opts: ['Aldous Huxley', 'George Orwell', 'Ray Bradbury'], ans: 1, dif: 2 },
+            { cat: 'Historia', q: '¿En qué año comenzó la Primera Guerra Mundial?', opts: ['1912', '1914', '1916'], ans: 1, dif: 2 },
+            { cat: 'Historia', q: '¿En qué año cayó el Muro de Berlín?', opts: ['1987', '1989', '1991'], ans: 1, dif: 2 },
+            { cat: 'Geografía', q: '¿Cuál es el desierto más grande del mundo?', opts: ['Sahara', 'Gobi', 'Antártico'], ans: 2, dif: 2 },
+            { cat: 'Geografía', q: '¿Cuál es el lago más profundo del mundo?', opts: ['Titicaca', 'Baikal', 'Superior'], ans: 1, dif: 2 },
+            { cat: 'Deportes', q: '¿En qué país se inventó el fútbol moderno?', opts: ['España', 'Brasil', 'Inglaterra'], ans: 2, dif: 2 },
+            { cat: 'Deportes', q: '¿Cuántos puntos vale un touchdown en fútbol americano?', opts: ['3', '6', '7'], ans: 1, dif: 2 },
+            { cat: 'Tecnología', q: '¿Qué significa HTML?', opts: ['HyperText Markup Language', 'High Transfer Markup Logic', 'Hyperlink Text Mode Link'], ans: 0, dif: 2 },
+            { cat: 'Geografía', q: '¿Cuál es el río más largo del mundo?', opts: ['Amazonas', 'Nilo', 'Yangtsé'], ans: 1, dif: 2 },
+            { cat: 'Arte', q: '¿De qué país era Beethoven?', opts: ['Austria', 'Alemania', 'Francia'], ans: 1, dif: 2 },
+
+            // ── NIVEL 3: DIFÍCIL ── (preguntas 36-50)
+            { cat: 'Ciencia', q: '¿Qué elemento es el más abundante en la corteza terrestre?', opts: ['Hierro', 'Oxígeno', 'Silicio'], ans: 1, dif: 3 },
+            { cat: 'Ciencia', q: '¿Cuál es el gas más abundante en la atmósfera terrestre?', opts: ['Oxígeno', 'Nitrógeno', 'Dióxido de carbono'], ans: 1, dif: 3 },
+            { cat: 'Ciencia', q: '¿Cuál es el número atómico del carbono?', opts: ['4', '6', '8'], ans: 1, dif: 3 },
+            { cat: 'Historia', q: '¿Qué civilización construyó Machu Picchu?', opts: ['Azteca', 'Maya', 'Inca'], ans: 2, dif: 3 },
+            { cat: 'Historia', q: '¿En qué año Cristóbal Colón llegó a América?', opts: ['1488', '1492', '1498'], ans: 1, dif: 3 },
+            { cat: 'Literatura', q: '¿Qué novela empieza con "Llamadme Ismael"?', opts: ['La letra escarlata', 'Moby Dick', 'El viejo y el mar'], ans: 1, dif: 3 },
+            { cat: 'Literatura', q: '¿De dónde es Haruki Murakami?', opts: ['China', 'Corea', 'Japón'], ans: 2, dif: 3 },
+            { cat: 'Geografía', q: '¿Cuál es el país más pequeño del mundo?', opts: ['Mónaco', 'Vaticano', 'San Marino'], ans: 1, dif: 3 },
+            { cat: 'Tecnología', q: '¿Cuántos bits tiene un byte?', opts: ['4', '8', '16'], ans: 1, dif: 3 },
+            { cat: 'Tecnología', q: '¿Qué protocolo se usa para enviar correos electrónicos?', opts: ['HTTP', 'FTP', 'SMTP'], ans: 2, dif: 3 },
+            { cat: 'Ciencia', q: '¿Qué científico formuló la teoría de la relatividad?', opts: ['Newton', 'Einstein', 'Hawking'], ans: 1, dif: 3 },
+            { cat: 'Cultura General', q: '¿Cuántos países tiene América del Sur?', opts: ['10', '12', '14'], ans: 1, dif: 3 },
+            { cat: 'Arte', q: '¿En qué ciudad nació el flamenco?', opts: ['Madrid', 'Sevilla', 'Granada'], ans: 1, dif: 3 },
+            { cat: 'Historia', q: '¿Quién lideró la Revolución Cubana?', opts: ['Ernesto Guevara', 'Fidel Castro', 'Raúl Castro'], ans: 1, dif: 3 },
+            { cat: 'Deportes', q: '¿En qué deporte se usa un "puck"?', opts: ['Béisbol', 'Hockey sobre hielo', 'Polo'], ans: 1, dif: 3 },
+
+            // ── NIVEL 4: MUY DIFÍCIL ── (preguntas 51-60)
+            { cat: 'Ciencia', q: '¿Cuántos elementos tiene la tabla periódica actualmente?', opts: ['108', '118', '128'], ans: 1, dif: 4 },
+            { cat: 'Historia', q: '¿En qué año se firmó la Magna Carta?', opts: ['1066', '1215', '1348'], ans: 1, dif: 4 },
+            { cat: 'Geografía', q: '¿Cuál es el punto más profundo de los océanos?', opts: ['Fosa de Puerto Rico', 'Fosa de las Marianas', 'Fosa de Tonga'], ans: 1, dif: 4 },
+            { cat: 'Tecnología', q: '¿En qué año se creó la World Wide Web (WWW)?', opts: ['1983', '1989', '1995'], ans: 1, dif: 4 },
+            { cat: 'Arte', q: '¿Cuántas sinfonías compuso Beethoven?', opts: ['7', '9', '12'], ans: 1, dif: 4 },
+
+            // ── BÍBLICO ── (variado en dificultad)
+            { cat: 'Bíblico', q: '¿Cuántos libros tiene la Biblia completa?', opts: ['60', '66', '73'], ans: 1, dif: 1 },
+            { cat: 'Bíblico', q: '¿Cuántos apóstoles eligió Jesús?', opts: ['10', '12', '14'], ans: 1, dif: 1 },
+            { cat: 'Bíblico', q: '¿Quién construyó el arca según la Biblia?', opts: ['Moisés', 'Noé', 'Abraham'], ans: 1, dif: 1 },
+            { cat: 'Bíblico', q: '¿Con qué alimentó Dios al pueblo de Israel en el desierto?', opts: ['Pan de cebada', 'Maná', 'Higos secos'], ans: 1, dif: 2 },
+            { cat: 'Bíblico', q: '¿Cuál fue la primera señal o milagro de Jesús según el Evangelio de Juan?', opts: ['Caminar sobre el agua', 'Convertir agua en vino', 'Resucitar a Lázaro'], ans: 1, dif: 2 },
+            { cat: 'Bíblico', q: '¿En qué ciudad nació Jesús?', opts: ['Nazaret', 'Belén', 'Jerusalén'], ans: 1, dif: 1 },
+            { cat: 'Bíblico', q: '¿Cuántos días estuvo Jonás en el vientre del gran pez?', opts: ['1 día', '3 días', '7 días'], ans: 1, dif: 2 },
+            { cat: 'Bíblico', q: '¿Quién escribió la mayoría de las cartas del Nuevo Testamento?', opts: ['Pedro', 'Juan', 'Pablo'], ans: 2, dif: 2 },
+            { cat: 'Bíblico', q: '¿Qué libro de la Biblia contiene los Diez Mandamientos por primera vez?', opts: ['Génesis', 'Éxodo', 'Levítico'], ans: 1, dif: 3 },
+            { cat: 'Bíblico', q: '¿Cuántos años vivió Matusalén según la Biblia?', opts: ['700', '869', '969'], ans: 2, dif: 4 }
+        ]
 
         let quizGameState = {
             preguntas: [],
@@ -8738,40 +8852,145 @@ window.cerrarJuegoWindow = function() {
             return a;
         }
 
+        // ── QUIZ en tiempo real con Firebase ──
+        // Roles: el EMISOR (quien invitó) es el "host" que publica las preguntas.
+        // AMBOS jugadores leen las preguntas de Firebase y compiten respondiendo primero.
+
+        let _quizRef_listener = null; // listener activo de quiz en Firebase
+        let _quizIsHost = false;      // true si soy el que publica las preguntas
+
+        function _quizDbRef() { return ref(db, `gameData/${salaActualKey}/quiz`); }
+
         function arrancarQuiz() {
             _tttAttachSignalListener(); // escuchar señales (revancha, salida) durante Quiz
             const hayPremio = !!(premiosJuego.quiz.mi || premiosJuego.quiz.oponente);
             const numPregs = hayPremio ? 5 : 10;
-            quizGameState.preguntas = mezclarArray(quizBancoPeguntas).slice(0, numPregs);
+
             quizGameState.preguntaActual = 0;
             quizGameState.modoRondas = hayPremio;
             quizGameState.puntajes = { mi: 0, oponente: 0 };
             quizGameState.historicoTotal = { mi: 0, oponente: 0 };
+            quizGameState.respondioAlguien = false;
+            quizGameState.buzzeadoPor = null;
+            quizGameState.esperandoRespuesta = false;
+            if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
 
             document.getElementById('quiz-lobby').style.display = 'none';
             document.getElementById('quiz-question-view').classList.add('active');
             document.getElementById('quizScoreboard').classList.add('visible');
 
-            // Indicador de ronda solo con premio
             const roundEl = document.getElementById('quiz-round-indicator');
-            if (hayPremio) {
-                roundEl.classList.add('visible');
-            } else {
-                roundEl.classList.remove('visible');
-            }
+            if (hayPremio) { roundEl.classList.add('visible'); } else { roundEl.classList.remove('visible'); }
 
             actualizarScoreboardQuiz();
-            mostrarPreguntaQuiz();
+
+            // Modo bot: jugar localmente sin Firebase
+            if (window._modoBot) {
+                const porNivelBot = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
+                quizGameState.preguntas = [].concat(...porNivelBot).slice(0, numPregs);
+                mostrarPreguntaQuiz();
+                return;
+            }
+
+            // Determinar si soy el host: el que tiene la string mayor (tiebreak determinista)
+            _quizIsHost = usuarioActual > (oponenteActual || '');
+
+            if (_quizIsHost) {
+                // Host: selecciona preguntas, las publica en Firebase y empieza
+                // Ordenar por dificultad creciente, mezclando dentro de cada nivel
+            const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
+            const todasOrdenadas = [].concat(...porNivel);
+            const pregsSeleccionadas = todasOrdenadas.slice(0, numPregs);
+                quizGameState.preguntas = pregsSeleccionadas;
+                // Publicar en Firebase (sin la respuesta correcta en el campo visible)
+                const preguntasParaFirebase = pregsSeleccionadas.map((p, idx) => ({
+                    idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total: numPregs
+                }));
+                set(_quizDbRef(), {
+                    preguntas: preguntasParaFirebase,
+                    preguntaActual: 0,
+                    puntajes: { [usuarioActual]: 0, [oponenteActual || '__op']: 0 },
+                    respuestas: {}
+                }).then(() => {
+                    _quizAdjuntarListener();
+                    mostrarPreguntaQuiz();
+                }).catch(e => { console.error('[QUIZ] Error publicando preguntas:', e); mostrarPreguntaQuiz(); });
+            } else {
+                // Guest: esperar a que el host publique las preguntas
+                quizGameState.preguntas = [];
+                document.getElementById('quiz-lobby').style.display = 'none';
+                document.getElementById('quiz-question-view').classList.add('active');
+                document.getElementById('quizScoreboard').classList.add('visible');
+                document.getElementById('quizQuestionText').textContent = '⏳ Esperando preguntas...';
+                _quizAdjuntarListener();
+            }
+        }
+
+        function _quizAdjuntarListener() {
+            if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
+            if (!salaActualKey) return;
+
+            _quizRef_listener = onValue(_quizDbRef(), (snap) => {
+                const data = snap.val();
+                if (!data || !data.preguntas) return;
+
+                // Sincronizar preguntas locales si somos el guest
+                const esPrimeraVez = quizGameState.preguntas.length === 0;
+                if (!_quizIsHost || esPrimeraVez) {
+                    quizGameState.preguntas = data.preguntas;
+                }
+
+                // Sincronizar índice de pregunta actual
+                const newIdx = data.preguntaActual || 0;
+
+                // Guest recibe preguntas por primera vez -> mostrar pregunta
+                if (!_quizIsHost && esPrimeraVez && quizGameState.preguntas.length > 0) {
+                    quizGameState.preguntaActual = newIdx;
+                    mostrarPreguntaQuiz();
+                }
+
+                // Sincronizar puntajes desde Firebase
+                const puntajesDb = data.puntajes || {};
+                const miPuntoDb = puntajesDb[usuarioActual] || 0;
+                const opKey = oponenteActual || Object.keys(puntajesDb).find(k => k !== usuarioActual) || '';
+                const opPuntoDb = puntajesDb[opKey] || 0;
+
+                if (miPuntoDb !== quizGameState.puntajes.mi || opPuntoDb !== quizGameState.puntajes.oponente) {
+                    quizGameState.puntajes.mi = miPuntoDb;
+                    quizGameState.puntajes.oponente = opPuntoDb;
+                    actualizarScoreboardQuiz();
+                }
+
+                // Procesar respuesta del oponente si llegó
+                const respuestas = data.respuestas || {};
+                const opResp = respuestas[opKey];
+                if (opResp && opResp.pregIdx === newIdx && !quizGameState.respondioAlguien) {
+                    // El oponente respondió primero (y yo no había respondido)
+                    quizGameState.respondioAlguien = true;
+                    quizGameState.buzzeadoPor = 'oponente';
+                    _mostrarRespuestaOponente(opResp.optIdx);
+                }
+
+                // Avanzar a nueva pregunta si cambió el índice
+                if (newIdx > quizGameState.preguntaActual && newIdx < quizGameState.preguntas.length) {
+                    quizGameState.preguntaActual = newIdx;
+                    setTimeout(() => mostrarPreguntaQuiz(), 300);
+                } else if (newIdx >= quizGameState.preguntas.length && data.finalizado) {
+                    // Juego terminado por Firebase
+                    if (!quizGameState._yaFinalizo) {
+                        quizGameState._yaFinalizo = true;
+                        mostrarGanadorFinalQuiz();
+                    }
+                }
+            });
         }
 
         function actualizarScoreboardQuiz() {
             const yo = capitalizarNombre(usuarioActual) || 'Tú';
             document.getElementById('quizSbMyName').textContent = yo;
-            document.getElementById('quizSbOtherName').textContent = nombreOponente();
+            document.getElementById('quizSbOtherName').textContent = window._modoBot ? '🤖 Sistema' : nombreOponente();
             document.getElementById('quizSbMyScore').textContent = quizGameState.puntajes.mi;
             document.getElementById('quizSbOtherScore').textContent = quizGameState.puntajes.oponente;
-
-            // Nombres en la vista de pregunta
             document.getElementById('quizP1Name').textContent = yo;
             document.getElementById('quizP2Name').textContent = nombreOponente();
         }
@@ -8779,11 +8998,13 @@ window.cerrarJuegoWindow = function() {
         function mostrarPreguntaQuiz() {
             const idx = quizGameState.preguntaActual;
             const total = quizGameState.preguntas.length;
+            if (idx >= total) return;
             const p = quizGameState.preguntas[idx];
 
             quizGameState.respondioAlguien = false;
             quizGameState.buzzeadoPor = null;
             quizGameState.esperandoRespuesta = false;
+            quizGameState._yaFinalizo = quizGameState._yaFinalizo || false;
 
             document.getElementById('quizCategoryBadge').textContent = p.cat;
             document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1} de ${total}`;
@@ -8792,20 +9013,17 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('quizBuzzStatus').textContent = '';
             document.getElementById('quizResultBanner').className = 'quiz-result-banner';
             document.getElementById('quizResultBanner').textContent = '';
-            // Limpiar countdown anterior
             if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
             const cdBox = document.getElementById('quizCountdownBox');
             if (cdBox) cdBox.classList.remove('visible');
             const exitBtnQ = document.getElementById('quizExitBtn');
             if (exitBtnQ) exitBtnQ.style.display = 'none';
 
-            // Reset status jugadores
             document.getElementById('quizP1Status').textContent = '🟡 Esperando...';
             document.getElementById('quizP2Status').textContent = '🟡 Esperando...';
             document.getElementById('quizStatusP1').classList.remove('buzzed');
             document.getElementById('quizStatusP2').classList.remove('buzzed');
 
-            // Renderizar opciones
             const grid = document.getElementById('quizOptionsGrid');
             grid.innerHTML = '';
             const letras = ['A', 'B', 'C'];
@@ -8818,76 +9036,52 @@ window.cerrarJuegoWindow = function() {
                 grid.appendChild(btn);
             });
 
-            // Simular que el oponente puede "pulsar" primero a veces (20%)
-            quizGameState._simTimeout = null;
-            if (Math.random() < 0.2) {
-                const simDelay = 500 + Math.random() * 2000;
-                quizGameState._simTimeout = setTimeout(() => {
-                    if (!quizGameState.respondioAlguien) {
-                        oponenteBuzzQuiz();
-                    }
-                }, simDelay);
+            // Si estamos en modo bot, programar respuesta automática del bot
+            if (window._modoBot && typeof window._botRespondioQuiz === 'function') {
+                const botDelay = 1500 + Math.random() * 2500;
+                setTimeout(() => { if (window._modoBot) window._botRespondioQuiz(); }, botDelay);
             }
         }
 
         function seleccionarOpcionQuiz(optIdx, btnEl) {
-            // Si ya respondió alguien, bloquear
             if (quizGameState.respondioAlguien) return;
-            // Cancelar simulación del oponente
-            if (quizGameState._simTimeout) { clearTimeout(quizGameState._simTimeout); quizGameState._simTimeout = null; }
-
             quizGameState.respondioAlguien = true;
             quizGameState.buzzeadoPor = 'mi';
             quizGameState.esperandoRespuesta = true;
 
-            // Bloquear al oponente (simular)
             bloquearBotonesQuiz();
 
-            // Indicar que el jugador local buzzó
             document.getElementById('quizP1Status').textContent = '⚡ ¡PULSÓ!';
             document.getElementById('quizStatusP1').classList.add('buzzed');
             document.getElementById('quizBuzzStatus').textContent = `⚡ ${capitalizarNombre(usuarioActual) || 'Tú'} respondió primero`;
 
-            // Resaltar la opción elegida brevemente y revelar resultado
-            setTimeout(() => {
-                resolverRespuestaQuiz(optIdx, 'mi');
-            }, 400);
+            // Publicar mi respuesta en Firebase para que el oponente la vea
+            const idx = quizGameState.preguntaActual;
+            if (!window._modoBot && salaActualKey && oponenteActual) {
+                set(ref(db, `gameData/${salaActualKey}/quiz/respuestas/${usuarioActual}`), {
+                    pregIdx: idx, optIdx, ts: Date.now()
+                }).catch(e => console.warn('[QUIZ] Error enviando respuesta:', e));
+            }
+
+            setTimeout(() => { resolverRespuestaQuiz(optIdx, 'mi'); }, 400);
         }
 
-        function oponenteBuzzQuiz() {
-            if (quizGameState.respondioAlguien) return;
-            quizGameState.respondioAlguien = true;
-            quizGameState.buzzeadoPor = 'oponente';
-
+        function _mostrarRespuestaOponente(optIdx) {
             bloquearBotonesQuiz();
-
             document.getElementById('quizP2Status').textContent = '⚡ ¡PULSÓ!';
             document.getElementById('quizStatusP2').classList.add('buzzed');
             document.getElementById('quizBuzzStatus').textContent = '⚡ Oponente respondió primero';
-
-            // Simular elección del oponente
-            const p = quizGameState.preguntas[quizGameState.preguntaActual];
-            const numOpts = p.opts.length;
-            // Oponente tiene 60% de acertar
-            let opChoice;
-            if (Math.random() < 0.6) {
-                opChoice = p.ans;
-            } else {
-                const wrong = [...Array(numOpts).keys()].filter(i => i !== p.ans);
-                opChoice = wrong[Math.floor(Math.random() * wrong.length)];
-            }
-
-            setTimeout(() => {
-                resolverRespuestaQuiz(opChoice, 'oponente');
-            }, 800);
+            setTimeout(() => { resolverRespuestaQuiz(optIdx, 'oponente'); }, 400);
         }
+
+        // Función vacía para compatibilidad (ya no se usa simulación)
+        function oponenteBuzzQuiz() {}
 
         function resolverRespuestaQuiz(elegidoIdx, quien) {
             const p = quizGameState.preguntas[quizGameState.preguntaActual];
             const esCorrecta = elegidoIdx === p.ans;
             const buttons = document.querySelectorAll('#quizOptionsGrid .quiz-option-btn');
 
-            // Revelar correcta e incorrecta
             buttons.forEach((btn, i) => {
                 btn.disabled = true;
                 if (i === p.ans) btn.classList.add('reveal-correct');
@@ -8896,148 +9090,96 @@ window.cerrarJuegoWindow = function() {
             });
 
             const banner = document.getElementById('quizResultBanner');
-            // +1 punto por respuesta correcta
             if (esCorrecta) {
-                quizGameState.puntajes[quien] += 1;
-                actualizarScoreboardQuiz();
                 if (quien === 'mi') {
-                    banner.textContent = '✅ ¡Correcto! +1 punto para ti 🎉';
-                    banner.className = 'quiz-result-banner correct-banner show';
-                    document.getElementById('quizP1Status').textContent = '✅ +1 pto';
+                    quizGameState.puntajes.mi++;
+                    banner.textContent = '✅ ¡Correcto! +1 punto';
+                    banner.className = 'quiz-result-banner show correct-banner';
+                    if (!window._modoBot && salaActualKey) {
+                        set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${usuarioActual}`), quizGameState.puntajes.mi).catch(() => {});
+                    }
                 } else {
-                    banner.textContent = '✅ Oponente respondió correcto. +1 punto para él.';
-                    banner.className = 'quiz-result-banner wrong-banner show';
-                    document.getElementById('quizP2Status').textContent = '✅ +1 pto';
+                    quizGameState.puntajes.oponente++;
+                    banner.textContent = `❌ El oponente acertó primero. +1 para ${nombreOponente()}`;
+                    banner.className = 'quiz-result-banner show wrong-banner';
+                    if (!window._modoBot && salaActualKey && oponenteActual) {
+                        set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${oponenteActual}`), quizGameState.puntajes.oponente).catch(() => {});
+                    }
                 }
             } else {
-                if (quien === 'mi') {
-                    banner.textContent = '❌ Incorrecto. Sin puntos para ti.';
-                    banner.className = 'quiz-result-banner wrong-banner show';
-                    document.getElementById('quizP1Status').textContent = '❌ Falló';
-                } else {
-                    banner.textContent = '❌ Oponente falló. Nadie suma puntos.';
-                    banner.className = 'quiz-result-banner no-answer-banner show';
-                    document.getElementById('quizP2Status').textContent = '❌ Falló';
-                }
+                banner.textContent = quien === 'mi' ? '❌ Incorrecto. Sin puntos.' : '❌ Oponente falló. Sin puntos.';
+                banner.className = 'quiz-result-banner show wrong-banner';
             }
 
-            // Iniciar cuenta regresiva de 5 segundos (visible para ambos)
+            actualizarScoreboardQuiz();
             iniciarCountdownQuiz();
         }
 
         function bloquearBotonesQuiz() {
-            document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(btn => {
-                btn.disabled = true;
-            });
+            document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(b => b.disabled = true);
         }
 
         function iniciarCountdownQuiz() {
-            // Limpiar cualquier countdown previo
-            if (quizGameState._cdInterval) clearInterval(quizGameState._cdInterval);
-            const box = document.getElementById('quizCountdownBox');
-            const numEl = document.getElementById('quizCountdownNum');
-            const exitBtn = document.getElementById('quizExitBtn');
-            box.classList.add('visible');
-            exitBtn.style.display = 'inline-block';
-            let secs = 5;
-            numEl.textContent = secs;
+            let secs = 3;
+            const cdBox = document.getElementById('quizCountdownBox');
+            const cdNum = document.getElementById('quizCountdownNum');
+            if (cdBox) { cdBox.classList.add('visible'); if (cdNum) cdNum.textContent = secs; }
             quizGameState._cdInterval = setInterval(() => {
                 secs--;
-                numEl.textContent = secs;
+                if (cdNum) cdNum.textContent = secs;
                 if (secs <= 0) {
                     clearInterval(quizGameState._cdInterval);
                     quizGameState._cdInterval = null;
-                    box.classList.remove('visible');
+                    if (cdBox) cdBox.classList.remove('visible');
                     avanzarPreguntaQuiz();
                 }
             }, 1000);
         }
 
         function avanzarPreguntaQuiz() {
-            quizGameState.preguntaActual++;
-            if (quizGameState.preguntaActual >= quizGameState.preguntas.length) {
-                mostrarGanadorFinalQuiz();
-            } else {
-                mostrarPreguntaQuiz();
+            const siguiente = quizGameState.preguntaActual + 1;
+            if (siguiente >= quizGameState.preguntas.length) {
+                if (!window._modoBot && _quizIsHost && salaActualKey) {
+                    set(ref(db, `gameData/${salaActualKey}/quiz/finalizado`), true).catch(() => {});
+                    set(ref(db, `gameData/${salaActualKey}/quiz/preguntaActual`), siguiente).catch(() => {});
+                }
+                if (!quizGameState._yaFinalizo) {
+                    quizGameState._yaFinalizo = true;
+                    mostrarGanadorFinalQuiz();
+                }
+                return;
             }
+            quizGameState.preguntaActual = siguiente;
+            if (!window._modoBot && _quizIsHost && salaActualKey) {
+                set(ref(db, `gameData/${salaActualKey}/quiz/preguntaActual`), siguiente).catch(() => {});
+                set(ref(db, `gameData/${salaActualKey}/quiz/respuestas`), {}).catch(() => {});
+            }
+            mostrarPreguntaQuiz();
         }
 
         function mostrarGanadorFinalQuiz() {
-            const miScore = quizGameState.puntajes.mi;
-            const opScore = quizGameState.puntajes.oponente;
-            const yo = capitalizarNombre(usuarioActual) || 'Tú';
-            const op = nombreOponente();
+            if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
+            const mi = quizGameState.puntajes.mi;
+            const op = quizGameState.puntajes.oponente;
+            const winEl = document.getElementById('modal-win');
+            const titleEl = document.getElementById('win-title');
+            const msgEl = document.getElementById('win-msg');
+            const exitBtnQ = document.getElementById('quizExitBtn');
+            if (exitBtnQ) exitBtnQ.style.display = '';
 
-            const msgPartida = `Esta partida: ${yo} ${miScore} — ${op} ${opScore}`;
+            quizGameState.historicoTotal.mi = (quizGameState.historicoTotal.mi || 0) + mi;
+            quizGameState.historicoTotal.oponente = (quizGameState.historicoTotal.oponente || 0) + op;
 
-            if (miScore === opScore) {
-                document.getElementById('win-trophy').textContent = '🤝';
-                document.getElementById('win-title').textContent = '¡Empate en el Quiz!';
-                document.getElementById('win-message').innerHTML = `${msgPartida}`;
-                document.getElementById('win-prize-box').style.display = 'none';
-            } else if (miScore > opScore) {
-                document.getElementById('win-trophy').textContent = '🏆';
-                document.getElementById('win-title').textContent = `¡Ganaste el Quiz, ${yo}!`;
-                document.getElementById('win-message').innerHTML = msgPartida;
-                const miPremio = premiosJuego.quiz.mi;
-                if (miPremio) {
-                    document.getElementById('win-prize-box').style.display = 'block';
-                    document.getElementById('win-prize-label').textContent = 'TU PREMIO';
-                    document.getElementById('win-prize-value').textContent = miPremio;
-                    document.getElementById('win-loser-note').style.display = 'block';
-                    document.getElementById('win-loser-note').textContent = `${op} te debe: ${miPremio}`;
-                } else {
-                    document.getElementById('win-prize-box').style.display = 'none';
-                }
-                lanzarConfetti();
-            } else {
-                document.getElementById('win-trophy').textContent = '😅';
-                document.getElementById('win-title').textContent = `Ganó ${op} el Quiz`;
-                document.getElementById('win-message').innerHTML = msgPartida;
-                const opPremio = premiosJuego.quiz.oponente;
-                if (opPremio) {
-                    document.getElementById('win-prize-box').style.display = 'block';
-                    document.getElementById('win-prize-label').textContent = 'TIENES QUE DAR';
-                    document.getElementById('win-prize-value').textContent = opPremio;
-                    document.getElementById('win-loser-note').style.display = 'block';
-                    document.getElementById('win-loser-note').textContent = `Le debes ${opPremio} a ${op}`;
-                } else {
-                    document.getElementById('win-prize-box').style.display = 'none';
-                }
-                lanzarConfetti();
-            }
+            let titulo, msg;
+            if (mi > op) { titulo = '🏆 ¡Ganaste!'; msg = `${mi} vs ${op} puntos`; }
+            else if (op > mi) { titulo = '😔 Perdiste'; msg = `${op} vs ${mi} puntos`; }
+            else { titulo = '🤝 ¡Empate!'; msg = `${mi} vs ${op} puntos`; }
 
-            const hayPremio = !!(premiosJuego.quiz.mi || premiosJuego.quiz.oponente);
-            const btnPlay = document.getElementById('btn-play-again-win');
-            if (hayPremio) {
-                btnPlay.style.display = '';
-                btnPlay.textContent = '🔄 Revancha';
-                btnPlay.onclick = () => {
-                    document.getElementById('modal-win').classList.remove('active');
-                    const miTs = Date.now();
-                    window._quizMiRematchTs = miTs;
-                    _tttAttachSignalListener(); // asegurar listener activo
-                    _tttSendSignal('quiz_rematch_request', { ts: miTs });
-                    _showNotify('⏳', 'Esperando respuesta...', `Solicitaste revancha. Esperando que ${capitalizarNombre(oponenteActual || 'el otro jugador')} acepte.`,
-                        [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
-                            _hideNotify();
-                            _tttClearSignal();
-                            _quizResetCompleto();
-                            salirAlMenuJuegos();
-                        }}]
-                    );
-                };
-            } else {
-                btnPlay.style.display = 'none';
-            }
-
-            const btnExit = document.querySelector('#modal-win .btn-exit');
-            if (btnExit) btnExit.onclick = cerrarJuegoWindow;
-
-            _prepararModalWinSalir(); document.getElementById('modal-win').classList.add('active');
+            if (titleEl) titleEl.textContent = titulo;
+            if (msgEl) msgEl.textContent = msg;
+            if (winEl) winEl.classList.add('active');
+            if (mi > op) lanzarConfetti();
         }
-
-        // Hook confirmarPremio para quiz
 
         function _quizResetCompleto() {
             premiosJuego.quiz.mi = null;
@@ -9045,10 +9187,11 @@ window.cerrarJuegoWindow = function() {
             quizGameState.puntajes = { mi: 0, oponente: 0 };
             quizGameState.preguntaActual = 0;
             quizGameState.historicoTotal = {};
+            quizGameState._yaFinalizo = false;
+            if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
         }
 
         function _doRevanchaQuizReal() {
-            // Revancha efectiva del Quiz: mismos premios, nuevas preguntas
             _hideNotify();
             document.getElementById('modal-win').classList.remove('active');
             document.getElementById('quiz-lobby').style.display = 'none';
@@ -9056,9 +9199,15 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('quiz-question-view').classList.add('active');
             quizGameState.preguntaActual = 0;
             quizGameState.puntajes = { mi: 0, oponente: 0 };
-            quizGameState.preguntas = mezclarArray(quizBancoPeguntas).slice(0, 5);
+            quizGameState._yaFinalizo = false;
+            // Limpiar nodo de Firebase para nueva partida
+            if (salaActualKey) { remove(_quizDbRef()).catch(() => {}); }
+            // Re-seleccionar preguntas del banco
+            const numPregs = quizGameState.modoRondas ? 5 : 10;
+            const porNivelRev = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
+            quizGameState.preguntas = [].concat(...porNivelRev).slice(0, numPregs);
             actualizarScoreboardQuiz();
-            mostrarPreguntaQuiz();
+            arrancarQuiz();
         }
 
 
@@ -9422,7 +9571,7 @@ window.cerrarJuegoWindow = function() {
 
         // Obtener micrófono
         try {
-            _localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
         } catch(e) {
             showToast('❌ No se pudo acceder al micrófono');
             document.getElementById('calling-overlay').classList.remove('active');
@@ -9497,7 +9646,7 @@ window.cerrarJuegoWindow = function() {
         _isCaller = false;
 
         try {
-            _localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
         } catch(e) {
             showToast('❌ No se pudo acceder al micrófono'); return;
         }
@@ -9643,7 +9792,7 @@ window.cerrarJuegoWindow = function() {
         if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
 
         try {
-            _gameStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            _gameStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
         } catch(e) {
             showToast('❌ No se pudo acceder al micrófono'); return;
         }
@@ -9695,7 +9844,7 @@ window.cerrarJuegoWindow = function() {
         _gamePc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
 
         try {
-            _gameStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            _gameStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
             _gameStream.getTracks().forEach(t => _gamePc.addTrack(t, _gameStream));
         } catch(e) {}
 
