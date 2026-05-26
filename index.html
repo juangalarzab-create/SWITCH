@@ -81,7 +81,7 @@
             height: -webkit-fill-available;
             height: 100dvh;
             /* Respetar notch/status-bar en todos los modos (browser y PWA) */
-            padding-bottom: env(safe-area-inset-bottom, 0px);
+            padding-bottom: 0px; /* el input-area absorbe el safe-area-inset-bottom */
             padding-top: 0px; /* el header absorbe el safe-area-inset-top */
         }
 
@@ -128,15 +128,15 @@
 
         .header {
             background: #000000;
-            padding: 12px 16px;
+            padding: 8px 16px;
             /* Absorbe el notch/status-bar de iPhone (Safari browser y PWA) */
-            padding-top: calc(12px + env(safe-area-inset-top, 0px));
+            padding-top: calc(8px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: calc(56px + env(safe-area-inset-top, 0px));
+            min-height: calc(48px + env(safe-area-inset-top, 0px));
             position: sticky;
             top: 0;
             z-index: 100;
@@ -516,6 +516,8 @@
         /* ===== PANTALLA CHAT ===== */
         .screen-chat {
             background: #000000;
+            display: flex;
+            flex-direction: column;
         }
 
         /* Header del chat — estilo Telegram dark */
@@ -523,14 +525,18 @@
             background: #1a1a1a;
             padding: 0 12px;
             padding-top: env(safe-area-inset-top, 0px);
-            min-height: calc(58px + env(safe-area-inset-top, 0px));
+            min-height: calc(52px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             display: none;
             justify-content: flex-start;
             align-items: flex-end;
             gap: 10px;
             box-shadow: 0 1px 6px rgba(0,0,0,0.6);
-            padding-bottom: 8px;
+            padding-bottom: 6px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
         }
 
         /* Flecha atrás — reemplaza btn-home */
@@ -926,11 +932,13 @@
 
         .input-area {
             padding: 16px;
+            padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
             background: #1a1a1a;
             border-top: 1px solid #333;
             display: flex;
             gap: 12px;
             align-items: center;
+            flex-shrink: 0;
         }
 
         /* ===== BARRA DE EMOJIS RÁPIDOS (arriba del input) ===== */
@@ -1188,11 +1196,13 @@
             top: 0;
             width: 350px;
             height: 100vh;
+            height: 100dvh;
             background: #ffffff;
             border-left: 1px solid #ddd;
             z-index: 900;
             flex-direction: column;
             box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+            padding-top: env(safe-area-inset-top, 0px);
         }
 
         .games-panel.active {
@@ -1337,7 +1347,7 @@
 
         .game-window.jugando {
             width: 100vw;
-            height: 50vh;
+            height: calc(50vh);
             right: 0;
             left: 0;
             top: 0;
@@ -1347,6 +1357,7 @@
             z-index: 800;
             border-bottom: 3px solid rgba(255, 255, 255, 0.3);
             border-left: none;
+            padding-top: env(safe-area-inset-top, 0px);
         }
 
         .screen-chat.jugando {
@@ -1354,13 +1365,14 @@
             position: fixed;
             left: 0;
             top: 50vh;
-            height: 50vh;
+            height: calc(50vh - env(safe-area-inset-bottom, 0px));
             z-index: 799;
             border-right: none;
             border-top: 3px solid rgba(255, 255, 255, 0.3);
             display: flex !important;
             flex-direction: column;
             overflow: hidden;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         .screen-chat.jugando .chat-header {
             flex-shrink: 0;
@@ -1405,6 +1417,7 @@
         .screen-chat.jugando .input-area {
             flex-shrink: 0;
             padding: 4px 6px;
+            padding-bottom: 4px;
             gap: 4px;
             background: #1a1a1a;
             border-top: 1px solid #333;
@@ -3269,7 +3282,7 @@
                 gap: 0;
             }
             .header h1 { font-size: 18px; }
-            .header { padding: 10px 14px; }
+            .header { padding: 6px 14px; padding-top: calc(6px + env(safe-area-inset-top, 0px)); }
             .inicio-search { padding: 10px 12px; }
             .search-input { padding: 10px 16px; font-size: 13px; }
             .form-crear { padding: 24px 16px; }
@@ -3445,7 +3458,7 @@
             .salas-container { padding: 0; }
             .burbuja { max-width: 90%; font-size: 13px; }
             .input-msg { font-size: 13px; }
-            .header { padding: 8px 12px; }
+            .header { padding: 5px 12px; padding-top: calc(5px + env(safe-area-inset-top, 0px)); }
             .inicio-search { padding: 8px 10px; }
         }
 
@@ -3623,8 +3636,9 @@
         .push-banner-close:hover { color: #333; }
 
         /* ===== SAFE AREA (notch / barra inferior iOS / Android) ===== */
-        body { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
-        .container { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        /* NOTA: el header ya absorbe safe-area-inset-top, NO añadir padding-top al body */
+        body { padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+        .container { padding-bottom: 0; } /* el input-area ya tiene el safe-area-inset-bottom */
 
         /* ===== RESPONSIVE: pantallas anchas (tablet / desktop) ===== */
         @media (min-width: 769px) {
@@ -4154,14 +4168,14 @@
                 <div class="stop-title" style="color:#ce93d8;">🧠 QUIZ</div>
                 <div class="lobby-info" style="margin-bottom:12px; text-align:center;">
                     Responde preguntas de cultura general, ciencia, literatura y más.<br>
-                    <b>El primero en pulsar</b> puede responder. ¡Si fallas, no sumas!<br>
-                    Con premio: <b>10 preguntas</b>, gana quien más acierte.
+                    <b>Sin premio:</b> juego libre sin límite, ambos ven la misma pregunta.<br>
+                    <b>Con premio:</b> 5 preguntas, 12 segundos por ronda, gana quien más acierte.
                 </div>
                 <div class="lobby-prize-status" id="quiz-lobby-mi-premio" style="margin:0 auto 8px; max-width:280px;">
-                    🎁 Tu premio: <span class="pending">sin elegir</span>
+                    🎁 Tu premio: <span class="pending">sin elegir (opcional)</span>
                 </div>
                 <div class="lobby-prize-status" id="quiz-lobby-oponente-premio" style="margin:0 auto 14px; max-width:280px;">
-                    🎁 Premio del oponente: <span class="pending">sin elegir</span>
+                    🎁 Premio del oponente: <span class="pending">sin elegir (opcional)</span>
                 </div>
                 <button class="btn-lobby btn-lobby-premio" style="max-width:280px; margin:0 auto 10px; display:block;" onclick="abrirSeleccionPremio('quiz')">
                     🎁 ¿Qué quieres ganar?
@@ -4194,7 +4208,7 @@
 
                 <div class="quiz-countdown-box" id="quizCountdownBox">
                     <div class="quiz-countdown-ring spinning-cd">
-                        <span class="quiz-countdown-num" id="quizCountdownNum">5</span>
+                        <span class="quiz-countdown-num" id="quizCountdownNum">12</span>
                     </div>
                     <div class="quiz-countdown-label">Siguiente pregunta...</div>
                 </div>
@@ -7444,6 +7458,16 @@ window.cerrarJuegoWindow = function() {
                         () => salirAlMenuJuegos()
                     );
                     break;
+
+                // ── Siguiente pregunta modo libre Quiz ──
+                case 'quiz_libre_siguiente':
+                    // El oponente pulsó "Siguiente" antes que yo; ocultamos la alerta y avanzamos
+                    {
+                        const alertaEl = document.getElementById('quiz-alerta-libre');
+                        if (alertaEl) alertaEl.remove();
+                        avanzarPreguntaQuiz();
+                    }
+                    break;
             }
         }
 
@@ -8932,18 +8956,21 @@ window.cerrarJuegoWindow = function() {
             quizGameState.miRespuesta = null;
             quizGameState.opRespuesta = null;
             quizGameState._yaFinalizo = false;
+            quizGameState._modoLibre = !hayPremio;  // sin premio = modo libre sin límite
             _quizLimpiarTimers();
 
             document.getElementById('quiz-lobby').style.display = 'none';
             document.getElementById('quiz-question-view').classList.add('active');
             document.getElementById('quizScoreboard').classList.add('visible');
             const roundEl = document.getElementById('quiz-round-indicator');
-            if (hayPremio) roundEl.classList.add('visible'); else roundEl.classList.remove('visible');
+            roundEl.classList.remove('visible'); // En modo libre NO mostramos indicador de ronda
             actualizarScoreboardQuiz();
 
             if (window._modoBot) {
                 const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                quizGameState.preguntas = [].concat(...porNivel).slice(0, 5);
+                quizGameState.preguntas = hayPremio
+                    ? [].concat(...porNivel).slice(0, 5)
+                    : [].concat(...porNivel);
                 mostrarPreguntaQuiz();
                 return;
             }
@@ -8952,15 +8979,20 @@ window.cerrarJuegoWindow = function() {
 
             if (_quizIsHost) {
                 const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                const prgs = [].concat(...porNivel).slice(0, 5);
+                // Con premio: 5 preguntas fijas. Sin premio: todas mezcladas (juego libre)
+                const prgs = hayPremio
+                    ? [].concat(...porNivel).slice(0, 5)
+                    : [].concat(...porNivel);
                 quizGameState.preguntas = prgs;
-                const pregsFb = prgs.map((p, idx) => ({ idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total: 5 }));
+                const total = hayPremio ? 5 : prgs.length;
+                const pregsFb = prgs.map((p, idx) => ({ idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total }));
                 set(_quizDbRef(), {
                     preguntas: pregsFb,
                     preguntaActual: 0,
                     puntajes: { [usuarioActual]: 0, [oponenteActual || '__op']: 0 },
                     respuestas: {},
-                    estado: 'jugando'
+                    estado: 'jugando',
+                    modoLibre: !hayPremio
                 }).then(() => {
                     _quizAdjuntarListener();
                     mostrarPreguntaQuiz();
@@ -9022,6 +9054,9 @@ window.cerrarJuegoWindow = function() {
                 }
 
                 if (newIdx > quizGameState.preguntaActual && newIdx < quizGameState.preguntas.length) {
+                    // Ocultar alerta de modo libre si está visible (el otro usuario avanzó primero)
+                    const alertaEl = document.getElementById('quiz-alerta-libre');
+                    if (alertaEl) alertaEl.remove();
                     quizGameState.preguntaActual = newIdx;
                     setTimeout(() => mostrarPreguntaQuiz(), 300);
                 } else if (newIdx >= quizGameState.preguntas.length && data.finalizado) {
@@ -9029,6 +9064,13 @@ window.cerrarJuegoWindow = function() {
                         quizGameState._yaFinalizo = true;
                         mostrarGanadorFinalQuiz();
                     }
+                }
+                // Modo libre: si el host reinicia preguntaActual a 0 (ciclo), sincronizar
+                if (quizGameState._modoLibre && newIdx === 0 && quizGameState.preguntaActual !== 0) {
+                    const alertaEl = document.getElementById('quiz-alerta-libre');
+                    if (alertaEl) alertaEl.remove();
+                    quizGameState.preguntaActual = 0;
+                    setTimeout(() => mostrarPreguntaQuiz(), 300);
                 }
             });
         }
@@ -9055,8 +9097,14 @@ window.cerrarJuegoWindow = function() {
             _quizLimpiarTimers();
 
             document.getElementById('quizCategoryBadge').textContent = p.cat;
-            document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1} de ${total}`;
-            document.getElementById('quiz-round-indicator').textContent = `PREGUNTA ${idx + 1} / ${total}`;
+            // En modo libre: "Pregunta N" sin total. Con premio: "Pregunta N de 5"
+            if (quizGameState._modoLibre) {
+                document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1}`;
+            } else {
+                document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1} de 5`;
+                document.getElementById('quiz-round-indicator').textContent = `PREGUNTA ${idx + 1} / 5`;
+                document.getElementById('quiz-round-indicator').classList.add('visible');
+            }
             document.getElementById('quizQuestionText').textContent = p.q;
             document.getElementById('quizBuzzStatus').textContent = '';
             document.getElementById('quizResultBanner').className = 'quiz-result-banner';
@@ -9083,7 +9131,11 @@ window.cerrarJuegoWindow = function() {
                 grid.appendChild(btn);
             });
 
-            _quizIniciarConteo5s();
+            // Solo en modo con premio iniciamos el countdown de 12s
+            if (!quizGameState._modoLibre) {
+                _quizIniciarConteo12s();
+            }
+            // En modo libre: sin conteo, esperamos que ambos respondan
 
             if (window._modoBot && typeof window._botRespondioQuiz === 'function') {
                 const botDelay = 1200 + Math.random() * 2800;
@@ -9091,8 +9143,8 @@ window.cerrarJuegoWindow = function() {
             }
         }
 
-        function _quizIniciarConteo5s() {
-            let secs = 5;
+        function _quizIniciarConteo12s() {
+            let secs = 12;
             const cdBox = document.getElementById('quizCountdownBox');
             const cdNum = document.getElementById('quizCountdownNum');
             const cdLabel = document.querySelector('.quiz-countdown-label');
@@ -9104,6 +9156,13 @@ window.cerrarJuegoWindow = function() {
             if (cdNum) cdNum.textContent = secs;
 
             quizGameState._cdInterval = setInterval(() => {
+                // Si ambos ya respondieron, detener el conteo
+                if (quizGameState.miRespuesta !== null && quizGameState.opRespuesta !== null) {
+                    clearInterval(quizGameState._cdInterval);
+                    quizGameState._cdInterval = null;
+                    if (cdBox) cdBox.classList.remove('visible');
+                    return;
+                }
                 secs--;
                 if (cdNum) cdNum.textContent = secs;
                 if (secs <= 0) {
@@ -9131,12 +9190,16 @@ window.cerrarJuegoWindow = function() {
                 }
             }, 1000);
         }
+        // Alias para compatibilidad (por si se llama desde bot u otro lugar)
+        function _quizIniciarConteo5s() { _quizIniciarConteo12s(); }
 
         function seleccionarOpcionQuiz(optIdx, btnEl) {
             if (quizGameState.miRespuesta !== null) return;
-            if (!quizGameState._cdInterval) return; // tiempo agotado
+            // En modo con premio: requiere que el conteo esté activo. En modo libre: siempre se puede responder.
+            if (!quizGameState._modoLibre && !quizGameState._cdInterval) return; // tiempo agotado en modo premio
 
             quizGameState.miRespuesta = optIdx;
+            // Solo bloquear para mí (no para el oponente aún)
             document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(b => {
                 b.disabled = true;
                 if (parseInt(b.dataset.optIndex) === optIdx) {
@@ -9152,8 +9215,16 @@ window.cerrarJuegoWindow = function() {
                 }).catch(e => console.warn('[QUIZ]', e));
             }
 
+            // Solo calificar cuando el oponente también haya marcado
             if (quizGameState.opRespuesta !== null) {
                 _quizCalificarAmbos();
+            }
+            // Si ambos respondieron en modo con premio, detener conteo explícitamente
+            if (!quizGameState._modoLibre && quizGameState.opRespuesta !== null && quizGameState._cdInterval) {
+                clearInterval(quizGameState._cdInterval);
+                quizGameState._cdInterval = null;
+                const cdBox = document.getElementById('quizCountdownBox');
+                if (cdBox) cdBox.classList.remove('visible');
             }
         }
 
@@ -9231,12 +9302,87 @@ window.cerrarJuegoWindow = function() {
             }
             actualizarScoreboardQuiz();
 
-            if (quizGameState.modoRondas && (yoAcerte || opAcerto)) {
-                setTimeout(() => _quizMostrarModalPreguntaConPremio(yoAcerte, opAcerto), 1200);
+            if (quizGameState._modoLibre) {
+                // MODO LIBRE: mostrar alerta vistosa en tiempo real (quien ganó esta pregunta) y botón siguiente
+                _quizMostrarAlertaLibre(yoAcerte, opAcerto, PUNTOS);
             } else {
-                _quizIniciarConteo3sNext();
+                // MODO CON PREMIO: ir al siguiente automáticamente con countdown 3s
+                const esUltima = quizGameState.preguntaActual + 1 >= 5;
+                if (esUltima) {
+                    setTimeout(() => mostrarGanadorFinalQuiz(), 2000);
+                } else {
+                    _quizIniciarConteo3sNext();
+                }
             }
         }
+
+        function _quizMostrarAlertaLibre(yoAcerte, opAcerto, puntos) {
+            // Alerta vistosa en ambos dispositivos en tiempo real
+            const existing = document.getElementById('quiz-alerta-libre');
+            if (existing) existing.remove();
+
+            const alerta = document.createElement('div');
+            alerta.id = 'quiz-alerta-libre';
+            alerta.style.cssText = `
+                position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+                background: ${yoAcerte ? 'linear-gradient(135deg,#1b5e20,#388e3c)' : opAcerto ? 'linear-gradient(135deg,#b71c1c,#c62828)' : 'linear-gradient(135deg,#37474f,#546e7a)'};
+                border: 3px solid ${yoAcerte ? '#69f0ae' : opAcerto ? '#ff5252' : '#90a4ae'};
+                color:#fff; border-radius:20px; padding:24px 32px; z-index:9999;
+                text-align:center; box-shadow:0 8px 40px rgba(0,0,0,0.6);
+                min-width:240px; animation: quizAlertaIn 0.3s ease;
+            `;
+            let icono, msg1, msg2;
+            if (yoAcerte && opAcerto) {
+                icono = '✅'; msg1 = '¡Ambos acertaron!';
+                msg2 = `+${puntos} pts cada uno`;
+            } else if (yoAcerte) {
+                icono = '🎯'; msg1 = '¡Respondiste correcto!';
+                msg2 = `+${puntos} pts para ti`;
+            } else if (opAcerto) {
+                icono = '⚡'; msg1 = `${nombreOponente()} acertó`;
+                msg2 = `+${puntos} pts para el rival`;
+            } else {
+                icono = '😅'; msg1 = 'Nadie acertó';
+                msg2 = 'Sin puntos esta vez';
+            }
+            alerta.innerHTML = `
+                <div style="font-size:40px;margin-bottom:8px">${icono}</div>
+                <div style="font-size:18px;font-weight:700;margin-bottom:4px">${msg1}</div>
+                <div style="font-size:14px;opacity:0.9;margin-bottom:16px">${msg2}</div>
+                <div style="font-size:13px;margin-bottom:14px;opacity:0.8">
+                    Tú: <b>${quizGameState.puntajes.mi} pts</b> &nbsp;|&nbsp; ${nombreOponente() || 'Rival'}: <b>${quizGameState.puntajes.oponente} pts</b>
+                </div>
+                <button onclick="_quizSiguientePreguntaLibre()" style="
+                    background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.5);
+                    color:#fff; padding:10px 28px; border-radius:50px; font-size:15px;
+                    cursor:pointer; font-weight:600;
+                ">▶ Siguiente</button>
+            `;
+            document.body.appendChild(alerta);
+
+            // Añadir keyframe si no existe
+            if (!document.getElementById('quiz-alerta-style')) {
+                const st = document.createElement('style');
+                st.id = 'quiz-alerta-style';
+                st.textContent = '@keyframes quizAlertaIn { from{opacity:0;transform:translate(-50%,-50%) scale(0.8)} to{opacity:1;transform:translate(-50%,-50%) scale(1)} }';
+                document.head.appendChild(st);
+            }
+        }
+
+        window._quizSiguientePreguntaLibre = function() {
+            const existing = document.getElementById('quiz-alerta-libre');
+            if (existing) existing.remove();
+            // El primero en pulsar envía señal a Firebase para avanzar ambos
+            if (!window._modoBot && salaActualKey && _quizIsHost) {
+                const siguiente = quizGameState.preguntaActual + 1;
+                set(ref(db, `gameData/${salaActualKey}/quiz/preguntaActual`), siguiente).catch(() => {});
+                set(ref(db, `gameData/${salaActualKey}/quiz/respuestas`), {}).catch(() => {});
+            } else if (!window._modoBot && salaActualKey) {
+                // No soy host: envío señal de "siguiente" para que el host sepa
+                _tttSendSignal('quiz_libre_siguiente', { pregIdx: quizGameState.preguntaActual });
+            }
+            avanzarPreguntaQuiz();
+        };
 
         function _quizMostrarModalPreguntaConPremio(yoAcerte, opAcerto) {
             const esUltima = quizGameState.preguntaActual + 1 >= quizGameState.preguntas.length;
@@ -9292,7 +9438,8 @@ window.cerrarJuegoWindow = function() {
 
         function avanzarPreguntaQuiz() {
             const siguiente = quizGameState.preguntaActual + 1;
-            if (siguiente >= quizGameState.preguntas.length) {
+            // Modo con premio: terminar a las 5 preguntas
+            if (!quizGameState._modoLibre && siguiente >= 5) {
                 if (!window._modoBot && _quizIsHost && salaActualKey) {
                     set(ref(db, `gameData/${salaActualKey}/quiz/finalizado`), true).catch(() => {});
                     set(ref(db, `gameData/${salaActualKey}/quiz/preguntaActual`), siguiente).catch(() => {});
@@ -9303,9 +9450,10 @@ window.cerrarJuegoWindow = function() {
                 }
                 return;
             }
-            quizGameState.preguntaActual = siguiente;
+            // Modo libre: siempre avanza (si se acabaron las preguntas precargadas, ciclar)
+            quizGameState.preguntaActual = siguiente < quizGameState.preguntas.length ? siguiente : 0;
             if (!window._modoBot && _quizIsHost && salaActualKey) {
-                set(ref(db, `gameData/${salaActualKey}/quiz/preguntaActual`), siguiente).catch(() => {});
+                set(ref(db, `gameData/${salaActualKey}/quiz/preguntaActual`), quizGameState.preguntaActual).catch(() => {});
                 set(ref(db, `gameData/${salaActualKey}/quiz/respuestas`), {}).catch(() => {});
             }
             mostrarPreguntaQuiz();
@@ -9319,6 +9467,9 @@ window.cerrarJuegoWindow = function() {
             quizGameState.historicoTotal.mi = (quizGameState.historicoTotal.mi || 0) + mi;
             quizGameState.historicoTotal.oponente = (quizGameState.historicoTotal.oponente || 0) + op;
 
+            const miPremio = premiosJuego.quiz.mi;
+            const opPremio = premiosJuego.quiz.oponente;
+
             const winEl = document.getElementById('modal-win');
             const titleEl = document.getElementById('win-title');
             const msgEl = document.getElementById('win-msg');
@@ -9327,27 +9478,43 @@ window.cerrarJuegoWindow = function() {
             const exitBtnQ = document.getElementById('quizExitBtn');
             if (exitBtnQ) exitBtnQ.style.display = '';
 
-            let titulo;
-            if (mi > op) titulo = '🏆 ¡Ganaste!';
-            else if (op > mi) titulo = '😔 Perdiste';
-            else titulo = '🤝 ¡Empate!';
+            let titulo, subtitulo;
+            const yo = capitalizarNombre(usuarioActual) || 'Tú';
+            const rival = nombreOponente() || 'Rival';
+
+            if (mi > op) {
+                titulo = '🏆 ¡Ganaste!';
+                subtitulo = `${yo}: ${mi} pts — ${rival}: ${op} pts`;
+            } else if (op > mi) {
+                titulo = '😔 Perdiste';
+                subtitulo = `${yo}: ${mi} pts — ${rival}: ${op} pts`;
+            } else {
+                titulo = '🤝 ¡Empate!';
+                subtitulo = `Ambos: ${mi} pts`;
+            }
 
             if (titleEl) titleEl.textContent = titulo;
-            if (msgEl) msgEl.textContent = `${mi} vs ${op} puntos`;
 
-            if (quizGameState.modoRondas) {
-                if (btnPlay) {
-                    btnPlay.textContent = '🔁 Revancha';
-                    btnPlay.onclick = () => { winEl.classList.remove('active'); _quizPedirRevancha(); };
-                }
-            } else {
-                if (btnPlay) {
-                    btnPlay.textContent = '🔄 Jugar de nuevo';
-                    btnPlay.onclick = () => { winEl.classList.remove('active'); _quizPedirJugarDeNuevo(); };
-                }
+            // Construir mensaje con premios
+            let premioMsg = subtitulo;
+            if (miPremio || opPremio) {
+                premioMsg += '\n\n';
+                if (miPremio) premioMsg += `🎁 Tu premio: ${miPremio}\n`;
+                if (opPremio) premioMsg += `🎁 Premio de ${rival}: ${opPremio}`;
             }
+            if (msgEl) {
+                msgEl.style.whiteSpace = 'pre-line';
+                msgEl.textContent = premioMsg;
+            }
+
+            // Botón Revancha
+            if (btnPlay) {
+                btnPlay.textContent = '🔁 Revancha';
+                btnPlay.onclick = () => { winEl.classList.remove('active'); _quizPedirRevancha(); };
+            }
+            // Botón Salir
             if (btnExit) {
-                btnExit.textContent = 'Salir';
+                btnExit.textContent = '🚪 Salir';
                 btnExit.onclick = () => { winEl.classList.remove('active'); cerrarJuegoWindow(); };
             }
             winEl.classList.add('active');
@@ -9396,10 +9563,9 @@ window.cerrarJuegoWindow = function() {
             quizGameState.miRespuesta = null;
             quizGameState.opRespuesta = null;
             quizGameState._yaFinalizo = false;
+            quizGameState._modoLibre = quizGameState._modoLibre; // mantener el modo actual
             _quizLimpiarTimers();
             if (salaActualKey) { remove(_quizDbRef()).catch(() => {}); }
-            const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-            quizGameState.preguntas = [].concat(...porNivel).slice(0, 5);
             actualizarScoreboardQuiz();
             arrancarQuiz();
         }
