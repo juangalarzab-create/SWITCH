@@ -522,15 +522,13 @@
         .chat-header {
             background: #1a1a1a;
             padding: 0 12px;
-            padding-top: env(safe-area-inset-top, 0px);
-            min-height: calc(58px + env(safe-area-inset-top, 0px));
+            min-height: 58px;
             border-bottom: 1px solid #222;
             display: none;
             justify-content: flex-start;
-            align-items: flex-end;
+            align-items: center;
             gap: 10px;
             box-shadow: 0 1px 6px rgba(0,0,0,0.6);
-            padding-bottom: 8px;
         }
 
         /* Flecha atrás — reemplaza btn-home */
@@ -3192,30 +3190,15 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            margin: 6px auto 2px;
-            padding: 6px 16px;
-            background: rgba(0,0,0,0.4);
-            border-radius: 16px;
-            border: 1px solid rgba(255,255,255,0.08);
-            max-width: fit-content;
+            gap: 6px;
+            margin-top: 4px;
         }
         .quiz-countdown-box.visible { display: flex; }
-        /* Fase pregunta: naranja/rojo */
-        .quiz-countdown-box[data-fase="pregunta"] .quiz-countdown-ring {
-            border-color: rgba(255,152,0,0.25);
-            border-top-color: #ff9800;
-        }
-        /* Fase siguiente: morado */
-        .quiz-countdown-box[data-fase="siguiente"] .quiz-countdown-ring {
-            border-color: rgba(156,39,176,0.25);
-            border-top-color: #ce93d8;
-        }
         .quiz-countdown-ring {
-            width: 64px;
-            height: 64px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
-            border: 5px solid rgba(156,39,176,0.25);
+            border: 4px solid rgba(156,39,176,0.25);
             border-top-color: #ce93d8;
             position: relative;
             display: flex;
@@ -3226,16 +3209,14 @@
         @keyframes cdSpin { to { transform: rotate(360deg); } }
         .quiz-countdown-num {
             position: absolute;
-            font-size: 26px;
+            font-size: 22px;
             font-weight: bold;
             color: #fff;
-            animation: none;
         }
         .quiz-countdown-label {
-            font-size: 11px;
+            font-size: 12px;
             color: #aaa;
             letter-spacing: 0.5px;
-            text-align: center;
         }
         .quiz-exit-btn {
             background: transparent;
@@ -7369,44 +7350,6 @@ window.cerrarJuegoWindow = function() {
                     _tttAttachSignalListener();
                     break;
 
-                // ── Quiz: Jugar de nuevo (sin premio) ──
-                case 'quiz_jugar_nuevo':
-                    if (document.getElementById('modal-game-notify').classList.contains('active')) {
-                        const miTsJn = window._quizJugarNuevoTs || 0;
-                        const suTsJn = (payload && payload.ts) ? payload.ts : 0;
-                        if (miTsJn >= suTsJn) return;
-                        _hideNotify();
-                    }
-                    document.getElementById('modal-win').classList.remove('active');
-                    _showNotify('🔄', `¡${nombre} quiere jugar de nuevo!`, `¿Vuelven a jugar Quiz?`,
-                        [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
-                            _tttClearSignal();
-                            _tttSendSignal('quiz_jugar_nuevo_accepted', { nombre: capitalizarNombre(usuarioActual) });
-                            _quizMostrarCountdownJugarDeNuevo(nombre);
-                        }},
-                        { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
-                            _tttClearSignal();
-                            _tttSendSignal('quiz_jugar_nuevo_declined');
-                            _quizResetCompleto();
-                            salirAlMenuJuegos();
-                        }}]
-                    );
-                    break;
-                case 'quiz_jugar_nuevo_accepted':
-                    _hideNotify();
-                    _tttClearSignal();
-                    _quizMostrarCountdownJugarDeNuevo(nombre);
-                    break;
-                case 'quiz_jugar_nuevo_declined':
-                    _hideNotify();
-                    _tttClearSignal();
-                    _quizResetCompleto();
-                    _showNotify('😔', 'Rechazado', `${nombre} prefirió no jugar de nuevo.`,
-                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
-                        () => salirAlMenuJuegos()
-                    );
-                    break;
-
                 // ── Revancha Quiz ──
                 case 'quiz_rematch_request':
                     if (document.getElementById('modal-game-notify').classList.contains('active')) {
@@ -7419,8 +7362,8 @@ window.cerrarJuegoWindow = function() {
                     _showNotify('🎮', `¡Revancha Quiz!`, `${nombre} quiere jugar de nuevo. ¿Aceptas?`,
                         [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
                             _tttClearSignal();
-                            _tttSendSignal('quiz_rematch_accepted', { nombre: capitalizarNombre(usuarioActual) });
-                            _quizMostrarCountdownRevancha(nombre);
+                            _tttSendSignal('quiz_rematch_accepted');
+                            _doRevanchaQuizReal();
                         }},
                         { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
                             _tttClearSignal();
@@ -7433,7 +7376,7 @@ window.cerrarJuegoWindow = function() {
                 case 'quiz_rematch_accepted':
                     _hideNotify();
                     _tttClearSignal();
-                    _quizMostrarCountdownRevancha(nombre);
+                    _doRevanchaQuizReal();
                     break;
                 case 'quiz_rematch_declined':
                     _hideNotify();
@@ -8833,20 +8776,18 @@ window.cerrarJuegoWindow = function() {
             { cat: 'Bíblico', q: '¿Cuántos años vivió Matusalén según la Biblia?', opts: ['700', '869', '969'], ans: 2, dif: 4 }
         ]
 
-        // ── QUIZ GAME STATE (nuevo sistema: 5 preguntas, ambos responden simultáneamente) ──
         let quizGameState = {
             preguntas: [],
             preguntaActual: 0,
-            totalPreguntas: 5,
-            puntajes: { mi: 0, oponente: 0 },
-            modoRondas: false,       // true = hay premio
-            historicoTotal: { mi: 0, oponente: 0 },
-            miRespuesta: null,       // índice elegido por mí (-1 = tiempo agotado sin responder)
-            opRespuesta: null,       // índice elegido por oponente
-            _yaFinalizo: false,
-            _cdInterval: null,       // countdown 5s pregunta
-            _cdNextInterval: null,   // countdown 3s siguiente pregunta
-            _esperandoOp: false,     // estoy esperando al oponente después de responder
+            totalPreguntas: 10,
+            puntajes: {},
+            modoRondas: false,
+            respondioAlguien: false,
+            buzzeadoPor: null, // 'mi' o 'oponente'
+            esperandoRespuesta: false,
+            historicoTotal: {},
+            _cdInterval: null,
+            _simTimeout: null
         };
 
         function iniciarQuiz() {
@@ -8911,70 +8852,78 @@ window.cerrarJuegoWindow = function() {
             return a;
         }
 
-        // ══════════════════════════════════════════════════════════════
-        // QUIZ — Sistema nuevo: 5 preguntas, respuesta simultánea,
-        //        conteo 5s, calificación al cierre, 50pts por correcta
-        // ══════════════════════════════════════════════════════════════
+        // ── QUIZ en tiempo real con Firebase ──
+        // Roles: el EMISOR (quien invitó) es el "host" que publica las preguntas.
+        // AMBOS jugadores leen las preguntas de Firebase y compiten respondiendo primero.
 
-        let _quizRef_listener = null;
-        let _quizIsHost = false;
+        let _quizRef_listener = null; // listener activo de quiz en Firebase
+        let _quizIsHost = false;      // true si soy el que publica las preguntas
 
         function _quizDbRef() { return ref(db, `gameData/${salaActualKey}/quiz`); }
 
         function arrancarQuiz() {
-            _tttAttachSignalListener();
+            _tttAttachSignalListener(); // escuchar señales (revancha, salida) durante Quiz
             const hayPremio = !!(premiosJuego.quiz.mi || premiosJuego.quiz.oponente);
+            const numPregs = hayPremio ? 5 : 10;
 
             quizGameState.preguntaActual = 0;
             quizGameState.modoRondas = hayPremio;
             quizGameState.puntajes = { mi: 0, oponente: 0 };
             quizGameState.historicoTotal = { mi: 0, oponente: 0 };
-            quizGameState.miRespuesta = null;
-            quizGameState.opRespuesta = null;
-            quizGameState._yaFinalizo = false;
-            _quizLimpiarTimers();
+            quizGameState.respondioAlguien = false;
+            quizGameState.buzzeadoPor = null;
+            quizGameState.esperandoRespuesta = false;
+            if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
 
             document.getElementById('quiz-lobby').style.display = 'none';
             document.getElementById('quiz-question-view').classList.add('active');
             document.getElementById('quizScoreboard').classList.add('visible');
+
             const roundEl = document.getElementById('quiz-round-indicator');
-            if (hayPremio) roundEl.classList.add('visible'); else roundEl.classList.remove('visible');
+            if (hayPremio) { roundEl.classList.add('visible'); } else { roundEl.classList.remove('visible'); }
+
             actualizarScoreboardQuiz();
 
+            // Modo bot: jugar localmente sin Firebase
             if (window._modoBot) {
-                const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                quizGameState.preguntas = [].concat(...porNivel).slice(0, 5);
+                const porNivelBot = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
+                quizGameState.preguntas = [].concat(...porNivelBot).slice(0, numPregs);
                 mostrarPreguntaQuiz();
                 return;
             }
 
+            // Determinar si soy el host: el que tiene la string mayor (tiebreak determinista)
             _quizIsHost = usuarioActual > (oponenteActual || '');
 
             if (_quizIsHost) {
-                const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                const prgs = [].concat(...porNivel).slice(0, 5);
-                quizGameState.preguntas = prgs;
-                const pregsFb = prgs.map((p, idx) => ({ idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total: 5 }));
+                // Host: selecciona preguntas, las publica en Firebase y empieza
+                // Ordenar por dificultad creciente, mezclando dentro de cada nivel
+            const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
+            const todasOrdenadas = [].concat(...porNivel);
+            const pregsSeleccionadas = todasOrdenadas.slice(0, numPregs);
+                quizGameState.preguntas = pregsSeleccionadas;
+                // Publicar en Firebase (sin la respuesta correcta en el campo visible)
+                const preguntasParaFirebase = pregsSeleccionadas.map((p, idx) => ({
+                    idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total: numPregs
+                }));
                 set(_quizDbRef(), {
-                    preguntas: pregsFb,
+                    preguntas: preguntasParaFirebase,
                     preguntaActual: 0,
                     puntajes: { [usuarioActual]: 0, [oponenteActual || '__op']: 0 },
-                    respuestas: {},
-                    estado: 'jugando'
+                    respuestas: {}
                 }).then(() => {
                     _quizAdjuntarListener();
                     mostrarPreguntaQuiz();
-                }).catch(e => { console.error('[QUIZ]', e); mostrarPreguntaQuiz(); });
+                }).catch(e => { console.error('[QUIZ] Error publicando preguntas:', e); mostrarPreguntaQuiz(); });
             } else {
+                // Guest: esperar a que el host publique las preguntas
                 quizGameState.preguntas = [];
+                document.getElementById('quiz-lobby').style.display = 'none';
+                document.getElementById('quiz-question-view').classList.add('active');
+                document.getElementById('quizScoreboard').classList.add('visible');
                 document.getElementById('quizQuestionText').textContent = '⏳ Esperando preguntas...';
                 _quizAdjuntarListener();
             }
-        }
-
-        function _quizLimpiarTimers() {
-            if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
-            if (quizGameState._cdNextInterval) { clearInterval(quizGameState._cdNextInterval); quizGameState._cdNextInterval = null; }
         }
 
         function _quizAdjuntarListener() {
@@ -8985,46 +8934,49 @@ window.cerrarJuegoWindow = function() {
                 const data = snap.val();
                 if (!data || !data.preguntas) return;
 
-                const esPrimera = quizGameState.preguntas.length === 0;
-                if (!_quizIsHost || esPrimera) {
+                // Sincronizar preguntas locales si somos el guest
+                const esPrimeraVez = quizGameState.preguntas.length === 0;
+                if (!_quizIsHost || esPrimeraVez) {
                     quizGameState.preguntas = data.preguntas;
                 }
 
-                // Sync puntajes
-                const pts = data.puntajes || {};
-                const opKey = oponenteActual || Object.keys(pts).find(k => k !== usuarioActual) || '';
-                const miPts = pts[usuarioActual] || 0;
-                const opPts = pts[opKey] || 0;
-                if (miPts !== quizGameState.puntajes.mi || opPts !== quizGameState.puntajes.oponente) {
-                    quizGameState.puntajes.mi = miPts;
-                    quizGameState.puntajes.oponente = opPts;
+                // Sincronizar índice de pregunta actual
+                const newIdx = data.preguntaActual || 0;
+
+                // Guest recibe preguntas por primera vez -> mostrar pregunta
+                if (!_quizIsHost && esPrimeraVez && quizGameState.preguntas.length > 0) {
+                    quizGameState.preguntaActual = newIdx;
+                    mostrarPreguntaQuiz();
+                }
+
+                // Sincronizar puntajes desde Firebase
+                const puntajesDb = data.puntajes || {};
+                const miPuntoDb = puntajesDb[usuarioActual] || 0;
+                const opKey = oponenteActual || Object.keys(puntajesDb).find(k => k !== usuarioActual) || '';
+                const opPuntoDb = puntajesDb[opKey] || 0;
+
+                if (miPuntoDb !== quizGameState.puntajes.mi || opPuntoDb !== quizGameState.puntajes.oponente) {
+                    quizGameState.puntajes.mi = miPuntoDb;
+                    quizGameState.puntajes.oponente = opPuntoDb;
                     actualizarScoreboardQuiz();
                 }
 
-                const newIdx = data.preguntaActual || 0;
-
-                if (!_quizIsHost && esPrimera && quizGameState.preguntas.length > 0) {
-                    quizGameState.preguntaActual = newIdx;
-                    mostrarPreguntaQuiz();
-                    return;
+                // Procesar respuesta del oponente si llegó
+                const respuestas = data.respuestas || {};
+                const opResp = respuestas[opKey];
+                if (opResp && opResp.pregIdx === newIdx && !quizGameState.respondioAlguien) {
+                    // El oponente respondió primero (y yo no había respondido)
+                    quizGameState.respondioAlguien = true;
+                    quizGameState.buzzeadoPor = 'oponente';
+                    _mostrarRespuestaOponente(opResp.optIdx);
                 }
 
-                // Detectar respuesta del oponente
-                const resps = data.respuestas || {};
-                const opKey2 = oponenteActual || Object.keys(resps).find(k => k !== usuarioActual) || '';
-                const opResp = resps[opKey2];
-                if (opResp && opResp.pregIdx === quizGameState.preguntaActual && quizGameState.opRespuesta === null) {
-                    quizGameState.opRespuesta = opResp.optIdx;
-                    _quizMarcarEstadoJugador(false, true);
-                    if (quizGameState.miRespuesta !== null) {
-                        _quizCalificarAmbos();
-                    }
-                }
-
+                // Avanzar a nueva pregunta si cambió el índice
                 if (newIdx > quizGameState.preguntaActual && newIdx < quizGameState.preguntas.length) {
                     quizGameState.preguntaActual = newIdx;
                     setTimeout(() => mostrarPreguntaQuiz(), 300);
                 } else if (newIdx >= quizGameState.preguntas.length && data.finalizado) {
+                    // Juego terminado por Firebase
                     if (!quizGameState._yaFinalizo) {
                         quizGameState._yaFinalizo = true;
                         mostrarGanadorFinalQuiz();
@@ -9040,7 +8992,7 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('quizSbMyScore').textContent = quizGameState.puntajes.mi;
             document.getElementById('quizSbOtherScore').textContent = quizGameState.puntajes.oponente;
             document.getElementById('quizP1Name').textContent = yo;
-            document.getElementById('quizP2Name').textContent = window._modoBot ? '🤖 Sistema' : nombreOponente();
+            document.getElementById('quizP2Name').textContent = nombreOponente();
         }
 
         function mostrarPreguntaQuiz() {
@@ -9049,10 +9001,10 @@ window.cerrarJuegoWindow = function() {
             if (idx >= total) return;
             const p = quizGameState.preguntas[idx];
 
-            quizGameState.miRespuesta = null;
-            quizGameState.opRespuesta = null;
-            quizGameState._esperandoOp = false;
-            _quizLimpiarTimers();
+            quizGameState.respondioAlguien = false;
+            quizGameState.buzzeadoPor = null;
+            quizGameState.esperandoRespuesta = false;
+            quizGameState._yaFinalizo = quizGameState._yaFinalizo || false;
 
             document.getElementById('quizCategoryBadge').textContent = p.cat;
             document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1} de ${total}`;
@@ -9061,13 +9013,14 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('quizBuzzStatus').textContent = '';
             document.getElementById('quizResultBanner').className = 'quiz-result-banner';
             document.getElementById('quizResultBanner').textContent = '';
+            if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
             const cdBox = document.getElementById('quizCountdownBox');
-            if (cdBox) { cdBox.classList.remove('visible'); cdBox.dataset.fase = 'pregunta'; }
-            const exitBtn = document.getElementById('quizExitBtn');
-            if (exitBtn) exitBtn.style.display = 'none';
+            if (cdBox) cdBox.classList.remove('visible');
+            const exitBtnQ = document.getElementById('quizExitBtn');
+            if (exitBtnQ) exitBtnQ.style.display = 'none';
 
-            document.getElementById('quizP1Status').textContent = '🟡 Eligiendo...';
-            document.getElementById('quizP2Status').textContent = '🟡 Eligiendo...';
+            document.getElementById('quizP1Status').textContent = '🟡 Esperando...';
+            document.getElementById('quizP2Status').textContent = '🟡 Esperando...';
             document.getElementById('quizStatusP1').classList.remove('buzzed');
             document.getElementById('quizStatusP2').classList.remove('buzzed');
 
@@ -9083,207 +9036,100 @@ window.cerrarJuegoWindow = function() {
                 grid.appendChild(btn);
             });
 
-            _quizIniciarConteo5s();
-
+            // Si estamos en modo bot, programar respuesta automática del bot
             if (window._modoBot && typeof window._botRespondioQuiz === 'function') {
-                const botDelay = 1200 + Math.random() * 2800;
+                const botDelay = 1500 + Math.random() * 2500;
                 setTimeout(() => { if (window._modoBot) window._botRespondioQuiz(); }, botDelay);
             }
         }
 
-        function _quizIniciarConteo5s() {
-            let secs = 5;
-            const cdBox = document.getElementById('quizCountdownBox');
-            const cdNum = document.getElementById('quizCountdownNum');
-            const cdLabel = document.querySelector('.quiz-countdown-label');
-            if (cdBox) {
-                cdBox.classList.add('visible');
-                cdBox.dataset.fase = 'pregunta';
-                if (cdLabel) cdLabel.textContent = 'Tiempo para responder';
-            }
-            if (cdNum) cdNum.textContent = secs;
-
-            quizGameState._cdInterval = setInterval(() => {
-                secs--;
-                if (cdNum) cdNum.textContent = secs;
-                if (secs <= 0) {
-                    clearInterval(quizGameState._cdInterval);
-                    quizGameState._cdInterval = null;
-                    if (cdBox) cdBox.classList.remove('visible');
-                    bloquearBotonesQuiz();
-                    if (quizGameState.miRespuesta === null) {
-                        quizGameState.miRespuesta = -1;
-                        if (!window._modoBot && salaActualKey && oponenteActual) {
-                            set(ref(db, `gameData/${salaActualKey}/quiz/respuestas/${usuarioActual}`), {
-                                pregIdx: quizGameState.preguntaActual, optIdx: -1, ts: Date.now()
-                            }).catch(() => {});
-                        }
-                        _quizMarcarEstadoJugador(true, false);
-                    }
-                    if (window._modoBot) {
-                        if (quizGameState.opRespuesta === null) quizGameState.opRespuesta = -1;
-                        _quizCalificarAmbos();
-                    } else {
-                        if (quizGameState.opRespuesta !== null) {
-                            _quizCalificarAmbos();
-                        }
-                    }
-                }
-            }, 1000);
-        }
-
         function seleccionarOpcionQuiz(optIdx, btnEl) {
-            if (quizGameState.miRespuesta !== null) return;
-            if (!quizGameState._cdInterval) return; // tiempo agotado
+            if (quizGameState.respondioAlguien) return;
+            quizGameState.respondioAlguien = true;
+            quizGameState.buzzeadoPor = 'mi';
+            quizGameState.esperandoRespuesta = true;
 
-            quizGameState.miRespuesta = optIdx;
-            document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(b => {
-                b.disabled = true;
-                if (parseInt(b.dataset.optIndex) === optIdx) {
-                    b.style.background = 'rgba(33,150,243,0.35)';
-                    b.style.borderColor = '#2196f3';
-                }
-            });
-            _quizMarcarEstadoJugador(true, false);
+            bloquearBotonesQuiz();
 
+            document.getElementById('quizP1Status').textContent = '⚡ ¡PULSÓ!';
+            document.getElementById('quizStatusP1').classList.add('buzzed');
+            document.getElementById('quizBuzzStatus').textContent = `⚡ ${capitalizarNombre(usuarioActual) || 'Tú'} respondió primero`;
+
+            // Publicar mi respuesta en Firebase para que el oponente la vea
+            const idx = quizGameState.preguntaActual;
             if (!window._modoBot && salaActualKey && oponenteActual) {
                 set(ref(db, `gameData/${salaActualKey}/quiz/respuestas/${usuarioActual}`), {
-                    pregIdx: quizGameState.preguntaActual, optIdx, ts: Date.now()
-                }).catch(e => console.warn('[QUIZ]', e));
+                    pregIdx: idx, optIdx, ts: Date.now()
+                }).catch(e => console.warn('[QUIZ] Error enviando respuesta:', e));
             }
 
-            if (quizGameState.opRespuesta !== null) {
-                _quizCalificarAmbos();
-            }
+            setTimeout(() => { resolverRespuestaQuiz(optIdx, 'mi'); }, 400);
         }
 
-        function _quizMarcarEstadoJugador(yo, oponente) {
-            if (yo) {
-                document.getElementById('quizP1Status').textContent = '✅ Respondió';
-                document.getElementById('quizStatusP1').classList.add('buzzed');
+        function _mostrarRespuestaOponente(optIdx) {
+            bloquearBotonesQuiz();
+            document.getElementById('quizP2Status').textContent = '⚡ ¡PULSÓ!';
+            document.getElementById('quizStatusP2').classList.add('buzzed');
+            document.getElementById('quizBuzzStatus').textContent = '⚡ Oponente respondió primero';
+            setTimeout(() => { resolverRespuestaQuiz(optIdx, 'oponente'); }, 400);
+        }
+
+        // Función vacía para compatibilidad (ya no se usa simulación)
+        function oponenteBuzzQuiz() {}
+
+        function resolverRespuestaQuiz(elegidoIdx, quien) {
+            const p = quizGameState.preguntas[quizGameState.preguntaActual];
+            const esCorrecta = elegidoIdx === p.ans;
+            const buttons = document.querySelectorAll('#quizOptionsGrid .quiz-option-btn');
+
+            buttons.forEach((btn, i) => {
+                btn.disabled = true;
+                if (i === p.ans) btn.classList.add('reveal-correct');
+                if (i === elegidoIdx && !esCorrecta) btn.classList.add('wrong');
+                if (i === elegidoIdx && esCorrecta) btn.classList.add('correct');
+            });
+
+            const banner = document.getElementById('quizResultBanner');
+            if (esCorrecta) {
+                if (quien === 'mi') {
+                    quizGameState.puntajes.mi++;
+                    banner.textContent = '✅ ¡Correcto! +1 punto';
+                    banner.className = 'quiz-result-banner show correct-banner';
+                    if (!window._modoBot && salaActualKey) {
+                        set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${usuarioActual}`), quizGameState.puntajes.mi).catch(() => {});
+                    }
+                } else {
+                    quizGameState.puntajes.oponente++;
+                    banner.textContent = `❌ El oponente acertó primero. +1 para ${nombreOponente()}`;
+                    banner.className = 'quiz-result-banner show wrong-banner';
+                    if (!window._modoBot && salaActualKey && oponenteActual) {
+                        set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${oponenteActual}`), quizGameState.puntajes.oponente).catch(() => {});
+                    }
+                }
+            } else {
+                banner.textContent = quien === 'mi' ? '❌ Incorrecto. Sin puntos.' : '❌ Oponente falló. Sin puntos.';
+                banner.className = 'quiz-result-banner show wrong-banner';
             }
-            if (oponente) {
-                document.getElementById('quizP2Status').textContent = '✅ Respondió';
-                document.getElementById('quizStatusP2').classList.add('buzzed');
-            }
+
+            actualizarScoreboardQuiz();
+            iniciarCountdownQuiz();
         }
 
         function bloquearBotonesQuiz() {
             document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(b => b.disabled = true);
         }
 
-        function _quizCalificarAmbos() {
-            if (quizGameState._cdInterval) {
-                clearInterval(quizGameState._cdInterval);
-                quizGameState._cdInterval = null;
-                const cdBox = document.getElementById('quizCountdownBox');
-                if (cdBox) cdBox.classList.remove('visible');
-            }
-            bloquearBotonesQuiz();
-
-            const p = quizGameState.preguntas[quizGameState.preguntaActual];
-            const miIdx = quizGameState.miRespuesta;
-            const opIdx = quizGameState.opRespuesta;
-            const correcta = p.ans;
-            const PUNTOS = 50;
-
-            const buttons = document.querySelectorAll('#quizOptionsGrid .quiz-option-btn');
-            buttons.forEach((btn, i) => {
-                btn.style.background = '';
-                btn.style.borderColor = '';
-                btn.disabled = true;
-                if (i === correcta) btn.classList.add('reveal-correct');
-                if (i === miIdx && miIdx !== correcta && miIdx !== -1) btn.classList.add('wrong');
-                if (i === miIdx && miIdx === correcta) btn.classList.add('correct');
-            });
-
-            const yoAcerte = miIdx === correcta;
-            const opAcerto = opIdx === correcta;
-            if (yoAcerte) quizGameState.puntajes.mi += PUNTOS;
-            if (opAcerto) quizGameState.puntajes.oponente += PUNTOS;
-
-            const banner = document.getElementById('quizResultBanner');
-            let txt = '', cls = 'quiz-result-banner show ';
-            if (miIdx === -1 && opIdx === -1) {
-                txt = `⏰ Tiempo agotado. Nadie respondió. Correcta: ${['A','B','C'][correcta]}`;
-                cls += 'no-answer-banner';
-            } else if (yoAcerte && opAcerto) {
-                txt = `✅ ¡Ambos acertaron! +${PUNTOS} cada uno`;
-                cls += 'correct-banner';
-            } else if (yoAcerte) {
-                txt = `✅ ¡Correcto! +${PUNTOS} pts${opIdx === -1 ? ' (oponente sin resp.)' : ` — ${nombreOponente()} falló`}`;
-                cls += 'correct-banner';
-            } else if (opAcerto) {
-                txt = `❌ ${miIdx === -1 ? 'No respondiste' : 'Fallaste'}. ${nombreOponente()} acertó (+${PUNTOS})`;
-                cls += 'wrong-banner';
-            } else {
-                txt = `❌ Nadie acertó (tú: ${miIdx === -1 ? 'sin resp.' : 'incorrecto'}, rival: ${opIdx === -1 ? 'sin resp.' : 'incorrecto'})`;
-                cls += 'wrong-banner';
-            }
-            banner.textContent = txt;
-            banner.className = cls;
-
-            if (!window._modoBot && salaActualKey && _quizIsHost) {
-                const ptsUp = {};
-                ptsUp[usuarioActual] = quizGameState.puntajes.mi;
-                ptsUp[oponenteActual || '__op'] = quizGameState.puntajes.oponente;
-                set(ref(db, `gameData/${salaActualKey}/quiz/puntajes`), ptsUp).catch(() => {});
-            }
-            actualizarScoreboardQuiz();
-
-            if (quizGameState.modoRondas && (yoAcerte || opAcerto)) {
-                setTimeout(() => _quizMostrarModalPreguntaConPremio(yoAcerte, opAcerto), 1200);
-            } else {
-                _quizIniciarConteo3sNext();
-            }
-        }
-
-        function _quizMostrarModalPreguntaConPremio(yoAcerte, opAcerto) {
-            const esUltima = quizGameState.preguntaActual + 1 >= quizGameState.preguntas.length;
-            const winEl = document.getElementById('modal-win');
-            const titleEl = document.getElementById('win-title');
-            const msgEl = document.getElementById('win-msg');
-            const btnPlay = document.getElementById('btn-play-again-win');
-            const btnExit = winEl.querySelector('.btn-exit');
-
-            let titulo;
-            if (yoAcerte && opAcerto) titulo = '✅ ¡Ambos acertaron!';
-            else if (yoAcerte) titulo = '🎉 ¡Respondiste correcto!';
-            else titulo = `🎉 ${nombreOponente()} acertó`;
-
-            if (titleEl) titleEl.textContent = titulo;
-            if (msgEl) msgEl.textContent = `Pregunta ${quizGameState.preguntaActual + 1}/${quizGameState.preguntas.length}`;
-            if (btnPlay) {
-                btnPlay.textContent = esUltima ? '🏆 Ver resultado final' : '▶ Siguiente';
-                btnPlay.onclick = () => {
-                    winEl.classList.remove('active');
-                    if (esUltima) mostrarGanadorFinalQuiz();
-                    else _quizIniciarConteo3sNext();
-                };
-            }
-            if (btnExit) {
-                btnExit.textContent = 'Salir';
-                btnExit.onclick = () => { winEl.classList.remove('active'); cerrarJuegoWindow(); };
-            }
-            winEl.classList.add('active');
-        }
-
-        function _quizIniciarConteo3sNext() {
+        function iniciarCountdownQuiz() {
             let secs = 3;
             const cdBox = document.getElementById('quizCountdownBox');
             const cdNum = document.getElementById('quizCountdownNum');
-            const cdLabel = document.querySelector('.quiz-countdown-label');
-            if (cdBox) {
-                cdBox.classList.add('visible');
-                if (cdLabel) cdLabel.textContent = 'Siguiente pregunta...';
-            }
-            if (cdNum) cdNum.textContent = secs;
-            quizGameState._cdNextInterval = setInterval(() => {
+            if (cdBox) { cdBox.classList.add('visible'); if (cdNum) cdNum.textContent = secs; }
+            quizGameState._cdInterval = setInterval(() => {
                 secs--;
                 if (cdNum) cdNum.textContent = secs;
                 if (secs <= 0) {
-                    clearInterval(quizGameState._cdNextInterval);
-                    quizGameState._cdNextInterval = null;
+                    clearInterval(quizGameState._cdInterval);
+                    quizGameState._cdInterval = null;
                     if (cdBox) cdBox.classList.remove('visible');
                     avanzarPreguntaQuiz();
                 }
@@ -9312,64 +9158,27 @@ window.cerrarJuegoWindow = function() {
         }
 
         function mostrarGanadorFinalQuiz() {
-            _quizLimpiarTimers();
             if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
             const mi = quizGameState.puntajes.mi;
             const op = quizGameState.puntajes.oponente;
-            quizGameState.historicoTotal.mi = (quizGameState.historicoTotal.mi || 0) + mi;
-            quizGameState.historicoTotal.oponente = (quizGameState.historicoTotal.oponente || 0) + op;
-
             const winEl = document.getElementById('modal-win');
             const titleEl = document.getElementById('win-title');
             const msgEl = document.getElementById('win-msg');
-            const btnPlay = document.getElementById('btn-play-again-win');
-            const btnExit = winEl.querySelector('.btn-exit');
             const exitBtnQ = document.getElementById('quizExitBtn');
             if (exitBtnQ) exitBtnQ.style.display = '';
 
-            let titulo;
-            if (mi > op) titulo = '🏆 ¡Ganaste!';
-            else if (op > mi) titulo = '😔 Perdiste';
-            else titulo = '🤝 ¡Empate!';
+            quizGameState.historicoTotal.mi = (quizGameState.historicoTotal.mi || 0) + mi;
+            quizGameState.historicoTotal.oponente = (quizGameState.historicoTotal.oponente || 0) + op;
+
+            let titulo, msg;
+            if (mi > op) { titulo = '🏆 ¡Ganaste!'; msg = `${mi} vs ${op} puntos`; }
+            else if (op > mi) { titulo = '😔 Perdiste'; msg = `${op} vs ${mi} puntos`; }
+            else { titulo = '🤝 ¡Empate!'; msg = `${mi} vs ${op} puntos`; }
 
             if (titleEl) titleEl.textContent = titulo;
-            if (msgEl) msgEl.textContent = `${mi} vs ${op} puntos`;
-
-            if (quizGameState.modoRondas) {
-                if (btnPlay) {
-                    btnPlay.textContent = '🔁 Revancha';
-                    btnPlay.onclick = () => { winEl.classList.remove('active'); _quizPedirRevancha(); };
-                }
-            } else {
-                if (btnPlay) {
-                    btnPlay.textContent = '🔄 Jugar de nuevo';
-                    btnPlay.onclick = () => { winEl.classList.remove('active'); _quizPedirJugarDeNuevo(); };
-                }
-            }
-            if (btnExit) {
-                btnExit.textContent = 'Salir';
-                btnExit.onclick = () => { winEl.classList.remove('active'); cerrarJuegoWindow(); };
-            }
-            winEl.classList.add('active');
+            if (msgEl) msgEl.textContent = msg;
+            if (winEl) winEl.classList.add('active');
             if (mi > op) lanzarConfetti();
-        }
-
-        function _quizPedirJugarDeNuevo() {
-            const yo = capitalizarNombre(usuarioActual) || 'Tú';
-            window._quizJugarNuevoTs = Date.now();
-            _tttSendSignal('quiz_jugar_nuevo', { nombre: yo, ts: window._quizJugarNuevoTs });
-            _showNotify('🔄', 'Solicitud enviada', `Esperando que ${nombreOponente()} acepte...`,
-                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => { _hideNotify(); } }]
-            );
-        }
-
-        function _quizPedirRevancha() {
-            const yo = capitalizarNombre(usuarioActual) || 'Tú';
-            window._quizMiRematchTs = Date.now();
-            _tttSendSignal('quiz_rematch_request', { nombre: yo, ts: window._quizMiRematchTs });
-            _showNotify('🔁', 'Revancha enviada', `Esperando respuesta de ${nombreOponente()}...`,
-                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => { _hideNotify(); } }]
-            );
         }
 
         function _quizResetCompleto() {
@@ -9377,11 +9186,8 @@ window.cerrarJuegoWindow = function() {
             premiosJuego.quiz.oponente = null;
             quizGameState.puntajes = { mi: 0, oponente: 0 };
             quizGameState.preguntaActual = 0;
-            quizGameState.historicoTotal = { mi: 0, oponente: 0 };
+            quizGameState.historicoTotal = {};
             quizGameState._yaFinalizo = false;
-            quizGameState.miRespuesta = null;
-            quizGameState.opRespuesta = null;
-            _quizLimpiarTimers();
             if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
         }
 
@@ -9393,52 +9199,20 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('quiz-question-view').classList.add('active');
             quizGameState.preguntaActual = 0;
             quizGameState.puntajes = { mi: 0, oponente: 0 };
-            quizGameState.miRespuesta = null;
-            quizGameState.opRespuesta = null;
             quizGameState._yaFinalizo = false;
-            _quizLimpiarTimers();
+            // Limpiar nodo de Firebase para nueva partida
             if (salaActualKey) { remove(_quizDbRef()).catch(() => {}); }
-            const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-            quizGameState.preguntas = [].concat(...porNivel).slice(0, 5);
+            // Re-seleccionar preguntas del banco
+            const numPregs = quizGameState.modoRondas ? 5 : 10;
+            const porNivelRev = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
+            quizGameState.preguntas = [].concat(...porNivelRev).slice(0, numPregs);
             actualizarScoreboardQuiz();
             arrancarQuiz();
         }
 
-        function _quizMostrarCountdownJugarDeNuevo(solicitante) {
-            _hideNotify();
-            document.getElementById('modal-win').classList.remove('active');
-            let secs = 3;
-            _showNotify('🟢', `¡${solicitante} quiere jugar de nuevo!`, `Iniciando en ${secs}...`, []);
-            const interval = setInterval(() => {
-                secs--;
-                const msgEl = document.getElementById('notify-msg');
-                if (msgEl) msgEl.textContent = secs > 0 ? `Iniciando en ${secs}...` : '¡Comenzando!';
-                if (secs <= 0) {
-                    clearInterval(interval);
-                    _hideNotify();
-                    _doRevanchaQuizReal();
-                }
-            }, 1000);
-        }
 
-        function _quizMostrarCountdownRevancha(solicitante) {
-            _hideNotify();
-            document.getElementById('modal-win').classList.remove('active');
-            let secs = 3;
-            _showNotify('🔁', `¡Revancha con ${solicitante}!`, `Comenzando en ${secs}...`, []);
-            const interval = setInterval(() => {
-                secs--;
-                const msgEl = document.getElementById('notify-msg');
-                if (msgEl) msgEl.textContent = secs > 0 ? `Comenzando en ${secs}...` : '¡Comenzando!';
-                if (secs <= 0) {
-                    clearInterval(interval);
-                    _hideNotify();
-                    _doRevanchaQuizReal();
-                }
-            }, 1000);
-        }
+        // INICIAR
 
-        function oponenteBuzzQuiz() {}  // legacy compat
 
         // ============================================================
         // EXPONER FUNCIONES DE JUEGOS AL SCOPE GLOBAL (módulo ES)
@@ -9797,8 +9571,7 @@ window.cerrarJuegoWindow = function() {
 
         // Obtener micrófono
         try {
-            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1, googEchoCancellation: true, googAutoGainControl: true, googNoiseSuppression: true, googHighpassFilter: true, googEchoCancellation2: true, googNoiseSuppression2: true }, video: false });
-            _localStream = _aplicarFiltroAudio(_localStream);
+            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
         } catch(e) {
             showToast('❌ No se pudo acceder al micrófono');
             document.getElementById('calling-overlay').classList.remove('active');
@@ -9873,8 +9646,7 @@ window.cerrarJuegoWindow = function() {
         _isCaller = false;
 
         try {
-            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000, channelCount: 1, googEchoCancellation: true, googAutoGainControl: true, googNoiseSuppression: true, googHighpassFilter: true, googEchoCancellation2: true, googNoiseSuppression2: true }, video: false });
-            _localStream = _aplicarFiltroAudio(_localStream);
+            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
         } catch(e) {
             showToast('❌ No se pudo acceder al micrófono'); return;
         }
