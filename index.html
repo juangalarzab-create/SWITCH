@@ -81,20 +81,19 @@
             height: -webkit-fill-available;
             height: 100dvh;
             /* Respetar notch/status-bar en todos los modos (browser y PWA) */
-            padding-bottom: env(safe-area-inset-bottom, 0px);
-            padding-top: 0px; /* el header absorbe el safe-area-inset-top */
+            padding-bottom: 0px;
+            padding-top: 0px;
         }
-
-        /* NOTA: NO se resetea el safe-area en standalone; el header ya lo absorbe */
         /* Ocultar scrollbar del sistema */
         ::-webkit-scrollbar { width: 0; height: 0; }
 
         .container {
             width: 100%;
-            height: 100vh;
-            height: 100dvh; /* altura dinámica: respeta barra URL/navegación en móvil */
+            height: 100dvh;
+            /* En iOS Safari: respetar el notch y la home bar usando dvh */
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         /* ── Pantallas grandes: centrar la app con aspecto de móvil elegante ── */
@@ -128,17 +127,16 @@
 
         .header {
             background: #000000;
-            padding: 12px 16px;
+            padding: 8px 16px;
             /* Absorbe el notch/status-bar de iPhone (Safari browser y PWA) */
-            padding-top: calc(12px + env(safe-area-inset-top, 0px));
+            padding-top: calc(8px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: calc(56px + env(safe-area-inset-top, 0px));
-            position: sticky;
-            top: 0;
+            min-height: calc(48px + env(safe-area-inset-top, 0px));
+            position: relative;
             z-index: 100;
             flex-shrink: 0;
         }
@@ -516,19 +514,27 @@
         /* ===== PANTALLA CHAT ===== */
         .screen-chat {
             background: #000000;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
         }
 
         /* Header del chat — estilo Telegram dark */
         .chat-header {
             background: #1a1a1a;
             padding: 0 12px;
-            min-height: 58px;
+            padding-top: env(safe-area-inset-top, 0px);
+            min-height: calc(52px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             display: none;
             justify-content: flex-start;
-            align-items: center;
+            align-items: flex-end;
+            padding-bottom: 8px;
             gap: 10px;
             box-shadow: 0 1px 6px rgba(0,0,0,0.6);
+            flex-shrink: 0;
         }
 
         /* Flecha atrás — reemplaza btn-home */
@@ -848,12 +854,14 @@
         /* Área de mensajes */
         .mensajes-area {
             flex: 1;
+            min-height: 0;
             overflow-y: auto;
             padding: 12px 10px;
             display: flex;
             flex-direction: column;
             gap: 3px;
             background: #000000;
+            -webkit-overflow-scrolling: touch;
         }
 
         .mensaje {
@@ -923,21 +931,24 @@
         .mensaje.otro   .msg-time { color: rgba(255,255,255,0.40); }
 
         .input-area {
-            padding: 16px;
+            padding: 10px 12px;
+            padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
             background: #1a1a1a;
             border-top: 1px solid #333;
             display: flex;
-            gap: 12px;
+            gap: 10px;
             align-items: center;
+            flex-shrink: 0;
         }
 
         /* ===== BARRA DE EMOJIS RÁPIDOS (arriba del input) ===== */
         .emoji-bar {
             display: flex;
             gap: 4px;
-            padding: 6px 10px;
+            padding: 4px 8px;
             background: #1a1a1a;
             border-top: 1px solid #2a2a2a;
+            flex-shrink: 0;
             overflow-x: auto;
             overflow-y: hidden;
             scrollbar-width: thin;
@@ -1335,23 +1346,24 @@
 
         .game-window.jugando {
             width: 100vw;
-            height: 50vh;
+            height: calc(50dvh - env(safe-area-inset-top, 0px) / 2);
             right: 0;
             left: 0;
-            top: 0;
+            top: env(safe-area-inset-top, 0px);
             bottom: auto;
             border-radius: 0;
             position: fixed;
             z-index: 800;
             border-bottom: 3px solid rgba(255, 255, 255, 0.3);
             border-left: none;
+            padding-top: 0;
         }
 
         .screen-chat.jugando {
             width: 100vw;
             position: fixed;
             left: 0;
-            top: 50vh;
+            top: calc(50dvh + env(safe-area-inset-top, 0px) / 2);
             height: 50vh;
             z-index: 799;
             border-right: none;
@@ -2595,73 +2607,161 @@
         }
         .btn-notify-ok:hover { transform: translateY(-1px); }
 
+        /* ======================================================
+           MODAL GANADOR — versión premium con brillo y animaciones
+           ====================================================== */
         .modal-win {
             display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #1e1e3f 0%, #16213e 100%);
-            border: 2px solid #ffd700;
-            border-radius: 16px;
-            padding: 32px 28px;
+            background: linear-gradient(160deg, #0d0d2b 0%, #1a1a4e 40%, #0d2b0d 100%);
+            border: 3px solid transparent;
+            border-radius: 24px;
+            padding: 0;
             z-index: 1003;
             text-align: center;
             max-width: 420px;
-            width: 90%;
-            box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+            width: 92%;
+            box-shadow:
+                0 0 0 1px rgba(255,215,0,0.3),
+                0 0 40px rgba(255,215,0,0.35),
+                0 0 80px rgba(255,165,0,0.15),
+                inset 0 0 60px rgba(255,215,0,0.04);
+            overflow: hidden;
+        }
+
+        /* Borde animado brillante */
+        .modal-win::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            padding: 3px;
+            background: linear-gradient(135deg, #ffd700, #ff6b35, #ff0080, #ffd700, #00e5ff, #ffd700);
+            background-size: 400% 400%;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            animation: borderGlow 3s ease infinite;
+            z-index: -1;
+        }
+        @keyframes borderGlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Fondo con estrellas animadas */
+        .modal-win::after {
+            content: '✨⭐💫✨⭐💫✨';
+            position: absolute;
+            top: -10px; left: 0; right: 0;
+            font-size: 18px;
+            opacity: 0.25;
+            animation: starsFloat 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes starsFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.2; }
+            50% { transform: translateY(8px) rotate(10deg); opacity: 0.4; }
         }
 
         .modal-win.active {
             display: block;
-            animation: winPop 0.5s ease-out;
+            animation: winPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         @keyframes winPop {
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-            60% { transform: translate(-50%, -50%) scale(1.05); }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            0%   { transform: translate(-50%, -50%) scale(0.3) rotate(-5deg); opacity: 0; }
+            50%  { transform: translate(-50%, -50%) scale(1.08) rotate(1deg); opacity: 1; }
+            75%  { transform: translate(-50%, -50%) scale(0.96) rotate(-0.5deg); }
+            100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        /* Inner wrapper for padding */
+        .modal-win-inner {
+            padding: 28px 24px 24px;
+            position: relative;
         }
 
         .win-title {
             color: #ffd700;
-            font-size: 32px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+            font-size: 30px;
+            font-weight: 900;
+            margin-bottom: 4px;
+            text-shadow:
+                0 0 10px rgba(255,215,0,0.8),
+                0 0 20px rgba(255,215,0,0.5),
+                0 0 40px rgba(255,165,0,0.4);
+            animation: titlePulse 2s ease-in-out infinite;
+        }
+        @keyframes titlePulse {
+            0%, 100% { text-shadow: 0 0 10px rgba(255,215,0,0.8), 0 0 20px rgba(255,215,0,0.5); }
+            50%       { text-shadow: 0 0 20px rgba(255,215,0,1),   0 0 40px rgba(255,215,0,0.7), 0 0 60px rgba(255,165,0,0.5); }
         }
 
         .win-trophy {
-            font-size: 60px;
-            margin: 8px 0;
-            animation: trophyBounce 1.2s ease-in-out infinite;
+            font-size: 72px;
+            margin: 6px 0;
+            display: block;
+            filter: drop-shadow(0 0 12px rgba(255,215,0,0.8));
+            animation: trophyBounce 1.4s ease-in-out infinite;
+        }
+        @keyframes trophyBounce {
+            0%, 100% { transform: translateY(0) rotate(-4deg) scale(1); }
+            40%       { transform: translateY(-14px) rotate(4deg) scale(1.05); }
+            70%       { transform: translateY(-6px) rotate(-2deg) scale(1.02); }
         }
 
-        @keyframes trophyBounce {
-            0%, 100% { transform: translateY(0) rotate(-5deg); }
-            50% { transform: translateY(-10px) rotate(5deg); }
+        .win-message {
+            color: #ccc;
+            font-size: 14px;
+            margin: 6px 0 10px;
+            line-height: 1.5;
         }
 
         .win-prize-box {
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.15));
+            background: linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,140,0,0.12));
             border: 2px dashed #ffd700;
-            border-radius: 12px;
-            padding: 16px;
-            margin: 16px 0;
+            border-radius: 14px;
+            padding: 14px 16px;
+            margin: 14px 0 10px;
+            position: relative;
+            overflow: hidden;
+            animation: prizeBoxShine 2s ease-in-out infinite;
+        }
+        @keyframes prizeBoxShine {
+            0%, 100% { box-shadow: 0 0 12px rgba(255,215,0,0.3); }
+            50%       { box-shadow: 0 0 24px rgba(255,215,0,0.6); }
+        }
+        .win-prize-box::before {
+            content: '🎁';
+            position: absolute;
+            top: -6px; right: -6px;
+            font-size: 28px;
+            opacity: 0.5;
+            animation: giftSpin 3s linear infinite;
+        }
+        @keyframes giftSpin {
+            0%   { transform: rotate(0deg) scale(1); }
+            50%  { transform: rotate(10deg) scale(1.1); }
+            100% { transform: rotate(0deg) scale(1); }
         }
 
         .win-prize-label {
             color: #aaa;
-            font-size: 12px;
+            font-size: 11px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             margin-bottom: 6px;
         }
 
         .win-prize-value {
             color: #ffd700;
-            font-size: 22px;
-            font-weight: bold;
+            font-size: 24px;
+            font-weight: 900;
+            text-shadow: 0 0 8px rgba(255,215,0,0.6);
         }
 
         .win-loser-note {
@@ -2669,6 +2769,18 @@
             font-size: 13px;
             margin-top: 10px;
             font-style: italic;
+            text-shadow: 0 0 6px rgba(255,100,100,0.4);
+        }
+
+        /* Botones del modal ganador */
+        .win-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .win-btns .btn-accept,
+        .win-btns .btn-reject {
+            flex: 1;
         }
 
         /* ===== CONFETI ===== */
@@ -3603,9 +3715,8 @@
         }
         .push-banner-close:hover { color: #333; }
 
-        /* ===== SAFE AREA (notch / barra inferior iOS / Android) ===== */
-        body { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
-        .container { padding-bottom: env(safe-area-inset-bottom, 0px); }
+        /* ===== SAFE AREA (notch / barra inferior iOS / Android) — NO tocar body, el .header y .input-area lo absorben ===== */
+        /* La safe area se maneja en .chat-header, .header y .input-area para no crear padding en body */
 
         /* ===== RESPONSIVE: pantallas anchas (tablet / desktop) ===== */
         @media (min-width: 769px) {
@@ -4304,17 +4415,19 @@
 
     <!-- MODAL GANAR TICTACTOE / STOP (con premio y confeti) -->
     <div class="modal-win" id="modal-win">
-        <div class="win-trophy" id="win-trophy">🏆</div>
-        <div class="win-title" id="win-title">¡GANASTE!</div>
-        <div id="win-message" style="color: #aaa; margin-bottom: 8px;"></div>
-        <div class="win-prize-box" id="win-prize-box" style="display:none;">
-            <div class="win-prize-label" id="win-prize-label">PREMIO</div>
-            <div class="win-prize-value" id="win-prize-value">—</div>
-            <div class="win-loser-note" id="win-loser-note" style="display:none;"></div>
-        </div>
-        <div class="win-buttons">
-            <button class="btn-play-again" id="btn-play-again-win" onclick="reiniciarTicTacToe()">Jugar de Nuevo</button>
-            <button class="btn-exit" onclick="cerrarJuegoWindow()">Salir</button>
+        <div class="modal-win-inner">
+            <div class="win-trophy" id="win-trophy">🏆</div>
+            <div class="win-title" id="win-title">¡GANASTE!</div>
+            <div class="win-message" id="win-message"></div>
+            <div class="win-prize-box" id="win-prize-box" style="display:none;">
+                <div class="win-prize-label" id="win-prize-label">TU PREMIO</div>
+                <div class="win-prize-value" id="win-prize-value">—</div>
+                <div class="win-loser-note" id="win-loser-note" style="display:none;"></div>
+            </div>
+            <div class="win-buttons">
+                <button class="btn-play-again" id="btn-play-again-win" onclick="reiniciarTicTacToe()">Jugar de Nuevo</button>
+                <button class="btn-exit" onclick="cerrarJuegoWindow()">Salir</button>
+            </div>
         </div>
     </div>
 
@@ -4892,7 +5005,9 @@ async function _borrarSalaCompleta(key) {
         `tokens/${key}`,
         `gameInvites/${key}`,
         `gameStart/${key}`,
-        `gameData/${key}`
+        `gameData/${key}`,
+        `presence/${key}`,
+        `typing/${key}`
     ];
     // Usamos allSettled para que si alguna ruta no existe o falla, las demás igual se borren
     await Promise.allSettled(rutas.map(r => remove(ref(db, r))));
@@ -6056,6 +6171,10 @@ const _origSalirJuego = window.salirAlMenuJuegos;
 window.salirAlMenuJuegos = function() {
     window._modoBot = false;
     oponenteActual = null;
+    // Cortar comunicación de voz si hay llamada activa al salir del juego
+    if (typeof window.colgarLlamada === 'function') {
+        try { window.colgarLlamada(); } catch(e) {}
+    }
     if (_origSalirJuego) _origSalirJuego.apply(this, arguments);
 };
 
@@ -6121,6 +6240,10 @@ window.cerrarJuegoWindow = function() {
         return;
     }
     // Soy jugador: flujo completo con notificación al oponente
+    // Cortar voz activa si la hay
+    if (typeof window.colgarLlamada === 'function') {
+        try { window.colgarLlamada(); } catch(e) {}
+    }
     if (typeof salirAlMenuJuegos === 'function') {
         salirAlMenuJuegos();
     }
@@ -9161,24 +9284,65 @@ window.cerrarJuegoWindow = function() {
             if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
             const mi = quizGameState.puntajes.mi;
             const op = quizGameState.puntajes.oponente;
-            const winEl = document.getElementById('modal-win');
-            const titleEl = document.getElementById('win-title');
-            const msgEl = document.getElementById('win-msg');
+            const yo = capitalizarNombre(usuarioActual);
+            const opNombre = window._modoBot ? '🤖 Sistema' : nombreOponente();
+            const miPremio = premiosJuego.quiz.mi;
+            const opPremio = premiosJuego.quiz.oponente;
             const exitBtnQ = document.getElementById('quizExitBtn');
             if (exitBtnQ) exitBtnQ.style.display = '';
 
             quizGameState.historicoTotal.mi = (quizGameState.historicoTotal.mi || 0) + mi;
             quizGameState.historicoTotal.oponente = (quizGameState.historicoTotal.oponente || 0) + op;
 
-            let titulo, msg;
-            if (mi > op) { titulo = '🏆 ¡Ganaste!'; msg = `${mi} vs ${op} puntos`; }
-            else if (op > mi) { titulo = '😔 Perdiste'; msg = `${op} vs ${mi} puntos`; }
-            else { titulo = '🤝 ¡Empate!'; msg = `${mi} vs ${op} puntos`; }
+            const msgPartida = `${yo} ${mi} pts — ${opNombre} ${op} pts`;
+            const histMi = quizGameState.historicoTotal.mi;
+            const histOp = quizGameState.historicoTotal.oponente;
 
-            if (titleEl) titleEl.textContent = titulo;
-            if (msgEl) msgEl.textContent = msg;
-            if (winEl) winEl.classList.add('active');
-            if (mi > op) lanzarConfetti();
+            document.getElementById('win-message').innerHTML =
+                `${msgPartida}<br><span style="color:#ffd700;font-size:13px;">📊 Acumulado: ${yo} ${histMi} — ${opNombre} ${histOp}</span>`;
+
+            if (mi > op) {
+                document.getElementById('win-trophy').textContent = '🏆';
+                document.getElementById('win-title').textContent = `¡Ganaste, ${yo}!`;
+                if (miPremio) {
+                    document.getElementById('win-prize-box').style.display = 'block';
+                    document.getElementById('win-prize-label').textContent = 'TU PREMIO';
+                    document.getElementById('win-prize-value').textContent = miPremio;
+                    const note = document.getElementById('win-loser-note');
+                    note.style.display = 'block';
+                    note.textContent = `${opNombre} te debe: ${miPremio}`;
+                } else {
+                    document.getElementById('win-prize-box').style.display = 'none';
+                }
+                lanzarConfetti();
+            } else if (op > mi) {
+                document.getElementById('win-trophy').textContent = '😅';
+                document.getElementById('win-title').textContent = `Ganó ${opNombre}`;
+                if (opPremio) {
+                    document.getElementById('win-prize-box').style.display = 'block';
+                    document.getElementById('win-prize-label').textContent = 'TIENES QUE DAR';
+                    document.getElementById('win-prize-value').textContent = opPremio;
+                    const note = document.getElementById('win-loser-note');
+                    note.style.display = 'block';
+                    note.textContent = `Le debes ${opPremio} a ${opNombre}`;
+                } else {
+                    document.getElementById('win-prize-box').style.display = 'none';
+                }
+            } else {
+                document.getElementById('win-trophy').textContent = '🤝';
+                document.getElementById('win-title').textContent = '¡Empate!';
+                document.getElementById('win-prize-box').style.display = 'none';
+            }
+
+            // Configurar botón de revancha
+            const btnReplay = document.getElementById('btn-play-again-win');
+            if (btnReplay) {
+                btnReplay.style.display = '';
+                btnReplay.textContent = '🔄 Revancha';
+                btnReplay.onclick = _doRevanchaQuizReal;
+            }
+            _prepararModalWinSalir();
+            document.getElementById('modal-win').classList.add('active');
         }
 
         function _quizResetCompleto() {
