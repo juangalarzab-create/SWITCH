@@ -8933,15 +8933,14 @@ window.cerrarJuegoWindow = function() {
             preguntaActual: 0,
             totalPreguntas: 5,
             puntajes: { mi: 0, oponente: 0 },
-            modoRondas: false,
+            modoRondas: false,       // true = hay premio
             historicoTotal: { mi: 0, oponente: 0 },
-            miRespuesta: null,
-            opRespuesta: null,
+            miRespuesta: null,       // índice elegido por mí (-1 = tiempo agotado sin responder)
+            opRespuesta: null,       // índice elegido por oponente
             _yaFinalizo: false,
-            _resultadoMostrado: false, // true cuando ya se mostró el modal de resultado de esta pregunta
-            _cdInterval: null,
-            _cdNextInterval: null,
-            _esperandoOp: false,
+            _cdInterval: null,       // countdown 5s pregunta
+            _cdNextInterval: null,   // countdown 3s siguiente pregunta
+            _esperandoOp: false,     // estoy esperando al oponente después de responder
         };
 
         function iniciarQuiz() {
@@ -9027,8 +9026,7 @@ window.cerrarJuegoWindow = function() {
             quizGameState.miRespuesta = null;
             quizGameState.opRespuesta = null;
             quizGameState._yaFinalizo = false;
-            quizGameState._resultadoMostrado = false;
-            quizGameState._modoLibre = !hayPremio;
+            quizGameState._modoLibre = !hayPremio;  // sin premio = modo libre sin límite
             _quizLimpiarTimers();
 
             document.getElementById('quiz-lobby').style.display = 'none';
@@ -9113,89 +9111,20 @@ window.cerrarJuegoWindow = function() {
                     return;
                 }
 
-                // ── SINCRONIZACIÓN REAL DEL RESULTADO ──
-                // El HOST escribe quiz/resultado cuando ambos respondieron.
-                // AMBOS jugadores lo leen aquí y muestran el modal exactamente al mismo tiempo.
-                const resultado = data.resultado;
-                if (resultado && resultado.pregIdx === quizGameState.preguntaActual && !quizGameState._resultadoMostrado) {
-                    quizGameState._resultadoMostrado = true;
-
-                    // Detener conteo si sigue activo
-                    if (quizGameState._cdInterval) {
-                        clearInterval(quizGameState._cdInterval);
-                        quizGameState._cdInterval = null;
-                        const cdTop = document.getElementById('quizCountdownTop');
-                        if (cdTop) cdTop.style.display = 'none';
-                    }
-
-                    // Sincronizar respuestas locales desde el servidor
-                    const opKeyR = oponenteActual || Object.keys(resultado.resps || {}).find(k => k !== usuarioActual) || '';
-                    quizGameState.miRespuesta = resultado.resps[usuarioActual] !== undefined ? resultado.resps[usuarioActual] : (quizGameState.miRespuesta !== null ? quizGameState.miRespuesta : -1);
-                    quizGameState.opRespuesta = resultado.resps[opKeyR] !== undefined ? resultado.resps[opKeyR] : (quizGameState.opRespuesta !== null ? quizGameState.opRespuesta : -1);
-
-                    // Sincronizar puntajes
-                    if (resultado.puntajes) {
-                        quizGameState.puntajes.mi = resultado.puntajes[usuarioActual] !== undefined ? resultado.puntajes[usuarioActual] : quizGameState.puntajes.mi;
-                        quizGameState.puntajes.oponente = resultado.puntajes[opKeyR] !== undefined ? resultado.puntajes[opKeyR] : quizGameState.puntajes.oponente;
-                        actualizarScoreboardQuiz();
-                    }
-
-                    bloquearBotonesQuiz();
-
-                    // Revelar respuestas visualmente
-                    const p = quizGameState.preguntas[quizGameState.preguntaActual];
-                    if (p) {
-                        const correcta = p.ans;
-                        const miIdx = quizGameState.miRespuesta;
-                        const opIdx = quizGameState.opRespuesta;
-                        const PUNTOS = 50;
-                        const yoAcerte = miIdx === correcta;
-                        const opAcerto = opIdx === correcta;
-
-                        document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach((btn, i) => {
-                            btn.style.background = ''; btn.style.borderColor = ''; btn.disabled = true;
-                            if (i === correcta) btn.classList.add('reveal-correct');
-                            if (i === miIdx && miIdx !== correcta && miIdx !== -1) btn.classList.add('wrong');
-                            if (i === miIdx && miIdx === correcta) btn.classList.add('correct');
-                        });
-                        _quizMarcarEstadoJugador(true, true);
-
-                        // Banner resultado
-                        const banner = document.getElementById('quizResultBanner');
-                        let txt = '', cls = 'quiz-result-banner show ';
-                        if (miIdx === -1 && opIdx === -1) { txt = `⏰ Tiempo agotado. Nadie respondió. Correcta: ${['A','B','C'][correcta]}`; cls += 'no-answer-banner'; }
-                        else if (yoAcerte && opAcerto) { txt = `✅ ¡Ambos acertaron! +${PUNTOS} cada uno`; cls += 'correct-banner'; }
-                        else if (yoAcerte) { txt = `✅ ¡Correcto! +${PUNTOS} pts — ${nombreOponente()} falló`; cls += 'correct-banner'; }
-                        else if (opAcerto) { txt = `❌ ${miIdx === -1 ? 'No respondiste' : 'Fallaste'}. ${nombreOponente()} acertó (+${PUNTOS})`; cls += 'wrong-banner'; }
-                        else { txt = `❌ Nadie acertó`; cls += 'wrong-banner'; }
-                        if (banner) { banner.textContent = txt; banner.className = cls; }
-
-                        // Modal simultáneo para ambos
-                        const esUltima = resultado.pregIdx + 1 >= 5;
-                        if (esUltima) {
-                            setTimeout(() => mostrarGanadorFinalQuiz(), 1800);
-                        } else {
-                            _quizMostrarModalSiguiente(yoAcerte, opAcerto, PUNTOS);
-                        }
-                    }
-                    return;
-                }
-
-                // Detectar respuesta del oponente (solo para marcar su estado visualmente)
+                // Detectar respuesta del oponente
                 const resps = data.respuestas || {};
                 const opKey2 = oponenteActual || Object.keys(resps).find(k => k !== usuarioActual) || '';
                 const opResp = resps[opKey2];
                 if (opResp && opResp.pregIdx === quizGameState.preguntaActual && quizGameState.opRespuesta === null) {
                     quizGameState.opRespuesta = opResp.optIdx;
                     _quizMarcarEstadoJugador(false, true);
-
-                    // Si YO ya respondí también y soy HOST → publicar resultado para sincronizar ambos
-                    if (quizGameState.miRespuesta !== null && _quizIsHost && !quizGameState._resultadoMostrado) {
-                        _quizPublicarResultado();
+                    if (quizGameState.miRespuesta !== null) {
+                        _quizCalificarAmbos();
                     }
                 }
 
                 if (newIdx > quizGameState.preguntaActual && newIdx < quizGameState.preguntas.length) {
+                    // Ocultar alerta de modo libre si está visible (el otro usuario avanzó primero)
                     const alertaEl = document.getElementById('quiz-alerta-libre');
                     if (alertaEl) alertaEl.remove();
                     quizGameState.preguntaActual = newIdx;
@@ -9206,6 +9135,7 @@ window.cerrarJuegoWindow = function() {
                         mostrarGanadorFinalQuiz();
                     }
                 }
+                // Modo libre: si el host reinicia preguntaActual a 0 (ciclo), sincronizar
                 if (quizGameState._modoLibre && newIdx === 0 && quizGameState.preguntaActual !== 0) {
                     const alertaEl = document.getElementById('quiz-alerta-libre');
                     if (alertaEl) alertaEl.remove();
@@ -9213,40 +9143,6 @@ window.cerrarJuegoWindow = function() {
                     setTimeout(() => mostrarPreguntaQuiz(), 300);
                 }
             });
-        }
-
-        // El HOST publica el resultado oficial en Firebase → ambos lo leen y muestran el modal al mismo tiempo
-        function _quizPublicarResultado() {
-            const p = quizGameState.preguntas[quizGameState.preguntaActual];
-            if (!p || !salaActualKey) return;
-            const correcta = p.ans;
-            const PUNTOS = 50;
-            const miIdx = quizGameState.miRespuesta !== null ? quizGameState.miRespuesta : -1;
-            const opIdx = quizGameState.opRespuesta !== null ? quizGameState.opRespuesta : -1;
-            const yoAcerte = miIdx === correcta;
-            const opAcerto = opIdx === correcta;
-
-            // Calcular puntajes finales
-            const miPtsNuevo = quizGameState.puntajes.mi + (yoAcerte ? PUNTOS : 0);
-            const opPtsNuevo = quizGameState.puntajes.oponente + (opAcerto ? PUNTOS : 0);
-
-            const respsUp = {};
-            respsUp[usuarioActual] = miIdx;
-            respsUp[oponenteActual || '__op'] = opIdx;
-
-            const ptsUp = {};
-            ptsUp[usuarioActual] = miPtsNuevo;
-            ptsUp[oponenteActual || '__op'] = opPtsNuevo;
-
-            // Publicar en Firebase → el listener de AMBOS jugadores lo detecta y muestra el modal
-            set(ref(db, `gameData/${salaActualKey}/quiz/resultado`), {
-                pregIdx: quizGameState.preguntaActual,
-                resps: respsUp,
-                puntajes: ptsUp,
-                ts: Date.now()
-            }).catch(() => {});
-
-            set(ref(db, `gameData/${salaActualKey}/quiz/puntajes`), ptsUp).catch(() => {});
         }
 
         function actualizarScoreboardQuiz() {
@@ -9290,13 +9186,7 @@ window.cerrarJuegoWindow = function() {
             quizGameState.miRespuesta = null;
             quizGameState.opRespuesta = null;
             quizGameState._esperandoOp = false;
-            quizGameState._resultadoMostrado = false;
             _quizLimpiarTimers();
-
-            // Limpiar nodo resultado de Firebase para esta nueva pregunta (solo host)
-            if (!window._modoBot && salaActualKey && _quizIsHost) {
-                set(ref(db, `gameData/${salaActualKey}/quiz/resultado`), null).catch(() => {});
-            }
 
             document.getElementById('quizCategoryBadge').textContent = p.cat;
             // En modo libre: "Pregunta N" sin total. Con premio: "Pregunta N de 5"
@@ -9388,16 +9278,8 @@ window.cerrarJuegoWindow = function() {
                         if (quizGameState.opRespuesta === null) quizGameState.opRespuesta = -1;
                         _quizCalificarAmbos();
                     } else {
-                        // El HOST publica el resultado para sincronizar a ambos
-                        if (_quizIsHost && !quizGameState._resultadoMostrado) {
-                            // Esperar brevemente para que el no-host también registre su -1 si aplica
-                            setTimeout(() => {
-                                if (quizGameState.opRespuesta === null) quizGameState.opRespuesta = -1;
-                                _quizPublicarResultado();
-                            }, 800);
-                        } else if (!_quizIsHost) {
-                            // El no-host espera que el host publique el resultado
-                            // (el listener lo recibirá)
+                        if (quizGameState.opRespuesta !== null) {
+                            _quizCalificarAmbos();
                         }
                     }
                 }
@@ -9408,10 +9290,11 @@ window.cerrarJuegoWindow = function() {
 
         function seleccionarOpcionQuiz(optIdx, btnEl) {
             if (quizGameState.miRespuesta !== null) return;
-            if (!quizGameState._modoLibre && !quizGameState._cdInterval) return;
+            // En modo con premio: requiere que el conteo esté activo. En modo libre: siempre se puede responder.
+            if (!quizGameState._modoLibre && !quizGameState._cdInterval) return; // tiempo agotado en modo premio
 
             quizGameState.miRespuesta = optIdx;
-            // Bloquear mis botones visualmente (pero no calificar aún)
+            // Solo bloquear para mí (no para el oponente aún)
             document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(b => {
                 b.disabled = true;
                 if (parseInt(b.dataset.optIndex) === optIdx) {
@@ -9421,21 +9304,22 @@ window.cerrarJuegoWindow = function() {
             });
             _quizMarcarEstadoJugador(true, false);
 
-            // Guardar mi respuesta en Firebase
             if (!window._modoBot && salaActualKey && oponenteActual) {
                 set(ref(db, `gameData/${salaActualKey}/quiz/respuestas/${usuarioActual}`), {
                     pregIdx: quizGameState.preguntaActual, optIdx, ts: Date.now()
                 }).catch(e => console.warn('[QUIZ]', e));
             }
 
-            // Si el oponente ya respondió Y soy HOST → publicar resultado (yo fui el último)
-            if (quizGameState.opRespuesta !== null && _quizIsHost && !quizGameState._resultadoMostrado) {
-                _quizPublicarResultado();
-            }
-
-            // Bot mode (sin Firebase): calificar directamente
-            if (window._modoBot && quizGameState.opRespuesta !== null) {
+            // Solo calificar cuando el oponente también haya marcado
+            if (quizGameState.opRespuesta !== null) {
                 _quizCalificarAmbos();
+            }
+            // Si ambos respondieron en modo con premio, detener conteo explícitamente
+            if (!quizGameState._modoLibre && quizGameState.opRespuesta !== null && quizGameState._cdInterval) {
+                clearInterval(quizGameState._cdInterval);
+                quizGameState._cdInterval = null;
+                const cdTop2 = document.getElementById('quizCountdownTop');
+                if (cdTop2) cdTop2.style.display = 'none';
             }
         }
 
