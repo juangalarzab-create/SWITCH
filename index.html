@@ -1375,7 +1375,7 @@
             position: fixed;
             left: 0;
             top: calc(50dvh + env(safe-area-inset-top, 0px) / 2);
-            height: calc(50dvh - env(safe-area-inset-bottom, 0px) / 2);
+            height: calc(50dvh - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) / 2);
             z-index: 799;
             border-right: none;
             border-top: 3px solid rgba(255, 255, 255, 0.3);
@@ -3170,7 +3170,9 @@
         .quiz-sb-mine .quiz-sb-name { color: #4caf50; }
         .quiz-sb-other .quiz-sb-name { color: #ff9800; }
         .quiz-sb-score { color: #fff; font-size: 26px; font-weight: bold; }
-        .quiz-sb-divider { color: #888; font-size: 14px; font-style: italic; padding: 0 8px; }
+        .quiz-sb-divider { color: #888; font-size: 14px; font-style: italic; padding: 0 8px; transition: all 0.3s; }
+        .quiz-sb-divider.countdown-mode { color: #ff9800; font-size: 32px; font-weight: bold; font-style: normal; text-shadow: 0 0 12px rgba(255,152,0,0.8); min-width: 44px; text-align: center; }
+        .quiz-sb-divider.countdown-urgent { color: #f44336; text-shadow: 0 0 16px rgba(244,67,54,0.9); }
 
         .quiz-lobby {
             display: flex;
@@ -3397,6 +3399,58 @@
         .quiz-score-alert-title { color: #ffd700; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
         .quiz-score-alert-detail { color: #ccc; font-size: 13px; }
 
+        /* ===== RACHA DE FUEGO (streak) ===== */
+        #racha-fuego-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #racha-fuego-overlay.show { opacity: 1; }
+        .racha-fuego-bg {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(255,100,0,0.18) 0%, transparent 70%);
+        }
+        .racha-fuego-emojis {
+            font-size: clamp(40px, 10vw, 70px);
+            letter-spacing: 4px;
+            animation: rachaFirePulse 0.5s ease-in-out infinite alternate;
+            position: relative;
+            z-index: 1;
+        }
+        .racha-fuego-texto {
+            color: #fff;
+            font-size: clamp(16px, 4vw, 22px);
+            font-weight: 900;
+            text-shadow: 0 0 20px #ff6600, 0 0 40px #ff4400, 2px 2px 4px #000;
+            margin-top: 8px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            letter-spacing: 1px;
+            padding: 0 20px;
+        }
+        .racha-fuego-sub {
+            color: #ffcc00;
+            font-size: clamp(12px, 3vw, 16px);
+            font-weight: 700;
+            text-shadow: 0 0 10px #ff8800;
+            margin-top: 4px;
+            position: relative;
+            z-index: 1;
+        }
+        @keyframes rachaFirePulse {
+            0% { transform: scale(1) translateY(0); }
+            100% { transform: scale(1.12) translateY(-4px); }
+        }
+
         .quiz-result-banner {
             font-size: 15px;
             font-weight: bold;
@@ -3429,10 +3483,10 @@
             /* JUEGOS EN MÓVIL: arriba el juego, abajo el chat */
             .game-window.jugando {
                 width: 100vw !important;
-                height: 50vh !important;
+                height: calc(50dvh - env(safe-area-inset-top, 0px) / 2) !important;
                 right: 0 !important;
                 left: 0 !important;
-                top: 0 !important;
+                top: env(safe-area-inset-top, 0px) !important;
                 bottom: auto !important;
                 border-radius: 0 !important;
                 border-bottom: 2px solid #ffffff !important;
@@ -3447,11 +3501,12 @@
                 overflow: hidden !important;
                 position: fixed !important;
                 left: 0 !important;
-                top: 50vh !important;
-                height: 50vh !important;
+                top: calc(50dvh + env(safe-area-inset-top, 0px) / 2) !important;
+                height: calc(50dvh - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) / 2) !important;
                 z-index: 799 !important;
                 border-right: none !important;
                 border-top: 2px solid #ffffff !important;
+                padding-bottom: 0 !important;
             }
             .screen-chat.jugando .mensajes-area {
                 flex: 1 !important;
@@ -3468,6 +3523,7 @@
             .screen-chat.jugando .input-area {
                 flex-shrink: 0 !important;
                 padding: 4px 6px !important;
+                padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)) !important;
                 gap: 4px !important;
             }
             .screen-chat.jugando .input-msg {
@@ -4292,7 +4348,7 @@
                     <div class="quiz-sb-name" id="quizSbMyName">Tú</div>
                     <div class="quiz-sb-score" id="quizSbMyScore">0</div>
                 </div>
-                <div class="quiz-sb-divider">vs</div>
+                <div class="quiz-sb-divider" id="quizSbDivider">vs</div>
                 <div class="quiz-sb-player quiz-sb-other">
                     <div class="quiz-sb-name" id="quizSbOtherName">Rival</div>
                     <div class="quiz-sb-score" id="quizSbOtherScore">0</div>
@@ -4358,6 +4414,14 @@
     </div>
 
     <!-- QUIZ SCORE ALERT (vistoso, en tiempo real) -->
+    <!-- RACHA DE FUEGO overlay (streak) -->
+    <div id="racha-fuego-overlay">
+        <div class="racha-fuego-bg"></div>
+        <div class="racha-fuego-emojis">🔥🔥🔥</div>
+        <div class="racha-fuego-texto" id="rachaFuegoTexto">¡EN RACHA!</div>
+        <div class="racha-fuego-sub" id="rachaFuegoSub"></div>
+    </div>
+
     <div class="quiz-score-alert" id="quizScoreAlert">
         <div class="quiz-score-alert-emoji" id="quizScoreAlertEmoji">🏆</div>
         <div class="quiz-score-alert-title" id="quizScoreAlertTitle">¡Correcto!</div>
@@ -5124,6 +5188,8 @@ window.guardarNombreUsuario = function() {
     escucharMensajes();
     // Escuchar invitaciones de juego en tiempo real para esta sala
     escucharInvitacionesJuego();
+    // Escuchar racha de fuego en Firebase
+    if (typeof _adjuntarRachaListener === 'function') _adjuntarRachaListener();
     // Iniciar indicador de escritura y presencia en tiempo real
     if (typeof window._initPresenceAndTyping === 'function') window._initPresenceAndTyping();
     // Pedir permiso y registrar token FCM para esta sala
@@ -5885,6 +5951,7 @@ let juegoActual = null;
 let premiosJuego = { tictactoe: { mi: null, oponente: null }, stop: { mi: null, oponente: null }, quiz: { mi: null, oponente: null } };
 let tttModoRondas = false, tttRondaActual = 1, tttTotalRondas = 3;
 let victorias = {};
+let _rachaConsecutiva = { mi: 0, oponente: 0 }; // racha de victorias seguidas por juego
 
 // Nombre real del otro usuario (rival) — se actualiza al enviar/aceptar invitación
 let oponenteActual = null;
@@ -7664,6 +7731,7 @@ window.cerrarJuegoWindow = function() {
                     clearInterval(timerIntervalo);
                     // El oponente ganó esta ronda
                     victorias['Oponente'] = (victorias['Oponente'] || 0) + 1;
+                    _registrarVictoriaRacha('oponente');
                     actualizarPuntuacion();
                     _tttMostrarOponenteGano();
                 } else if (data.estado === 'empate') {
@@ -7864,6 +7932,7 @@ window.cerrarJuegoWindow = function() {
             if (ganador) {
                 juegoActivoTicTacToe = false;
                 victorias[usuarioActual]++;
+                _registrarVictoriaRacha('mi');
                 actualizarPuntuacion();
                 const siguienteTurno = turnoTicTacToe === 'X' ? 'O' : 'X';
                 await _tttEscribirJugada(tableroTicTacToe, siguienteTurno, 'ganador');
@@ -8297,6 +8366,7 @@ window.cerrarJuegoWindow = function() {
                 document.getElementById('win-prize-box').style.display = 'none';
             } else if (miScore > opScore) {
                 // Yo gano
+                _registrarVictoriaRacha('mi');
                 const miPremio = premiosJuego.stop.mi;
                 document.getElementById('win-trophy').textContent = '🏆';
                 document.getElementById('win-title').textContent = `¡Ganaste, ${yo}!`;
@@ -8314,6 +8384,7 @@ window.cerrarJuegoWindow = function() {
                 lanzarConfetti();
             } else {
                 // Gana el oponente
+                _registrarVictoriaRacha('oponente');
                 const opPremio = premiosJuego.stop.oponente;
                 document.getElementById('win-trophy').textContent = '😅';
                 document.getElementById('win-title').textContent = `Ganó ${op}`;
@@ -8900,10 +8971,88 @@ window.cerrarJuegoWindow = function() {
         });
 
 
+        // ===== RACHA DE FUEGO (streak) =====
+        let _rachaFuegoTimeout = null;
+
+        function _mostrarRachaFuego(nombreEnRacha) {
+            const overlay = document.getElementById('racha-fuego-overlay');
+            if (!overlay) return;
+            const yo = capitalizarNombre(usuarioActual) || 'Tú';
+            document.getElementById('rachaFuegoTexto').textContent = `🔥 ¡${nombreEnRacha} está de racha!`;
+            document.getElementById('rachaFuegoSub').textContent = '¡Victorias consecutivas!';
+            overlay.classList.add('show');
+            if (_rachaFuegoTimeout) clearTimeout(_rachaFuegoTimeout);
+            _rachaFuegoTimeout = setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 2800);
+        }
+
+        // Enviar racha en tiempo real (Firebase)
+        function _enviarRachaFirebase(nombreEnRacha) {
+            if (!salaActualKey) return;
+            set(ref(db, `gameData/${salaActualKey}/racha`), {
+                nombre: nombreEnRacha,
+                ts: Date.now()
+            }).catch(() => {});
+            setTimeout(() => {
+                remove(ref(db, `gameData/${salaActualKey}/racha`)).catch(() => {});
+            }, 3500);
+        }
+
+        // Registrar victoria de racha y mostrar fuego si corresponde
+        function _registrarVictoriaRacha(quienGano) {
+            // quienGano: 'mi' o 'oponente'
+            const yo = capitalizarNombre(usuarioActual) || 'Tú';
+            const op = nombreOponente();
+            if (quienGano === 'mi') {
+                _rachaConsecutiva.mi++;
+                _rachaConsecutiva.oponente = 0;
+                if (_rachaConsecutiva.mi >= 2) {
+                    _mostrarRachaFuego(yo);
+                    _enviarRachaFirebase(yo);
+                }
+            } else {
+                _rachaConsecutiva.oponente++;
+                _rachaConsecutiva.mi = 0;
+                if (_rachaConsecutiva.oponente >= 2) {
+                    _mostrarRachaFuego(op);
+                    _enviarRachaFirebase(op);
+                }
+            }
+        }
+
+        // Listener de racha en Firebase (para que el otro jugador también vea el fuego)
+        let _rachaListener = null;
+        function _adjuntarRachaListener() {
+            if (_rachaListener) { _rachaListener(); _rachaListener = null; }
+            if (!salaActualKey) return;
+            _rachaListener = onValue(ref(db, `gameData/${salaActualKey}/racha`), (snap) => {
+                const data = snap.val();
+                if (!data || !data.nombre) return;
+                // Solo mostrar si no soy el que publicó (el que publicó ya lo vio)
+                const yo = capitalizarNombre(usuarioActual) || 'Tú';
+                if (data.nombre !== yo) {
+                    _mostrarRachaFuego(data.nombre);
+                }
+            });
+        }
+
         // ===== QUIZ GAME =====
-        const quizBancoPeguntas = [
-            // ── NIVEL 1: FÁCIL ── (preguntas 1-15)
-            // CULTURA GENERAL FÁCIL
+        // Función auxiliar para barajar las opciones de una pregunta (shufflear respuestas)
+        function _shuffleOpts(q) {
+            const paired = q.opts.map((o, i) => ({ o, correct: i === q.ans }));
+            for (let i = paired.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [paired[i], paired[j]] = [paired[j], paired[i]];
+            }
+            return { ...q, opts: paired.map(p => p.o), ans: paired.findIndex(p => p.correct) };
+        }
+
+        // Índices de preguntas ya usadas en revancha (para no repetir)
+        let _quizUsedIndices = new Set();
+
+        const _quizBancoRaw = [
+            // ── NIVEL 1: FÁCIL ──
             { cat: 'Cultura General', q: '¿Cuántos continentes tiene la Tierra?', opts: ['5', '6', '7'], ans: 2, dif: 1 },
             { cat: 'Cultura General', q: '¿Cuál es el océano más grande del planeta?', opts: ['Atlántico', 'Índico', 'Pacífico'], ans: 2, dif: 1 },
             { cat: 'Cultura General', q: '¿Qué moneda usa Japón?', opts: ['Won', 'Yen', 'Yuan'], ans: 1, dif: 1 },
@@ -8911,16 +9060,23 @@ window.cerrarJuegoWindow = function() {
             { cat: 'Ciencia', q: '¿Qué planeta es conocido como el planeta rojo?', opts: ['Venus', 'Marte', 'Júpiter'], ans: 1, dif: 1 },
             { cat: 'Ciencia', q: '¿Cuál es el símbolo químico del agua?', opts: ['HO', 'H2O', 'OH2'], ans: 1, dif: 1 },
             { cat: 'Ciencia', q: '¿Cuántos planetas tiene el Sistema Solar?', opts: ['7', '8', '9'], ans: 1, dif: 1 },
-            { cat: 'Deportes', q: '¿Cuántos jugadores hay en un equipo de fútbol?', opts: ['9', '11', '13'], ans: 1, dif: 1 },
-            { cat: 'Deportes', q: '¿Cada cuántos años se celebra la Copa del Mundo?', opts: ['2 años', '4 años', '6 años'], ans: 1, dif: 1 },
-            { cat: 'Arte', q: '¿Quién pintó la Mona Lisa?', opts: ['Rafael', 'Miguel Ángel', 'Leonardo da Vinci'], ans: 2, dif: 1 },
-            { cat: 'Arte', q: '¿Quién pintó "La noche estrellada"?', opts: ['Monet', 'Picasso', 'Van Gogh'], ans: 2, dif: 1 },
-            { cat: 'Tecnología', q: '¿Qué empresa creó Android?', opts: ['Apple', 'Samsung', 'Google'], ans: 2, dif: 1 },
-            { cat: 'Tecnología', q: '¿En qué año se lanzó el primer iPhone?', opts: ['2005', '2007', '2009'], ans: 1, dif: 1 },
             { cat: 'Geografía', q: '¿Cuál es la capital de Francia?', opts: ['Lyon', 'París', 'Marsella'], ans: 1, dif: 1 },
+            { cat: 'Geografía', q: '¿Cuál es la capital de Perú?', opts: ['Lima', 'Arequipa', 'Cusco'], ans: 0, dif: 1 },
             { cat: 'Historia', q: '¿Quién fue el primer presidente de los EE.UU.?', opts: ['Abraham Lincoln', 'George Washington', 'Thomas Jefferson'], ans: 1, dif: 1 },
+            { cat: 'Música', q: '¿Cuántas cuerdas tiene una guitarra estándar?', opts: ['4', '6', '8'], ans: 1, dif: 1 },
+            { cat: 'Música', q: '¿Quién es conocido como el "Rey del Pop"?', opts: ['Elvis Presley', 'Michael Jackson', 'Prince'], ans: 1, dif: 1 },
+            { cat: 'Cine', q: '¿En qué año se estrenó la primera película de Star Wars?', opts: ['1975', '1977', '1980'], ans: 1, dif: 1 },
+            { cat: 'Cine', q: '¿Quién dirigió Titanic (1997)?', opts: ['Steven Spielberg', 'James Cameron', 'Ridley Scott'], ans: 1, dif: 1 },
+            { cat: 'Bíblico', q: '¿Cuántos libros tiene la Biblia completa?', opts: ['60', '66', '73'], ans: 1, dif: 1 },
+            { cat: 'Bíblico', q: '¿Cuántos apóstoles eligió Jesús?', opts: ['10', '12', '14'], ans: 1, dif: 1 },
+            { cat: 'Bíblico', q: '¿Quién construyó el arca según la Biblia?', opts: ['Moisés', 'Noé', 'Abraham'], ans: 1, dif: 1 },
+            { cat: 'Bíblico', q: '¿En qué ciudad nació Jesús?', opts: ['Nazaret', 'Belén', 'Jerusalén'], ans: 1, dif: 1 },
+            { cat: 'Matemática', q: '¿Cuánto es 7 × 8?', opts: ['54', '56', '64'], ans: 1, dif: 1 },
+            { cat: 'Matemática', q: '¿Cuánto es la raíz cuadrada de 144?', opts: ['11', '12', '14'], ans: 1, dif: 1 },
+            { cat: 'Secuencia Lógica', q: '¿Cuál sigue? 2, 4, 6, 8, ___', opts: ['9', '10', '12'], ans: 1, dif: 1 },
+            { cat: 'Secuencia Lógica', q: '¿Cuál sigue? 1, 3, 5, 7, ___', opts: ['8', '9', '11'], ans: 1, dif: 1 },
 
-            // ── NIVEL 2: MEDIO ── (preguntas 16-35)
+            // ── NIVEL 2: MEDIO ──
             { cat: 'Cultura General', q: '¿Cuál es el país más grande del mundo por superficie?', opts: ['China', 'Rusia', 'Canadá'], ans: 1, dif: 2 },
             { cat: 'Cultura General', q: '¿En qué año llegó el hombre a la Luna?', opts: ['1965', '1969', '1972'], ans: 1, dif: 2 },
             { cat: 'Cultura General', q: '¿Cuál es la capital de Australia?', opts: ['Sídney', 'Melbourne', 'Canberra'], ans: 2, dif: 2 },
@@ -8936,48 +9092,64 @@ window.cerrarJuegoWindow = function() {
             { cat: 'Historia', q: '¿En qué año cayó el Muro de Berlín?', opts: ['1987', '1989', '1991'], ans: 1, dif: 2 },
             { cat: 'Geografía', q: '¿Cuál es el desierto más grande del mundo?', opts: ['Sahara', 'Gobi', 'Antártico'], ans: 2, dif: 2 },
             { cat: 'Geografía', q: '¿Cuál es el lago más profundo del mundo?', opts: ['Titicaca', 'Baikal', 'Superior'], ans: 1, dif: 2 },
-            { cat: 'Deportes', q: '¿En qué país se inventó el fútbol moderno?', opts: ['España', 'Brasil', 'Inglaterra'], ans: 2, dif: 2 },
-            { cat: 'Deportes', q: '¿Cuántos puntos vale un touchdown en fútbol americano?', opts: ['3', '6', '7'], ans: 1, dif: 2 },
-            { cat: 'Tecnología', q: '¿Qué significa HTML?', opts: ['HyperText Markup Language', 'High Transfer Markup Logic', 'Hyperlink Text Mode Link'], ans: 0, dif: 2 },
             { cat: 'Geografía', q: '¿Cuál es el río más largo del mundo?', opts: ['Amazonas', 'Nilo', 'Yangtsé'], ans: 1, dif: 2 },
-            { cat: 'Arte', q: '¿De qué país era Beethoven?', opts: ['Austria', 'Alemania', 'Francia'], ans: 1, dif: 2 },
+            { cat: 'Música', q: '¿En qué país nació el tango?', opts: ['Brasil', 'Argentina', 'Uruguay'], ans: 1, dif: 2 },
+            { cat: 'Música', q: '¿Cuántas notas tiene la escala musical occidental?', opts: ['5', '7', '12'], ans: 1, dif: 2 },
+            { cat: 'Cine', q: '¿Qué película ganó el primer Oscar a Mejor Película?', opts: ['El cantor de jazz', 'Alas', 'Amanecer'], ans: 1, dif: 2 },
+            { cat: 'Cine', q: '¿De qué país es la película "El laberinto del fauno"?', opts: ['México', 'España', 'Argentina'], ans: 1, dif: 2 },
+            { cat: 'Bíblico', q: '¿Con qué alimentó Dios al pueblo de Israel en el desierto?', opts: ['Pan de cebada', 'Maná', 'Higos secos'], ans: 1, dif: 2 },
+            { cat: 'Bíblico', q: '¿Cuántos días estuvo Jonás en el vientre del gran pez?', opts: ['1 día', '3 días', '7 días'], ans: 1, dif: 2 },
+            { cat: 'Bíblico', q: '¿Quién escribió la mayoría de las cartas del Nuevo Testamento?', opts: ['Pedro', 'Juan', 'Pablo'], ans: 2, dif: 2 },
+            { cat: 'Bíblico', q: '¿Cuál fue el primer milagro de Jesús según Juan?', opts: ['Caminar sobre el agua', 'Convertir agua en vino', 'Resucitar a Lázaro'], ans: 1, dif: 2 },
+            { cat: 'Matemática', q: '¿Cuánto es 15% de 200?', opts: ['20', '25', '30'], ans: 2, dif: 2 },
+            { cat: 'Matemática', q: '¿Cuál es el resultado de 2³ + 3²?', opts: ['15', '17', '19'], ans: 1, dif: 2 },
+            { cat: 'Secuencia Lógica', q: '¿Cuál sigue? 1, 4, 9, 16, ___', opts: ['20', '25', '36'], ans: 1, dif: 2 },
+            { cat: 'Secuencia Lógica', q: '¿Cuál sigue? 2, 6, 18, 54, ___', opts: ['108', '162', '216'], ans: 1, dif: 2 },
 
-            // ── NIVEL 3: DIFÍCIL ── (preguntas 36-50)
+            // ── NIVEL 3: DIFÍCIL ──
             { cat: 'Ciencia', q: '¿Qué elemento es el más abundante en la corteza terrestre?', opts: ['Hierro', 'Oxígeno', 'Silicio'], ans: 1, dif: 3 },
             { cat: 'Ciencia', q: '¿Cuál es el gas más abundante en la atmósfera terrestre?', opts: ['Oxígeno', 'Nitrógeno', 'Dióxido de carbono'], ans: 1, dif: 3 },
             { cat: 'Ciencia', q: '¿Cuál es el número atómico del carbono?', opts: ['4', '6', '8'], ans: 1, dif: 3 },
+            { cat: 'Ciencia', q: '¿Qué científico formuló la teoría de la relatividad?', opts: ['Newton', 'Einstein', 'Hawking'], ans: 1, dif: 3 },
             { cat: 'Historia', q: '¿Qué civilización construyó Machu Picchu?', opts: ['Azteca', 'Maya', 'Inca'], ans: 2, dif: 3 },
             { cat: 'Historia', q: '¿En qué año Cristóbal Colón llegó a América?', opts: ['1488', '1492', '1498'], ans: 1, dif: 3 },
+            { cat: 'Historia', q: '¿Quién lideró la Revolución Cubana?', opts: ['Ernesto Guevara', 'Fidel Castro', 'Raúl Castro'], ans: 1, dif: 3 },
             { cat: 'Literatura', q: '¿Qué novela empieza con "Llamadme Ismael"?', opts: ['La letra escarlata', 'Moby Dick', 'El viejo y el mar'], ans: 1, dif: 3 },
             { cat: 'Literatura', q: '¿De dónde es Haruki Murakami?', opts: ['China', 'Corea', 'Japón'], ans: 2, dif: 3 },
             { cat: 'Geografía', q: '¿Cuál es el país más pequeño del mundo?', opts: ['Mónaco', 'Vaticano', 'San Marino'], ans: 1, dif: 3 },
+            { cat: 'Geografía', q: '¿Cuántos países tiene América del Sur?', opts: ['10', '12', '14'], ans: 1, dif: 3 },
             { cat: 'Tecnología', q: '¿Cuántos bits tiene un byte?', opts: ['4', '8', '16'], ans: 1, dif: 3 },
             { cat: 'Tecnología', q: '¿Qué protocolo se usa para enviar correos electrónicos?', opts: ['HTTP', 'FTP', 'SMTP'], ans: 2, dif: 3 },
-            { cat: 'Ciencia', q: '¿Qué científico formuló la teoría de la relatividad?', opts: ['Newton', 'Einstein', 'Hawking'], ans: 1, dif: 3 },
-            { cat: 'Cultura General', q: '¿Cuántos países tiene América del Sur?', opts: ['10', '12', '14'], ans: 1, dif: 3 },
-            { cat: 'Arte', q: '¿En qué ciudad nació el flamenco?', opts: ['Madrid', 'Sevilla', 'Granada'], ans: 1, dif: 3 },
-            { cat: 'Historia', q: '¿Quién lideró la Revolución Cubana?', opts: ['Ernesto Guevara', 'Fidel Castro', 'Raúl Castro'], ans: 1, dif: 3 },
-            { cat: 'Deportes', q: '¿En qué deporte se usa un "puck"?', opts: ['Béisbol', 'Hockey sobre hielo', 'Polo'], ans: 1, dif: 3 },
+            { cat: 'Tecnología', q: '¿Qué significa HTML?', opts: ['HyperText Markup Language', 'High Transfer Markup Logic', 'Hyperlink Text Mode Link'], ans: 0, dif: 3 },
+            { cat: 'Música', q: '¿Quién compuso "Las cuatro estaciones"?', opts: ['Bach', 'Mozart', 'Vivaldi'], ans: 2, dif: 3 },
+            { cat: 'Música', q: '¿Cómo se llama la ópera más famosa de Verdi sobre un moro de Venecia?', opts: ['Aida', 'Otello', 'Rigoletto'], ans: 1, dif: 3 },
+            { cat: 'Cine', q: '¿Quién interpretó a Hannibal Lecter en "El silencio de los inocentes"?', opts: ['Anthony Hopkins', 'Al Pacino', 'Robert De Niro'], ans: 0, dif: 3 },
+            { cat: 'Cine', q: '¿En qué película aparece el personaje "Forrest Gump"?', opts: ['Cast Away', 'Forrest Gump', 'Philadelphia'], ans: 1, dif: 3 },
+            { cat: 'Bíblico', q: '¿Qué libro de la Biblia contiene los Diez Mandamientos por primera vez?', opts: ['Génesis', 'Éxodo', 'Levítico'], ans: 1, dif: 3 },
+            { cat: 'Matemática', q: '¿Cuántos grados tiene la suma de los ángulos internos de un triángulo?', opts: ['90°', '180°', '270°'], ans: 1, dif: 3 },
+            { cat: 'Matemática', q: '¿Cuál es el valor aproximado de π (pi)?', opts: ['2.71', '3.14', '3.41'], ans: 1, dif: 3 },
+            { cat: 'Secuencia Lógica', q: '¿Cuál sigue? 1, 1, 2, 3, 5, 8, ___', opts: ['10', '13', '16'], ans: 1, dif: 3 },
+            { cat: 'Secuencia Lógica', q: '¿Cuál sigue? 100, 50, 25, 12.5, ___', opts: ['5', '6.25', '8'], ans: 1, dif: 3 },
 
-            // ── NIVEL 4: MUY DIFÍCIL ── (preguntas 51-60)
+            // ── NIVEL 4: MUY DIFÍCIL ──
             { cat: 'Ciencia', q: '¿Cuántos elementos tiene la tabla periódica actualmente?', opts: ['108', '118', '128'], ans: 1, dif: 4 },
             { cat: 'Historia', q: '¿En qué año se firmó la Magna Carta?', opts: ['1066', '1215', '1348'], ans: 1, dif: 4 },
             { cat: 'Geografía', q: '¿Cuál es el punto más profundo de los océanos?', opts: ['Fosa de Puerto Rico', 'Fosa de las Marianas', 'Fosa de Tonga'], ans: 1, dif: 4 },
             { cat: 'Tecnología', q: '¿En qué año se creó la World Wide Web (WWW)?', opts: ['1983', '1989', '1995'], ans: 1, dif: 4 },
-            { cat: 'Arte', q: '¿Cuántas sinfonías compuso Beethoven?', opts: ['7', '9', '12'], ans: 1, dif: 4 },
+            { cat: 'Música', q: '¿Cuántas sinfonías compuso Beethoven?', opts: ['7', '9', '12'], ans: 1, dif: 4 },
+            { cat: 'Música', q: '¿Cómo se llama el instrumento de viento más grave de la orquesta?', opts: ['Fagot', 'Contrafagot', 'Tuba'], ans: 1, dif: 4 },
+            { cat: 'Cine', q: '¿Cuántas películas tiene la saga principal de Star Wars (Episodios I–IX)?', opts: ['7', '9', '12'], ans: 1, dif: 4 },
+            { cat: 'Cine', q: '¿Quién ganó el Oscar a Mejor Director en 2020 por "Parásitos"?', opts: ['Quentin Tarantino', 'Bong Joon-ho', 'Martin Scorsese'], ans: 1, dif: 4 },
+            { cat: 'Bíblico', q: '¿Cuántos años vivió Matusalén según la Biblia?', opts: ['700', '869', '969'], ans: 2, dif: 4 },
+            { cat: 'Matemática', q: '¿Cuánto es log₂(64)?', opts: ['4', '6', '8'], ans: 1, dif: 4 },
+            { cat: 'Secuencia Lógica', q: '¿Cuál falta? 3, 9, ___, 81, 243', opts: ['18', '27', '36'], ans: 1, dif: 4 },
+            { cat: 'Secuencia Lógica', q: 'Si el lunes es el día 1, ¿qué día es el día 15?', opts: ['Domingo', 'Lunes', 'Martes'], ans: 1, dif: 4 },
+            { cat: 'Cultura General', q: '¿Cuál es el metal más caro del mundo?', opts: ['Oro', 'Platino', 'Rodio'], ans: 2, dif: 4 },
+            { cat: 'Cine', q: '¿En qué película el personaje principal susurra "Te veo"?', opts: ['Matrix', 'Avatar', 'Dune'], ans: 1, dif: 4 }
+        ];
 
-            // ── BÍBLICO ── (variado en dificultad)
-            { cat: 'Bíblico', q: '¿Cuántos libros tiene la Biblia completa?', opts: ['60', '66', '73'], ans: 1, dif: 1 },
-            { cat: 'Bíblico', q: '¿Cuántos apóstoles eligió Jesús?', opts: ['10', '12', '14'], ans: 1, dif: 1 },
-            { cat: 'Bíblico', q: '¿Quién construyó el arca según la Biblia?', opts: ['Moisés', 'Noé', 'Abraham'], ans: 1, dif: 1 },
-            { cat: 'Bíblico', q: '¿Con qué alimentó Dios al pueblo de Israel en el desierto?', opts: ['Pan de cebada', 'Maná', 'Higos secos'], ans: 1, dif: 2 },
-            { cat: 'Bíblico', q: '¿Cuál fue la primera señal o milagro de Jesús según el Evangelio de Juan?', opts: ['Caminar sobre el agua', 'Convertir agua en vino', 'Resucitar a Lázaro'], ans: 1, dif: 2 },
-            { cat: 'Bíblico', q: '¿En qué ciudad nació Jesús?', opts: ['Nazaret', 'Belén', 'Jerusalén'], ans: 1, dif: 1 },
-            { cat: 'Bíblico', q: '¿Cuántos días estuvo Jonás en el vientre del gran pez?', opts: ['1 día', '3 días', '7 días'], ans: 1, dif: 2 },
-            { cat: 'Bíblico', q: '¿Quién escribió la mayoría de las cartas del Nuevo Testamento?', opts: ['Pedro', 'Juan', 'Pablo'], ans: 2, dif: 2 },
-            { cat: 'Bíblico', q: '¿Qué libro de la Biblia contiene los Diez Mandamientos por primera vez?', opts: ['Génesis', 'Éxodo', 'Levítico'], ans: 1, dif: 3 },
-            { cat: 'Bíblico', q: '¿Cuántos años vivió Matusalén según la Biblia?', opts: ['700', '869', '969'], ans: 2, dif: 4 }
-        ]
+        // Banco con opciones barajadas (se genera al cargar)
+        const quizBancoPeguntas = _quizBancoRaw.map((q, idx) => ({ ..._shuffleOpts(q), _origIdx: idx }));
 
         let quizGameState = {
             preguntas: [],
@@ -9100,9 +9272,20 @@ window.cerrarJuegoWindow = function() {
 
             actualizarScoreboardQuiz();
 
+            // Generar banco sin preguntas ya usadas en revanchas anteriores
+            function _generarOrdenadas() {
+                const disponibles = quizBancoPeguntas.filter(p => !_quizUsedIndices.has(p._origIdx));
+                // Si ya se agotaron todas, resetear el set de usados
+                if (disponibles.length < 22) { _quizUsedIndices.clear(); return _generarOrdenadas(); }
+                const porNivel = [1,2,3,4].map(d => mezclarArray(disponibles.filter(p => p.dif === d)));
+                return [].concat(...porNivel);
+            }
+
             if (window._modoBot) {
-                const porNivelBot = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                quizGameState.preguntas = [].concat(...porNivelBot);
+                const ordenadas = _generarOrdenadas();
+                // Marcar como usadas
+                ordenadas.forEach(p => _quizUsedIndices.add(p._origIdx));
+                quizGameState.preguntas = ordenadas;
                 mostrarPreguntaQuiz();
                 return;
             }
@@ -9110,8 +9293,11 @@ window.cerrarJuegoWindow = function() {
             _quizIsHost = usuarioActual > (oponenteActual || '');
 
             if (_quizIsHost) {
-                const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
+                const disponibles = quizBancoPeguntas.filter(p => !_quizUsedIndices.has(p._origIdx));
+                const usar = disponibles.length < 22 ? quizBancoPeguntas : disponibles;
+                const porNivel = [1,2,3,4].map(d => mezclarArray(usar.filter(p => p.dif === d)));
                 const todasOrdenadas = [].concat(...porNivel);
+                todasOrdenadas.forEach(p => _quizUsedIndices.add(p._origIdx));
                 // Siempre publicar todo el banco en Firebase (el límite lo maneja el cliente)
                 quizGameState.preguntas = todasOrdenadas;
                 const preguntasParaFirebase = todasOrdenadas.map((p, idx) => ({
@@ -9261,6 +9447,8 @@ window.cerrarJuegoWindow = function() {
             if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
             const cdBox = document.getElementById('quizCountdownBox');
             if (cdBox) cdBox.classList.remove('visible');
+            const sbDivider = document.getElementById('quizSbDivider');
+            if (sbDivider) { sbDivider.textContent = 'vs'; sbDivider.classList.remove('countdown-mode', 'countdown-urgent'); }
             const exitBtnQ = document.getElementById('quizExitBtn');
             if (exitBtnQ) exitBtnQ.style.display = 'none';
             const nextBtn = document.getElementById('quizNextBtn');
@@ -9334,13 +9522,26 @@ window.cerrarJuegoWindow = function() {
             let secs = 12;
             const cdBox = document.getElementById('quizCountdownBox');
             const cdNum = document.getElementById('quizCountdownNum');
-            if (cdBox) { cdBox.classList.add('visible'); if (cdNum) cdNum.textContent = secs; }
+            const sbDivider = document.getElementById('quizSbDivider');
+            // Mostrar countdown en el divider del scoreboard (reemplaza "vs")
+            if (sbDivider) {
+                sbDivider.textContent = secs;
+                sbDivider.classList.add('countdown-mode');
+                sbDivider.classList.remove('countdown-urgent');
+            }
+            // Mantener también el box original pero oculto
+            if (cdBox) { cdBox.classList.remove('visible'); }
             quizGameState._cdInterval = setInterval(() => {
                 secs--;
+                if (sbDivider) {
+                    sbDivider.textContent = secs;
+                    if (secs <= 4) sbDivider.classList.add('countdown-urgent');
+                }
                 if (cdNum) cdNum.textContent = secs;
                 if (secs <= 0) {
                     clearInterval(quizGameState._cdInterval);
                     quizGameState._cdInterval = null;
+                    if (sbDivider) { sbDivider.textContent = 'vs'; sbDivider.classList.remove('countdown-mode', 'countdown-urgent'); }
                     if (cdBox) cdBox.classList.remove('visible');
                     // Tiempo agotado: calificar con lo que haya
                     _calificarAmbos();
@@ -9352,6 +9553,8 @@ window.cerrarJuegoWindow = function() {
             if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
             const cdBox = document.getElementById('quizCountdownBox');
             if (cdBox) cdBox.classList.remove('visible');
+            const sbDivider = document.getElementById('quizSbDivider');
+            if (sbDivider) { sbDivider.textContent = 'vs'; sbDivider.classList.remove('countdown-mode', 'countdown-urgent'); }
             _calificarAmbos();
         }
 
@@ -9382,28 +9585,28 @@ window.cerrarJuegoWindow = function() {
             let alertDetail = 'Ninguno acertó';
 
             if (yoCorrecta && opCorrecta) {
-                quizGameState.puntajes.mi++;
-                quizGameState.puntajes.oponente++;
+                quizGameState.puntajes.mi += 50;
+                quizGameState.puntajes.oponente += 50;
                 alertEmoji = '🎉';
                 alertTitle = '¡Ambos acertaron!';
-                alertDetail = `+1 para cada uno`;
+                alertDetail = `+50 para cada uno`;
                 if (!window._modoBot && salaActualKey) {
                     set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${usuarioActual}`), quizGameState.puntajes.mi).catch(() => {});
                     if (oponenteActual) set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${oponenteActual}`), quizGameState.puntajes.oponente).catch(() => {});
                 }
             } else if (yoCorrecta) {
-                quizGameState.puntajes.mi++;
+                quizGameState.puntajes.mi += 50;
                 alertEmoji = '✅';
                 alertTitle = `¡Tú acertaste!`;
-                alertDetail = `+1 para ${capitalizarNombre(usuarioActual) || 'Ti'}`;
+                alertDetail = `+50 para ${capitalizarNombre(usuarioActual) || 'Ti'}`;
                 if (!window._modoBot && salaActualKey) {
                     set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${usuarioActual}`), quizGameState.puntajes.mi).catch(() => {});
                 }
             } else if (opCorrecta) {
-                quizGameState.puntajes.oponente++;
+                quizGameState.puntajes.oponente += 50;
                 alertEmoji = '😅';
                 alertTitle = `¡${nombreOponente()} acertó!`;
-                alertDetail = `+1 para ${nombreOponente()}`;
+                alertDetail = `+50 para ${nombreOponente()}`;
                 if (!window._modoBot && salaActualKey && oponenteActual) {
                     set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${oponenteActual}`), quizGameState.puntajes.oponente).catch(() => {});
                 }
@@ -9561,6 +9764,7 @@ window.cerrarJuegoWindow = function() {
                 `${msgPartida}<br><span style="color:#ffd700;font-size:13px;">📊 Acumulado: ${yo} ${histMi} — ${opNombre} ${histOp}</span>`;
 
             if (mi > op) {
+                _registrarVictoriaRacha('mi');
                 document.getElementById('win-trophy').textContent = '🏆';
                 document.getElementById('win-title').textContent = `¡Ganaste, ${yo}!`;
                 if (miPremio) {
@@ -9575,6 +9779,7 @@ window.cerrarJuegoWindow = function() {
                 }
                 lanzarConfetti();
             } else if (op > mi) {
+                _registrarVictoriaRacha('oponente');
                 document.getElementById('win-trophy').textContent = '😅';
                 document.getElementById('win-title').textContent = `Ganó ${opNombre}`;
                 if (opPremio) {
@@ -9635,6 +9840,9 @@ window.cerrarJuegoWindow = function() {
             quizGameState.yaMarcoOponente = false;
             if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
             if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
+            // Reset scoreboard divider
+            const sbDivider = document.getElementById('quizSbDivider');
+            if (sbDivider) { sbDivider.textContent = 'vs'; sbDivider.classList.remove('countdown-mode', 'countdown-urgent'); }
         }
 
         function _doRevanchaQuizReal() {
