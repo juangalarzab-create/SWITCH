@@ -4055,6 +4055,10 @@
                     <div class="game-icon">🧠</div>
                     <div class="game-name">Quiz</div>
                 </div>
+                <div class="game-item" onclick="iniciarDiga()">
+                    <div class="game-icon">🃏</div>
+                    <div class="game-name">Diga</div>
+                </div>
             </div>
         </div>
     </div>
@@ -4426,6 +4430,72 @@
         <div class="quiz-score-alert-emoji" id="quizScoreAlertEmoji">🏆</div>
         <div class="quiz-score-alert-title" id="quizScoreAlertTitle">¡Correcto!</div>
         <div class="quiz-score-alert-detail" id="quizScoreAlertDetail">+1 punto</div>
+    </div>
+
+    <!-- VENTANA DIGA (Juego de Naipes) -->
+    <div class="game-window" id="diga-window">
+        <div class="game-header">
+            <div class="game-title" id="diga-title">🃏 Diga</div>
+            <button class="btn-voice-game" id="voice-btn-diga" onclick="toggleVozJuego('diga')" title="Activar voz">
+                <i class="fas fa-microphone-slash"></i>
+                <span class="voice-label">Voz off</span>
+            </button>
+            <button class="btn-close-game" onclick="cerrarJuegoWindow()">✕</button>
+        </div>
+        <div class="game-content" id="diga-game-content" style="padding:0; overflow:hidden; display:flex; flex-direction:column; height:100%;">
+
+            <!-- LOBBY DIGA -->
+            <div class="tictactoe-lobby" id="diga-lobby" style="overflow-y:auto; flex:1;">
+                <div class="lobby-info">
+                    Captura cartas iguales en número, o dos cartas de la mesa cuya suma coincida con tu carta.<br>
+                    Gana quien acumule <b>más cartas capturadas</b> al finalizar el mazo.
+                </div>
+                <div class="lobby-prize-status" id="diga-lobby-mi-premio">
+                    🎁 Tu premio: <span class="pending">sin elegir</span>
+                </div>
+                <div class="lobby-prize-status" id="diga-lobby-oponente-premio">
+                    🎁 Premio del oponente: <span class="pending">sin elegir</span>
+                </div>
+                <button class="btn-lobby btn-lobby-premio" onclick="abrirSeleccionPremio('diga')">
+                    🎁 ¿Qué quieres ganar?
+                </button>
+                <button class="btn-lobby btn-lobby-iniciar" id="btn-iniciar-diga" onclick="iniciarPartidaDiga()">
+                    ▶ Iniciar partida
+                </button>
+            </div>
+
+            <!-- TABLERO EN JUEGO -->
+            <div id="diga-board-wrapper" style="display:none; flex-direction:column; flex:1; overflow:hidden; background: radial-gradient(circle at top, #236143 0%, #0d2f22 48%, #071912 100%); color:#fff; font-family:Arial,sans-serif;">
+
+                <!-- Marcador compacto -->
+                <div id="diga-sb" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(0,0,0,0.4); font-size:13px; flex-shrink:0;">
+                    <span id="diga-sb-p1" style="font-weight:700;">Tú: 0</span>
+                    <span id="diga-sb-info" style="font-size:11px; opacity:0.8;">Mazo: 52 | Mesa: 0</span>
+                    <span id="diga-sb-p2" style="font-weight:700;">Rival: 0</span>
+                </div>
+
+                <!-- Mano del oponente (cartas boca abajo) -->
+                <div style="padding:4px 8px 2px; flex-shrink:0;">
+                    <div style="font-size:11px; opacity:0.7; margin-bottom:3px;" id="diga-rival-label">Rival (0 cartas)</div>
+                    <div id="diga-rival-hand" style="display:flex; flex-wrap:wrap; gap:4px; min-height:46px; align-items:center;"></div>
+                </div>
+
+                <!-- Mesa -->
+                <div style="flex:1; position:relative; display:grid; place-items:center; overflow:hidden; min-height:80px;">
+                    <div id="diga-table-area" style="display:flex; flex-wrap:wrap; gap:6px; justify-content:center; align-items:center; padding:8px; position:relative; z-index:1;"></div>
+                    <div style="position:absolute; width:80%; height:70%; border:2px dashed rgba(255,255,255,0.18); border-radius:50%; pointer-events:none;"></div>
+                </div>
+
+                <!-- Estado -->
+                <div id="diga-status" style="font-size:12px; line-height:1.4; padding:4px 10px; background:rgba(255,255,255,0.08); border-radius:8px; margin:2px 8px; flex-shrink:0; min-height:34px;">Esperando inicio...</div>
+
+                <!-- Mano del jugador -->
+                <div style="padding:4px 8px 6px; flex-shrink:0;">
+                    <div style="font-size:11px; opacity:0.7; margin-bottom:3px;" id="diga-mi-label">Tu mano (0 cartas) — <span style="color:#f7c948;" id="diga-turno-label">esperando...</span></div>
+                    <div id="diga-my-hand" style="display:flex; flex-wrap:wrap; gap:5px; min-height:60px; align-items:center;"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL PANEL ADMINISTRADOR -->
@@ -4894,7 +4964,7 @@ window.irInicio = function() {
     oponenteActual = null;
     // Cerrar cualquier ventana de juego y modal de invitación abierto
     try {
-        ['tictactoe-window','stop-window','quiz-window'].forEach(id => {
+        ['tictactoe-window','stop-window','quiz-window','diga-window'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.remove('active','jugando');
         });
@@ -5948,7 +6018,7 @@ window.enviarAnuncioGlobal = async function() {
 // GAMES (todo el código original de juegos sin cambios)
 // ============================================================
 let juegoActual = null;
-let premiosJuego = { tictactoe: { mi: null, oponente: null }, stop: { mi: null, oponente: null }, quiz: { mi: null, oponente: null } };
+let premiosJuego = { tictactoe: { mi: null, oponente: null }, stop: { mi: null, oponente: null }, quiz: { mi: null, oponente: null }, diga: { mi: null, oponente: null } };
 let tttModoRondas = false, tttRondaActual = 1, tttTotalRondas = 3;
 let victorias = {};
 let _rachaConsecutiva = { mi: 0, oponente: 0 }; // racha de victorias seguidas por juego
@@ -6030,7 +6100,8 @@ function _escucharSincronizacionInicio() {
             const algunaVentanaJuegoActiva =
                 document.getElementById('tictactoe-window').classList.contains('active') ||
                 document.getElementById('stop-window').classList.contains('active') ||
-                document.getElementById('quiz-window').classList.contains('active');
+                document.getElementById('quiz-window').classList.contains('active') ||
+                document.getElementById('diga-window').classList.contains('active');
             if (algunaVentanaJuegoActiva) {
                 _mostrarAvisoRivalEsperando(otroListo, juego);
             } else {
@@ -6062,6 +6133,10 @@ function _escucharSincronizacionInicio() {
                 const btn = document.getElementById('btn-comenzar-quiz');
                 if (btn) { btn.disabled = false; btn.textContent = 'Comenzar'; }
                 iniciarPartidaQuizReal();
+            } else if (juego === 'diga') {
+                const btn = document.getElementById('btn-iniciar-diga');
+                if (btn) { btn.disabled = false; btn.textContent = '▶ Iniciar partida'; }
+                entrarAlJuegoDiga();
             }
             // Después de un breve momento, limpiar el nodo gameStart
             setTimeout(() => { _limpiarSyncInicio(); }, 1500);
@@ -6098,7 +6173,7 @@ let _ultimoInviteHoraMs = 0;
 let _miInviteEnVuelo = false; // true si yo soy el invitador esperando respuesta
 
 function _nombreJuego(g) {
-    return g === 'tictactoe' ? 'TicTacToe' : g === 'stop' ? 'Stop' : g === 'quiz' ? 'Quiz' : g;
+    return g === 'tictactoe' ? 'TicTacToe' : g === 'stop' ? 'Stop' : g === 'quiz' ? 'Quiz' : g === 'diga' ? 'Diga' : g;
 }
 
 function _entrarAJuego(juego) {
@@ -6106,6 +6181,7 @@ function _entrarAJuego(juego) {
     if (juego === 'tictactoe') mostrarTicTacToe();
     else if (juego === 'stop') mostrarStop();
     else if (juego === 'quiz') iniciarQuiz();
+    else if (juego === 'diga') mostrarDiga();
 }
 
 async function _enviarInvitacionJuego(juego) {
@@ -6293,10 +6369,8 @@ function _activarBotParaJuego(juego) {
             }
         };
     } else if (juego === 'tictactoe') {
-        // El bot de TicTacToe se activa cuando es su turno
         window._botTttJugar = function() {
             if (!window._modoBot) return;
-            // Buscar casilla libre y jugar
             setTimeout(() => {
                 const celdas = document.querySelectorAll('.ttt-cell:not(.played)');
                 if (celdas.length > 0) {
@@ -6304,6 +6378,11 @@ function _activarBotParaJuego(juego) {
                     rand.click();
                 }
             }, 800 + Math.random() * 1200);
+        };
+    } else if (juego === 'diga') {
+        window._botDigaJugar = function() {
+            if (!window._modoBot) return;
+            setTimeout(() => { _digaJugarCartaBot(); }, 900 + Math.random() * 1100);
         };
     }
 }
@@ -6323,6 +6402,7 @@ window.salirAlMenuJuegos = function() {
 window.iniciarTicTacToe = function() { _iniciarInvitacion('tictactoe'); };
 window.iniciarStop      = function() { _iniciarInvitacion('stop'); };
 window.iniciarQuiz      = function() { _iniciarInvitacion('quiz'); };
+window.iniciarDiga      = function() { _iniciarInvitacion('diga'); };
 
 window.aceptarJuego = async function() {
     document.getElementById('modal-game-invite').classList.remove('active');
@@ -7419,7 +7499,8 @@ window.cerrarJuegoWindow = function() {
             const juegoVisible =
                 document.getElementById('tictactoe-window').classList.contains('active') ||
                 document.getElementById('stop-window').classList.contains('active') ||
-                document.getElementById('quiz-window').classList.contains('active');
+                document.getElementById('quiz-window').classList.contains('active') ||
+                document.getElementById('diga-window').classList.contains('active');
             if (juegoVisible && !_tttSignalListener && oponenteActual && !window._tttExitCdTimer) {
                 _tttAttachSignalListener();
             }
@@ -7540,6 +7621,11 @@ window.cerrarJuegoWindow = function() {
                     actualizarLobbyQuiz();
                     _tttMostrarAlertaPremio(nombre, payload.premio || '?', false);
                     break;
+                case 'diga_prize_chosen':
+                    premiosJuego.diga.oponente = payload.premio || '?';
+                    actualizarLobbyDiga();
+                    _tttMostrarAlertaPremio(nombre, payload.premio || '?', false);
+                    break;
                 case 'left_games': // Legacy — tratar como exit countdown
                     _tttDetachListener();
                     _tttClearSignal();
@@ -7651,7 +7737,30 @@ window.cerrarJuegoWindow = function() {
                         () => { _hideNotify(); }
                     );
                     break;
-            }
+                case 'diga_rematch_request':
+                    _showNotify('🃏', '¡Revancha!', `${nombre} quiere jugar otra partida de Diga.`,
+                        [
+                            { label: 'Aceptar', cls: 'btn-notify-ok', cb: () => {
+                                _hideNotify(); _tttClearSignal();
+                                _tttSendSignal('diga_rematch_accepted');
+                                mostrarDiga();
+                            }},
+                            { label: 'Rechazar', cls: 'btn-notify-cancel', cb: () => {
+                                _hideNotify(); _tttClearSignal();
+                                _tttSendSignal('diga_rematch_declined');
+                            }}
+                        ], null
+                    );
+                    break;
+                case 'diga_rematch_accepted':
+                    _hideNotify(); _tttClearSignal();
+                    mostrarDiga();
+                    break;
+                case 'diga_rematch_declined':
+                    _hideNotify(); _tttClearSignal();
+                    _showNotify('😔', 'Revancha rechazada', `${nombre} prefirió no jugar de nuevo.`,
+                        [{ label: 'OK', cls: 'btn-notify-ok', cb: () => { _hideNotify(); }}], null);
+                    break;
         }
 
         // ── Helper visual de notificaciones ──
@@ -8243,6 +8352,9 @@ window.cerrarJuegoWindow = function() {
             } else if (juegoSeleccionandoPremio === 'quiz') {
                 _tttSendSignal('quiz_prize_chosen', { premio: premioFinal });
                 actualizarLobbyQuiz();
+            } else if (juegoSeleccionandoPremio === 'diga') {
+                _tttSendSignal('diga_prize_chosen', { premio: premioFinal });
+                actualizarLobbyDiga();
             }
             // Al emisor solo mostrar un toast discreto de confirmación (el modal grande es para el receptor)
             showToast('🎁 Premio guardado: ' + premioFinal);
@@ -8800,6 +8912,7 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('tictactoe-window').classList.remove('active', 'jugando');
             document.getElementById('stop-window').classList.remove('active', 'jugando');
             document.getElementById('quiz-window').classList.remove('active', 'jugando');
+            document.getElementById('diga-window').classList.remove('active', 'jugando');
             const _chatEl = document.getElementById('pantalla-chat');
             _chatEl.classList.remove('jugando');
             // Resetear inline styles del divisor para que el chat ocupe toda la pantalla
@@ -8813,6 +8926,8 @@ window.cerrarJuegoWindow = function() {
             premiosJuego.tictactoe.mi = null; premiosJuego.tictactoe.oponente = null;
             premiosJuego.stop.mi = null; premiosJuego.stop.oponente = null;
             premiosJuego.quiz.mi = null; premiosJuego.quiz.oponente = null;
+            premiosJuego.diga = premiosJuego.diga || {}; premiosJuego.diga.mi = null; premiosJuego.diga.oponente = null;
+            _digaLimpiarFirebase();
             victorias[usuarioActual] = 0; victorias['Oponente'] = 0;
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             iniciadorTicTacToe = 'X'; tttModoRondas = false; tttRondaActual = 1;
@@ -10612,6 +10727,472 @@ window.cerrarJuegoWindow = function() {
     };
 
 })();
+
+// ============================================================
+// JUEGO DE NAIPES: DIGA — Motor completo con Firebase
+// ============================================================
+(function() {
+
+    const SUITS = [
+        { symbol: '♠', color: 'black' }, { symbol: '♥', color: 'red' },
+        { symbol: '♦', color: 'red' },  { symbol: '♣', color: 'black' }
+    ];
+    const RANKS = [
+        { label: 'A', value: 1 },  { label: '2', value: 2 },  { label: '3', value: 3 },
+        { label: '4', value: 4 },  { label: '5', value: 5 },  { label: '6', value: 6 },
+        { label: '7', value: 7 },  { label: '8', value: 8 },  { label: '9', value: 9 },
+        { label: '10', value: 10 },{ label: 'J', value: 11 }, { label: 'Q', value: 12 },
+        { label: 'K', value: 13 }
+    ];
+
+    let _digaListener  = null;
+    let _digaGameOver  = false;
+    let _digaEsHost    = false;
+    let _digaYoKey     = null;
+    let _digaOpKey     = null;
+    window._digaState  = null;
+
+    function _digaRef() { return ref(db, 'gameData/' + salaActualKey + '/diga'); }
+
+    async function _digaLimpiarFirebase() {
+        if (!salaActualKey) return;
+        try { await remove(_digaRef()); } catch(e) {}
+    }
+    window._digaLimpiarFirebase = _digaLimpiarFirebase;
+
+    function _digaSetStatus(html) {
+        const el = document.getElementById('diga-status');
+        if (el) el.innerHTML = html;
+    }
+
+    function _digaCard(card, small, clickable) {
+        const d = document.createElement('div');
+        const isRed = card.color === 'red';
+        const w = small ? 36 : 52, h = small ? 52 : 75;
+        d.style.cssText = 'width:'+w+'px;height:'+h+'px;background:#fff;color:'+(isRed?'#c0392b':'#111')+
+            ';border-radius:8px;border:2px solid rgba(0,0,0,0.2);display:flex;flex-direction:column;'+
+            'justify-content:space-between;padding:'+(small?3:5)+'px;font-weight:900;'+
+            'box-shadow:0 4px 10px rgba(0,0,0,0.3);user-select:none;flex-shrink:0;';
+        const fs = small ? '0.6rem' : '0.82rem';
+        const fm = small ? '1rem'   : '1.4rem';
+        d.innerHTML = '<span style="font-size:'+fs+';line-height:1">'+card.rank+card.suit+'</span>'+
+                      '<span style="font-size:'+fm+';text-align:center;line-height:1">'+card.suit+'</span>'+
+                      '<span style="font-size:'+fs+';line-height:1;transform:rotate(180deg);display:inline-block">'+card.rank+card.suit+'</span>';
+        if (clickable) {
+            d.style.cursor = 'pointer';
+            d.style.transition = 'transform 0.15s ease';
+            d.onmouseenter = function() { d.style.transform = 'translateY(-8px)'; };
+            d.onmouseleave = function() { d.style.transform = ''; };
+        }
+        return d;
+    }
+
+    function _digaCardBack(small) {
+        const d = document.createElement('div');
+        const w = small ? 36 : 52, h = small ? 52 : 75;
+        d.style.cssText = 'width:'+w+'px;height:'+h+'px;background:repeating-linear-gradient(45deg,#102a43,#102a43 5px,#1d4e89 5px,#1d4e89 10px);'+
+            'border-radius:8px;border:2px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;';
+        d.textContent = '★';
+        return d;
+    }
+
+    function _digaRender(state) {
+        if (!state) return;
+        const yo     = _digaYoKey;
+        const op     = _digaOpKey || '__bot__';
+        const opName = op === '__bot__' ? '🤖 Bot' : capitalizarNombre(op);
+        const miMano = state.manos[yo]  || [];
+        const opMano = state.manos[op]  || [];
+        const mesa   = state.mesa       || [];
+        const miCap  = (state.capturas[yo]  || []).length;
+        const opCap  = (state.capturas[op]  || []).length;
+        const esMiTurno = state.turno === yo && state.estado === 'jugando';
+
+        const sbP1 = document.getElementById('diga-sb-p1');
+        const sbP2 = document.getElementById('diga-sb-p2');
+        const sbInfo = document.getElementById('diga-sb-info');
+        if (sbP1) sbP1.textContent = 'Tú: ' + miCap;
+        if (sbP2) sbP2.textContent = opName + ': ' + opCap;
+        if (sbInfo) sbInfo.textContent = 'Mazo: ' + (state.mazo ? state.mazo.length : 0) + ' | Mesa: ' + mesa.length;
+
+        const rivLbl = document.getElementById('diga-rival-label');
+        if (rivLbl) rivLbl.textContent = opName + ' (' + opMano.length + ' cartas)';
+
+        const rivHand = document.getElementById('diga-rival-hand');
+        if (rivHand) {
+            rivHand.innerHTML = '';
+            if (opMano.length === 0) {
+                rivHand.innerHTML = '<span style="opacity:0.5;font-size:12px">Sin cartas</span>';
+            } else {
+                opMano.forEach(function() { rivHand.appendChild(_digaCardBack(true)); });
+            }
+        }
+
+        const tableEl = document.getElementById('diga-table-area');
+        if (tableEl) {
+            tableEl.innerHTML = '';
+            if (mesa.length === 0) {
+                tableEl.innerHTML = '<span style="opacity:0.5;font-size:12px">Mesa vacía</span>';
+            } else {
+                mesa.forEach(function(c) { tableEl.appendChild(_digaCard(c, false, false)); });
+            }
+        }
+
+        const myHand = document.getElementById('diga-my-hand');
+        if (myHand) {
+            myHand.innerHTML = '';
+            if (miMano.length === 0) {
+                myHand.innerHTML = '<span style="opacity:0.5;font-size:12px">Sin cartas</span>';
+            } else {
+                miMano.forEach(function(c, i) {
+                    const el = _digaCard(c, false, esMiTurno && !_digaGameOver);
+                    if (esMiTurno && !_digaGameOver) {
+                        (function(idx) { el.onclick = function() { _digaJugarCarta(idx); }; })(i);
+                        el.title = 'Haz clic para jugar esta carta';
+                    }
+                    myHand.appendChild(el);
+                });
+            }
+        }
+
+        const miLbl = document.getElementById('diga-mi-label');
+        if (miLbl) {
+            const turnoTxt = esMiTurno ? '¡Tu turno — elige una carta!' : 'Turno de ' + opName + '...';
+            miLbl.innerHTML = 'Tu mano (' + miMano.length + ') — <span style="color:#f7c948;">' + turnoTxt + '</span>';
+        }
+    }
+
+    function _digaShuffle(arr) {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = a[i]; a[i] = a[j]; a[j] = t;
+        }
+        return a;
+    }
+
+    function _digaCrearMazo() {
+        const deck = [];
+        for (let si = 0; si < SUITS.length; si++)
+            for (let ri = 0; ri < RANKS.length; ri++)
+                deck.push({ rank: RANKS[ri].label, value: RANKS[ri].value, suit: SUITS[si].symbol, color: SUITS[si].color });
+        return _digaShuffle(deck);
+    }
+
+    function _digaFindPair(mesa, val) {
+        for (let i = 0; i < mesa.length; i++)
+            for (let j = i + 1; j < mesa.length; j++)
+                if (mesa[i].value + mesa[j].value === val) return [i, j];
+        return null;
+    }
+
+    function _digaAplicarJugada(state, jugador, cardIndex) {
+        const s = JSON.parse(JSON.stringify(state));
+        const mano = s.manos[jugador];
+        if (!mano || cardIndex >= mano.length) return null;
+        const carta = mano.splice(cardIndex, 1)[0];
+
+        const matchIdx = s.mesa.findIndex(function(c) { return c.value === carta.value; });
+        const sumPair  = matchIdx === -1 ? _digaFindPair(s.mesa, carta.value) : null;
+
+        const jugadores = Object.keys(s.manos);
+        const otro = jugadores.find(function(u) { return u !== jugador; }) || jugador;
+
+        if (!s.capturas[jugador]) s.capturas[jugador] = [];
+        if (!s.capturas[otro])    s.capturas[otro]    = [];
+
+        if (matchIdx !== -1) {
+            const captured = s.mesa.splice(matchIdx, 1)[0];
+            s.capturas[jugador].push(carta, captured);
+            s.ultimoCaptor = jugador;
+            s.msg = '<strong>' + capitalizarNombre(jugador) + '</strong> capturó ' + carta.rank + carta.suit +
+                    ' con ' + captured.rank + captured.suit + ' (mismo número)';
+        } else if (sumPair) {
+            const idx = sumPair.slice().sort(function(a,b){return b-a;});
+            const c2 = s.mesa.splice(idx[0], 1)[0];
+            const c1 = s.mesa.splice(idx[1], 1)[0];
+            s.capturas[jugador].push(carta, c1, c2);
+            s.ultimoCaptor = jugador;
+            s.msg = '<strong>' + capitalizarNombre(jugador) + '</strong> capturó por suma: ' +
+                    carta.rank + carta.suit + ' → ' + c1.rank + c1.suit + ' + ' + c2.rank + c2.suit;
+        } else {
+            s.mesa.push(carta);
+            s.msg = '<strong>' + capitalizarNombre(jugador) + '</strong> lanzó ' + carta.rank + carta.suit + ' a la mesa';
+        }
+
+        // Rellenar mano hasta 4
+        while (s.manos[jugador].length < 4 && s.mazo.length > 0) {
+            s.manos[jugador].push(s.mazo.pop());
+            s.usados++;
+        }
+
+        // Mesa vacía → carta del sistema
+        if (s.mesa.length === 0 && s.mazo.length > 0) {
+            s.mesa.push(s.mazo.pop());
+            s.usados++;
+            s.msg += ' — el sistema pone una carta en la mesa.';
+        }
+
+        // Cambiar turno
+        s.turno = otro;
+
+        // Verificar fin de partida
+        const mazoVacio   = s.mazo.length === 0;
+        const ambosVacios = jugadores.every(function(u) { return s.manos[u].length === 0; });
+
+        if (mazoVacio && ambosVacios) {
+            // Cartas restantes en mesa al último captor
+            if (s.mesa.length > 0 && s.ultimoCaptor) {
+                s.capturas[s.ultimoCaptor] = s.capturas[s.ultimoCaptor].concat(s.mesa);
+                s.msg += ' — <strong>' + capitalizarNombre(s.ultimoCaptor) + '</strong> se lleva las ' + s.mesa.length + ' cartas de la mesa.';
+                s.mesa = [];
+            }
+            s.estado = 'fin';
+        } else if (mazoVacio && s.manos[jugador].length === 0 && s.manos[otro].length > 0 && s.ultimoCaptor) {
+            // Yo me quedé sin cartas y sin mazo: último captor lleva todo
+            const resto = s.mesa.concat(s.manos[otro]);
+            s.capturas[s.ultimoCaptor] = s.capturas[s.ultimoCaptor].concat(resto);
+            s.mesa = []; s.manos[otro] = [];
+            s.msg += ' — <strong>' + capitalizarNombre(s.ultimoCaptor) + '</strong> se lleva las ' + resto.length + ' cartas restantes.';
+            s.estado = 'fin';
+        }
+
+        s.ts = Date.now();
+        return s;
+    }
+
+    async function _digaEscribirEstado(state) {
+        if (!salaActualKey) return;
+        try { await set(_digaRef(), state); } catch(e) { console.warn('[DIGA] Firebase error:', e); }
+    }
+
+    function _digaAdjuntarListener() {
+        if (_digaListener) { _digaListener(); _digaListener = null; }
+        const tsInicio = Date.now();
+        _digaListener = onValue(_digaRef(), function(snap) {
+            const data = snap.val();
+            if (!data) return;
+            if (data.ts && data.ts < tsInicio - 8000) return;
+            window._digaState = data;
+            _digaRender(data);
+            if (data.msg) _digaSetStatus(data.msg);
+            if (data.estado === 'fin' && !_digaGameOver) {
+                _digaGameOver = true;
+                _digaMostrarResultado(data);
+            }
+            if (window._modoBot && data.estado === 'jugando' && data.turno === '__bot__') {
+                if (typeof window._botDigaJugar === 'function') window._botDigaJugar();
+            }
+        });
+    }
+
+    async function _digaJugarCarta(cardIndex) {
+        const state = window._digaState;
+        if (!state || state.estado !== 'jugando' || state.turno !== _digaYoKey) return;
+        const nuevoEstado = _digaAplicarJugada(state, _digaYoKey, cardIndex);
+        if (!nuevoEstado) return;
+        window._digaState = nuevoEstado;
+        _digaRender(nuevoEstado);
+        if (nuevoEstado.msg) _digaSetStatus(nuevoEstado.msg);
+        await _digaEscribirEstado(nuevoEstado);
+        if (nuevoEstado.estado === 'fin' && !_digaGameOver) {
+            _digaGameOver = true;
+            _digaMostrarResultado(nuevoEstado);
+        }
+    }
+
+    window._digaJugarCartaBot = function() {
+        const state = window._digaState;
+        if (!state || state.estado !== 'jugando') return;
+        const botKey = '__bot__';
+        if (state.turno !== botKey) return;
+        const mano = state.manos[botKey] || [];
+        if (mano.length === 0) return;
+        // Bot intenta capturar; si no, lanza la primera carta
+        let bestIdx = 0;
+        for (let i = 0; i < mano.length; i++) {
+            const v = mano[i].value;
+            if (state.mesa.findIndex(function(c) { return c.value === v; }) !== -1) { bestIdx = i; break; }
+            if (_digaFindPair(state.mesa, v)) { bestIdx = i; break; }
+        }
+        const nuevoEstado = _digaAplicarJugada(state, botKey, bestIdx);
+        if (!nuevoEstado) return;
+        window._digaState = nuevoEstado;
+        _digaEscribirEstado(nuevoEstado);
+        _digaRender(nuevoEstado);
+        if (nuevoEstado.msg) _digaSetStatus(nuevoEstado.msg);
+        if (nuevoEstado.estado === 'fin' && !_digaGameOver) {
+            _digaGameOver = true;
+            _digaMostrarResultado(nuevoEstado);
+        }
+    };
+
+    function _digaMostrarResultado(state) {
+        const yo     = _digaYoKey;
+        const op     = _digaOpKey || '__bot__';
+        const opNom  = op === '__bot__' ? '🤖 Bot' : capitalizarNombre(op);
+        const miCap  = (state.capturas[yo]  || []).length;
+        const opCap  = (state.capturas[op]  || []).length;
+
+        let titulo, msg;
+        if (miCap > opCap) {
+            titulo = '🏆 ¡Ganaste!';
+            msg = 'Capturaste ' + miCap + ' cartas vs ' + opCap + ' de ' + opNom + '.';
+        } else if (opCap > miCap) {
+            titulo = '😞 Ganó ' + opNom;
+            msg = opNom + ' capturó ' + opCap + ' cartas vs tus ' + miCap + '.';
+        } else {
+            titulo = '🤝 ¡Empate!';
+            msg = 'Ambos capturaron ' + miCap + ' cartas.';
+        }
+
+        const miPremio = premiosJuego.diga.mi;
+        const opPremio = premiosJuego.diga.oponente;
+        if (miCap > opCap && (miPremio || opPremio)) {
+            msg += '<br>🎁 Premio: <strong>' + (miPremio || opPremio) + '</strong>';
+        }
+
+        _digaSetStatus('<strong>Fin del juego.</strong> ' + msg);
+
+        if (!window._modoBot) {
+            _showNotify(
+                miCap > opCap ? '🏆' : (opCap > miCap ? '😞' : '🤝'),
+                titulo, msg,
+                [
+                    { label: 'Revancha', cls: 'btn-notify-ok', cb: function() {
+                        _hideNotify();
+                        _tttSendSignal('diga_rematch_request', { nombre: capitalizarNombre(yo) });
+                        mostrarDiga();
+                    }},
+                    { label: 'Salir', cls: 'btn-notify-cancel', cb: function() {
+                        _hideNotify(); cerrarJuegoWindow();
+                    }}
+                ], null
+            );
+        } else {
+            setTimeout(function() {
+                if (confirm(titulo + '\n' + msg.replace(/<[^>]+>/g, '') + '\n\n¿Jugar otra partida?')) {
+                    mostrarDiga();
+                } else {
+                    cerrarJuegoWindow();
+                }
+            }, 400);
+        }
+    }
+
+    function actualizarLobbyDiga() {
+        const mi = premiosJuego.diga.mi;
+        const op = premiosJuego.diga.oponente;
+        const miEl = document.getElementById('diga-lobby-mi-premio');
+        const opEl = document.getElementById('diga-lobby-oponente-premio');
+        const opNom = (oponenteActual && oponenteActual !== '__bot__') ? capitalizarNombre(oponenteActual) : '🤖 Bot';
+        if (miEl) miEl.innerHTML = mi ? '🎁 Tu premio: <span class="ready">' + mi + '</span>'
+            : '🎁 Tu premio: <span class="pending">sin elegir (opcional)</span>';
+        if (opEl) opEl.innerHTML = op ? '🎁 Premio de ' + opNom + ': <span class="ready">' + op + '</span>'
+            : '🎁 Premio de ' + opNom + ': <span class="pending">sin elegir (opcional)</span>';
+    }
+    window.actualizarLobbyDiga = actualizarLobbyDiga;
+
+    function mostrarDiga() {
+        _digaGameOver = false;
+        window._digaState = null;
+        premiosJuego.diga.mi = null;
+        premiosJuego.diga.oponente = null;
+
+        const yo  = capitalizarNombre(usuarioActual || 'Tú');
+        const opRaw = (oponenteActual && oponenteActual !== '__bot__') ? oponenteActual : null;
+        const op  = opRaw ? capitalizarNombre(opRaw) : '🤖 Bot';
+        const titleEl = document.getElementById('diga-title');
+        if (titleEl) titleEl.textContent = yo + ' vs ' + op + ' — Diga';
+
+        document.getElementById('diga-window').classList.add('active', 'jugando');
+        document.getElementById('pantalla-chat').classList.add('jugando');
+        if (window._splitDividerShow) window._splitDividerShow();
+
+        const lobby = document.getElementById('diga-lobby');
+        const board = document.getElementById('diga-board-wrapper');
+        if (lobby) lobby.style.display = '';
+        if (board) board.style.display = 'none';
+
+        const btn = document.getElementById('btn-iniciar-diga');
+        if (btn) { btn.disabled = false; btn.textContent = '▶ Iniciar partida'; }
+
+        actualizarLobbyDiga();
+        _tttAttachSignalListener();
+    }
+    window.mostrarDiga = mostrarDiga;
+
+    window.iniciarPartidaDiga = function() {
+        const btn = document.getElementById('btn-iniciar-diga');
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Esperando al rival...'; }
+
+        const opLabel = oponenteActual ? capitalizarNombre(oponenteActual) : 'el otro jugador';
+        const mwTitle = document.getElementById('modal-wait-title');
+        const mwMsg   = document.getElementById('modal-wait-msg');
+        const mwModal = document.getElementById('modal-wait');
+        if (mwTitle) mwTitle.textContent = 'Esperando a ' + opLabel + '...';
+        if (mwMsg)   mwMsg.textContent   = opLabel + ' también debe pulsar Iniciar para comenzar Diga.';
+        if (mwModal) mwModal.classList.add('active');
+
+        _marcarListoParaIniciar('diga');
+
+        if (window._digaSyncTimeout) clearTimeout(window._digaSyncTimeout);
+        window._digaSyncTimeout = setTimeout(async function() {
+            if (_yoEstoyListoParaIniciar && _juegoSyncEnCurso === 'diga' && !_gameStartHandlerEntradaHecha) {
+                await _cancelarListoParaIniciar();
+                if (mwModal) mwModal.classList.remove('active');
+                if (btn) { btn.disabled = false; btn.textContent = '▶ Iniciar partida'; }
+                alert('⏱️ El otro jugador no respondió. Inténtalo de nuevo.');
+            }
+        }, 60000);
+    };
+
+    window.entrarAlJuegoDiga = function() {
+        _digaYoKey = usuarioActual;
+        _digaOpKey = (oponenteActual === '__bot__' || !oponenteActual) ? '__bot__' : oponenteActual;
+        _digaGameOver = false;
+
+        const lobby = document.getElementById('diga-lobby');
+        const board = document.getElementById('diga-board-wrapper');
+        if (lobby) lobby.style.display = 'none';
+        if (board) board.style.display = 'flex';
+
+        _digaEsHost = window._modoBot ? true : (usuarioActual < (_digaOpKey || 'zzz'));
+
+        if (_digaEsHost) {
+            const mazo = _digaCrearMazo();
+            const manos = {}, capturas = {};
+            manos[_digaYoKey] = []; manos[_digaOpKey] = [];
+            capturas[_digaYoKey] = []; capturas[_digaOpKey] = [];
+            let usados = 0;
+            for (let i = 0; i < 4; i++) {
+                manos[_digaYoKey].push(mazo.pop()); usados++;
+                manos[_digaOpKey].push(mazo.pop()); usados++;
+            }
+            const mesa = [mazo.pop()]; usados++;
+
+            const estadoInicial = {
+                mazo: mazo, mesa: mesa, manos: manos, capturas: capturas,
+                turno: _digaYoKey, ultimoCaptor: null, usados: usados,
+                estado: 'jugando',
+                msg: 'Partida iniciada. Turno de <strong>' + capitalizarNombre(_digaYoKey) + '</strong>.',
+                ts: Date.now()
+            };
+            window._digaState = estadoInicial;
+            _digaEscribirEstado(estadoInicial);
+            _digaRender(estadoInicial);
+            _digaSetStatus(estadoInicial.msg);
+        }
+
+        _digaAdjuntarListener();
+
+        if (window._modoBot && window._digaState && window._digaState.turno === '__bot__') {
+            if (typeof window._botDigaJugar === 'function') window._botDigaJugar();
+        }
+    };
+
+})();
+// ── Fin motor Diga ────────────────────────────────────────────
 
     </script>
 
