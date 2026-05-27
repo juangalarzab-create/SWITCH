@@ -4123,6 +4123,187 @@
             }
         }
 
+        /* ===== REACCIONES PREMIUM EN PANTALLA DIVIDIDA ===== */
+        .chat-premium-reaction-layer,
+        .split-live-reaction-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 9997;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .chat-premium-reaction-layer.glow-fire::before,
+        .chat-premium-reaction-layer.glow-heart::before,
+        .chat-premium-reaction-layer.glow-lightning::before,
+        .chat-premium-reaction-layer.glow-confetti::before,
+        .chat-premium-reaction-layer.glow-smoke::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            animation: premiumReactionGlow 1.05s ease-out forwards;
+        }
+        .chat-premium-reaction-layer.glow-fire::before {
+            background: radial-gradient(circle at 50% 42%, rgba(255, 95, 0, .16), rgba(255, 30, 0, .06) 32%, transparent 68%);
+        }
+        .chat-premium-reaction-layer.glow-heart::before {
+            background: radial-gradient(circle at 50% 44%, rgba(255, 40, 120, .16), rgba(255, 0, 120, .06) 34%, transparent 70%);
+        }
+        .chat-premium-reaction-layer.glow-lightning::before {
+            background: radial-gradient(circle at 50% 38%, rgba(255, 230, 0, .18), rgba(90, 160, 255, .08) 34%, transparent 70%);
+        }
+        .chat-premium-reaction-layer.glow-confetti::before {
+            background: radial-gradient(circle at 50% 45%, rgba(255, 215, 0, .12), rgba(0, 136, 204, .08) 38%, transparent 72%);
+        }
+        .chat-premium-reaction-layer.glow-smoke::before {
+            background: radial-gradient(circle at 50% 48%, rgba(220, 230, 240, .12), rgba(120, 130, 140, .06) 42%, transparent 74%);
+        }
+        .premium-reaction-particle,
+        .split-live-particle {
+            position: absolute;
+            bottom: var(--start-bottom, 8vh);
+            left: var(--start-left, 50vw);
+            font-size: var(--size, 38px);
+            opacity: 0;
+            user-select: none;
+            pointer-events: none;
+            filter: drop-shadow(0 0 10px rgba(255,255,255,.32));
+            animation: premiumReactionFloat var(--dur, 1.45s) cubic-bezier(.18,.84,.28,1) forwards;
+            animation-delay: var(--delay, 0s);
+            transform-origin: center bottom;
+            mix-blend-mode: screen;
+        }
+        .premium-reaction-particle.fire { filter: drop-shadow(0 0 14px rgba(255,100,0,.75)) drop-shadow(0 0 28px rgba(255,40,0,.35)); }
+        .premium-reaction-particle.heart { filter: drop-shadow(0 0 12px rgba(255,40,110,.8)); }
+        .premium-reaction-particle.lightning { filter: drop-shadow(0 0 14px rgba(255,230,0,.85)); }
+        .premium-reaction-particle.confetti { filter: drop-shadow(0 0 8px rgba(255,255,255,.4)); }
+        .premium-reaction-particle.smoke { filter: blur(.2px) drop-shadow(0 0 10px rgba(230,230,230,.35)); opacity: .55; }
+        @keyframes premiumReactionGlow {
+            0% { opacity: 0; }
+            18% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        @keyframes premiumReactionFloat {
+            0%   { opacity: 0; transform: translateY(22px) translateX(0) scale(.55) rotate(0deg); }
+            15%  { opacity: .92; }
+            46%  { opacity: 1; transform: translateY(var(--rise-a, -13vh)) translateX(var(--drift-a, 0px)) scale(1.16) rotate(var(--rot-a, 0deg)); }
+            74%  { opacity: .62; transform: translateY(var(--rise-b, -26vh)) translateX(var(--drift-b, 0px)) scale(.9) rotate(var(--rot-b, 0deg)); }
+            100% { opacity: 0; transform: translateY(var(--rise-c, -39vh)) translateX(var(--drift-c, 0px)) scale(.28) rotate(var(--rot-c, 0deg)); }
+        }
+
+        /* ===== BOTÓN FLOTANTE TIPO TIKTOK PARA REACCIONES LIVE ===== */
+        .split-reaction-dock {
+            display: none;
+            position: fixed;
+            right: calc(10px + env(safe-area-inset-right, 0px));
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 9998;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+        }
+        .split-reaction-dock.active { display: flex; }
+        .split-reaction-options {
+            display: none !important;
+        }
+        .split-reaction-chip {
+            width: 31px;
+            height: 31px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.18);
+            background: rgba(255,255,255,.10);
+            color: #fff;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            font-size: 17px;
+            transition: transform .15s ease, background .15s ease, border-color .15s ease;
+            padding: 0;
+        }
+        .split-reaction-chip.active {
+            background: linear-gradient(135deg, rgba(0,136,204,.9), rgba(255,215,0,.75));
+            border-color: rgba(255,255,255,.55);
+            transform: scale(1.08);
+        }
+        .split-reaction-main {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,.35);
+            background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.30), rgba(0,136,204,.95) 45%, rgba(14,20,45,.96));
+            color: #fff;
+            font-size: 27px;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            box-shadow: 0 12px 34px rgba(0,0,0,.38), 0 0 20px rgba(0,136,204,.34);
+            animation: liveReactionButtonPulse 2.2s ease-in-out infinite;
+            padding: 0;
+        }
+        .split-reaction-main:active { transform: scale(.92); }
+        .split-reaction-main.tap-pop {
+            animation: liveReactionTapPop .24s ease-out, liveReactionButtonPulse 2.2s ease-in-out infinite;
+        }
+        @keyframes liveReactionTapPop {
+            0% { transform: scale(.92); }
+            55% { transform: scale(1.14); }
+            100% { transform: scale(1); }
+        }
+        @keyframes liveReactionButtonPulse {
+            0%,100% { box-shadow: 0 12px 34px rgba(0,0,0,.38), 0 0 0 0 rgba(0,136,204,.32); }
+            50% { box-shadow: 0 12px 34px rgba(0,0,0,.38), 0 0 0 9px rgba(0,136,204,0); }
+        }
+        .split-reaction-counts {
+            min-width: 74px;
+            max-width: 110px;
+            padding: 5px 7px;
+            border-radius: 14px;
+            background: rgba(0,0,0,.44);
+            border: 1px solid rgba(255,255,255,.14);
+            color: rgba(255,255,255,.92);
+            font-size: 10px;
+            line-height: 1.25;
+            text-align: center;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.25);
+        }
+        .split-reaction-counts b { color: #ffd700; }
+
+        .split-live-particle {
+            bottom: 16vh;
+            left: auto;
+            right: calc(26px + env(safe-area-inset-right, 0px));
+            animation: splitLiveFloat var(--dur, 1.65s) cubic-bezier(.16,.84,.24,1) forwards;
+            filter: drop-shadow(0 0 12px rgba(255,255,255,.42));
+        }
+        @keyframes splitLiveFloat {
+            0%   { opacity: 0; transform: translateY(14px) translateX(0) scale(.6) rotate(0deg); }
+            12%  { opacity: 1; }
+            48%  { opacity: .96; transform: translateY(-16vh) translateX(var(--drift-a, -30px)) scale(1.15) rotate(var(--rot-a, 0deg)); }
+            76%  { opacity: .58; transform: translateY(-30vh) translateX(var(--drift-b, -55px)) scale(.86) rotate(var(--rot-b, 0deg)); }
+            100% { opacity: 0; transform: translateY(-44vh) translateX(var(--drift-c, -80px)) scale(.25) rotate(var(--rot-c, 0deg)); }
+        }
+
+        .naipes-streak-badge {
+            display: none;
+            width: fit-content;
+            max-width: 100%;
+            margin: 0 auto 6px;
+            padding: 5px 11px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(255, 92, 0, .26), rgba(255, 215, 0, .16));
+            border: 1px solid rgba(255, 180, 0, .42);
+            color: #ffd166;
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: .3px;
+            text-transform: uppercase;
+            box-shadow: 0 0 20px rgba(255, 100, 0, .16);
+        }
+        .naipes-streak-badge.visible { display: block; }
+
+
 
         /* ===== PUSH BANNER (notif. dentro de la app) ===== */
         .push-banner {
@@ -4369,11 +4550,11 @@
         }
         .naipes-captured::-webkit-scrollbar { display: none; }
         #naipes-my-captured {
-            flex-direction: row-reverse !important;
+            flex-direction: row !important;
             justify-content: flex-start !important;
         }
         #naipes-op-captured {
-            flex-direction: row !important;
+            flex-direction: row-reverse !important;
             justify-content: flex-start !important;
         }
         #naipes-my-captured .naipes-card,
@@ -4418,6 +4599,64 @@
             .naipes-captures-grid {
                 grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
             }
+        }
+
+
+        /* ===== SWITCH DISFRAZ DE MENSAJES ===== */
+        .btn-chat-disguise {
+            border: 1px solid rgba(255,255,255,0.16);
+            background: rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.74);
+            border-radius: 999px;
+            padding: 5px 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .18s, border-color .18s, color .18s, transform .18s;
+            flex-shrink: 0;
+            max-width: 82px;
+            white-space: nowrap;
+        }
+        .btn-chat-disguise:hover {
+            background: rgba(255,255,255,0.12);
+            transform: translateY(-1px);
+        }
+        .btn-chat-disguise.active {
+            background: linear-gradient(135deg, rgba(255, 199, 44, 0.22), rgba(0, 136, 204, 0.16));
+            border-color: rgba(255, 199, 44, 0.55);
+            color: #ffd166;
+            box-shadow: 0 0 14px rgba(255, 199, 44, 0.18);
+        }
+        .btn-chat-disguise .disguise-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .story-disguised {
+            color: #f7f0d7 !important;
+            font-style: italic;
+            letter-spacing: .1px;
+        }
+        .story-disguised::before {
+            content: "📖 ";
+            font-style: normal;
+        }
+        .screen-chat.jugando .btn-chat-disguise {
+            padding: 4px 7px;
+            font-size: 10px;
+            max-width: 64px;
+        }
+        .screen-chat.jugando .btn-chat-disguise .disguise-label {
+            display: none;
+        }
+        @media (max-width: 390px) {
+            .btn-chat-disguise {
+                max-width: 40px;
+                padding: 6px 7px;
+            }
+            .btn-chat-disguise .disguise-label { display: none; }
         }
 
     </style>
@@ -4501,6 +4740,10 @@
                     </div>
                     <!-- Indicador escritura -->
                     <div class="header-typing-status" id="header-typing-status"></div>
+                    <!-- Switch visual para disfrazar mensajes -->
+                    <button class="btn-chat-disguise" id="btn-chat-disguise" onclick="toggleDisfrazMensajes()" title="Disfrazar mensajes como cuento">
+                        <span class="disguise-icon">🐷</span><span class="disguise-label">Cuento</span>
+                    </button>
                     <!-- Botón llamada WebRTC -->
                     <button class="btn-call-header" id="btn-call-header" onclick="iniciarLlamada()" title="Llamada de voz">
                         <i class="fas fa-phone"></i>
@@ -4962,6 +5205,7 @@
                         Capturadas: <span id="naipes-op-score">0</span>
                     </div>
                 </div>
+                <div class="naipes-streak-badge" id="naipes-streak-badge"></div>
 
                 <div class="naipes-status" id="naipes-status">Preparando partida...</div>
 
@@ -5001,6 +5245,21 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- REACCIONES LIVE EN PANTALLA DIVIDIDA -->
+    <div class="split-live-reaction-layer" id="split-live-reaction-layer"></div>
+    <div class="split-reaction-dock" id="split-reaction-dock" aria-label="Reacciones automáticas en vivo">
+        <div class="split-reaction-options" id="split-reaction-options">
+            <button class="split-reaction-chip active" data-emoji="❤️" title="Corazones">❤️</button>
+            <button class="split-reaction-chip" data-emoji="👍" title="Like">👍</button>
+            <button class="split-reaction-chip" data-emoji="🔥" title="Fuego">🔥</button>
+            <button class="split-reaction-chip" data-emoji="⚡" title="Rayo">⚡</button>
+            <button class="split-reaction-chip" data-emoji="🎉" title="Confeti">🎉</button>
+            <button class="split-reaction-chip" data-emoji="💨" title="Humo">💨</button>
+        </div>
+        <button class="split-reaction-main" id="split-reaction-main" title="Enviar reacción automática">❤️</button>
+        <div class="split-reaction-counts" id="split-reaction-counts">Reacciones<br><b>0</b></div>
     </div>
 
     <!-- MODAL GANADOR NAIPES -->
@@ -5789,10 +6048,13 @@ window.guardarNombreUsuario = function() {
     document.querySelector('.header').style.display = 'none';
     document.getElementById('input-mensaje').focus();
     escucharMensajes();
+    actualizarBotonDisfrazMensajes();
+    document.body.classList.toggle('chat-disguise-active', !!_mensajeDisfrazActivo);
     // Escuchar invitaciones de juego en tiempo real para esta sala
     escucharInvitacionesJuego();
     // Escuchar racha de fuego en Firebase
     if (typeof _adjuntarRachaListener === 'function') _adjuntarRachaListener();
+    if (typeof _attachLiveReactionListener === 'function') _attachLiveReactionListener();
     // Iniciar indicador de escritura y presencia en tiempo real
     if (typeof window._initPresenceAndTyping === 'function') window._initPresenceAndTyping();
     // Pedir permiso y registrar token FCM para esta sala
@@ -5844,6 +6106,95 @@ window.guardarSala = function() {
 // ============================================================
 let _ultimoMsgKey = null;   // Para detectar mensajes realmente nuevos
 let _primeraCarga = true;
+let _mensajesCacheDisfraz = [];
+let _mensajeDisfrazActivo = false;
+
+try {
+    _mensajeDisfrazActivo = localStorage.getItem('switch_modo_cuento_chat') === '1';
+} catch(e) { _mensajeDisfrazActivo = false; }
+
+function actualizarBotonDisfrazMensajes() {
+    const btn = document.getElementById('btn-chat-disguise');
+    if (!btn) return;
+    btn.classList.toggle('active', !!_mensajeDisfrazActivo);
+    btn.title = _mensajeDisfrazActivo
+        ? 'Desactivar disfraz de mensajes'
+        : 'Disfrazar mensajes como cuento';
+    const label = btn.querySelector('.disguise-label');
+    if (label) label.textContent = _mensajeDisfrazActivo ? 'Activo' : 'Cuento';
+}
+
+function toggleDisfrazMensajes(force) {
+    _mensajeDisfrazActivo = (typeof force === 'boolean') ? force : !_mensajeDisfrazActivo;
+    try { localStorage.setItem('switch_modo_cuento_chat', _mensajeDisfrazActivo ? '1' : '0'); } catch(e) {}
+    document.body.classList.toggle('chat-disguise-active', !!_mensajeDisfrazActivo);
+    actualizarBotonDisfrazMensajes();
+    renderMensajesDesdeCache(false, null);
+    if (typeof showToast === 'function') {
+        showToast(_mensajeDisfrazActivo ? '🐷 Modo cuento activado' : '💬 Mensajes normales', 1600);
+    }
+}
+
+function renderMensajesDesdeCache(isNewMsg = false, lastKey = null) {
+    const container = document.getElementById('mensajes');
+    if (!container) return;
+    container.innerHTML = '';
+    _mensajesCacheDisfraz.forEach(({ key, val }, idx) => {
+        const base = val || {};
+        const msgData = (isNewMsg && key === lastKey)
+            ? { ...base, _isNew: true, _key: key, _index: idx }
+            : { ...base, _key: key, _index: idx };
+        container.insertAdjacentHTML('beforeend', buildMsgHTML(msgData));
+    });
+    container.scrollTop = container.scrollHeight;
+}
+
+function _hashTextoDisfraz(str) {
+    const t = String(str || '');
+    let h = 0;
+    for (let i = 0; i < t.length; i++) h = ((h << 5) - h + t.charCodeAt(i)) | 0;
+    return Math.abs(h);
+}
+
+function generarTextoDisfrazado(msg) {
+    const lineas = [
+        'El cerdito menor juntó paja mientras el viento soplaba suave.',
+        'El cerdito del medio revisó unas tablas junto al camino del bosque.',
+        'El cerdito mayor acomodó ladrillos antes de que cayera la tarde.',
+        'El lobo pasó cerca del molino, pero nadie abrió la puerta.',
+        'Los tres cerditos hablaron bajito sobre la casa más resistente.',
+        'Una olla humeaba en la cocina y todos fingieron estar ocupados.',
+        'El cerdito mayor contó los ladrillos que faltaban para terminar el muro.',
+        'El cerdito menor dijo que la paja era ligera, pero no muy segura.',
+        'El cerdito del medio escuchó ramas crujir detrás de la cerca.',
+        'El lobo resopló una vez y las hojas bailaron sobre el sendero.',
+        'Los cerditos cerraron la ventana y siguieron conversando tranquilos.',
+        'La casa de ladrillo brilló bajo una luz amarilla de atardecer.',
+        'El cerdito menor llevó una cesta de manzanas a la mesa.',
+        'El cerdito del medio dibujó un plano nuevo para reforzar la puerta.',
+        'El lobo preguntó por el camino, pero los cerditos no respondieron.',
+        'Todos miraron la chimenea como si escondiera una gran noticia.',
+        'El cerdito mayor dejó una llave pequeña junto al mantel.',
+        'La cerca del jardín sonó, pero solo era el viento entre las flores.',
+        'Los tres cerditos acordaron revisar el techo antes de dormir.',
+        'El lobo se alejó murmurando entre los árboles del bosque.',
+        'Un cerdito encendió la lámpara y otro guardó las herramientas.',
+        'La mesa quedó servida con pan, sopa caliente y mucho silencio.',
+        'El cerdito mayor dijo que una buena casa empieza por buenos cimientos.',
+        'El cerdito menor se rió porque había paja pegada en su sombrero.',
+        'El cerdito del medio sostuvo un martillo como si fuera una espada.',
+        'El bosque quedó quieto cuando la puerta de ladrillo se cerró.',
+        'El lobo sopló despacio, pero la casa apenas hizo ruido.',
+        'Los cerditos celebraron que el plan había funcionado otra vez.',
+        'Una nube tapó la luna y todos hablaron en voz más baja.',
+        'El cerdito mayor escribió una nota y la escondió bajo un ladrillo.'
+    ];
+    const base = `${msg && msg._key ? msg._key : ''}|${msg && msg.texto ? msg.texto : ''}|${msg && msg.tipo ? msg.tipo : ''}|${msg && msg._index ? msg._index : 0}`;
+    const idx = _hashTextoDisfraz(base) % lineas.length;
+    if (msg && msg.tipo === 'imagen') return lineas[idx].replace('hablaron', 'miraron un dibujo y hablaron');
+    if (msg && msg.tipo === 'audio') return lineas[idx].replace('hablaron', 'escucharon un cuento y hablaron');
+    return lineas[idx];
+}
 
 function escucharMensajes() {
     if (!salaActualKey) return;
@@ -5868,11 +6219,8 @@ function escucharMensajes() {
         const isNewMsg = !_primeraCarga && lastKey && lastKey !== _ultimoMsgKey && lastMsg;
 
         // Re-renderizar todos; solo el último nuevo lleva _isNew para la animación
-        container.innerHTML = '';
-        allMsgs.forEach(({ key, val }) => {
-            const msgData = (isNewMsg && key === lastKey) ? { ...val, _isNew: true } : val;
-            container.insertAdjacentHTML('beforeend', buildMsgHTML(msgData));
-        });
+        _mensajesCacheDisfraz = allMsgs;
+        renderMensajesDesdeCache(isNewMsg, lastKey);
 
         // Detectar si hay mensaje nuevo (no en la primera carga, no es propio)
         if (!_primeraCarga && lastKey && lastKey !== _ultimoMsgKey && lastMsg) {
@@ -5926,7 +6274,9 @@ function buildMsgHTML(msg) {
     const esPropio = msg.usuario === usuarioActual;
     let contenido  = '';
 
-    if (msg.tipo === 'imagen') {
+    if (_mensajeDisfrazActivo && msg.tipo !== 'anuncio-admin') {
+        contenido = `<div class="msg-content story-disguised">${escapeHtml(generarTextoDisfrazado(msg))}</div>`;
+    } else if (msg.tipo === 'imagen') {
         contenido = `<img src="${msg.mediaUrl}" class="msg-imagen" alt="Imagen" onclick="abrirModalImagen('${msg.mediaUrl}')">`;
     } else if (msg.tipo === 'audio') {
         contenido = `<audio controls class="msg-audio"><source src="${msg.mediaUrl}" type="audio/ogg"></audio>`;
@@ -6006,48 +6356,233 @@ function contarEmojisFuego(texto) {
     return (String(texto || '').match(/🔥/g) || []).length;
 }
 
-function manejarReaccionEmojiChat(texto) {
-    const limpio = String(texto || '').trim();
-    const fuegos = contarEmojisFuego(limpio);
-    if (fuegos > 0 && estaEnPantallaDividida()) {
-        lanzarFuegoRachaChat(fuegos * 3);
-        return;
-    }
-    if (esSoloEmoji(limpio)) {
-        lanzarLluviaEmoji(limpio);
-    }
+function _contarMatches(texto, regex) {
+    return (String(texto || '').match(regex) || []).length;
 }
 
-function lanzarFuegoRachaChat(cantidad) {
+function detectarReaccionesPremium(texto) {
+    const t = String(texto || '');
+    const packs = [];
+    const fire = _contarMatches(t, /🔥/g);
+    const hearts = _contarMatches(t, /❤️|❤|💖|💗|💘|💕|💞|😍|🥰|😘/g);
+    const lightning = _contarMatches(t, /⚡|🌩️|🌩/g);
+    const confetti = _contarMatches(t, /🎉|🥳|🎊/g);
+    const smoke = _contarMatches(t, /💨|🌫️|🌫/g);
+    const likes = _contarMatches(t, /👍|👌|🙌/g);
+    if (fire) packs.push({ type: 'fire', emoji: '🔥', count: fire * 3 });
+    if (hearts) packs.push({ type: 'heart', emoji: '❤️', count: hearts * 4 });
+    if (lightning) packs.push({ type: 'lightning', emoji: '⚡', count: lightning * 4 });
+    if (confetti) packs.push({ type: 'confetti', emoji: '🎉', count: confetti * 8 });
+    if (smoke) packs.push({ type: 'smoke', emoji: '💨', count: smoke * 5 });
+    if (likes) packs.push({ type: 'like', emoji: '👍', count: likes * 4 });
+    return packs;
+}
+
+function manejarReaccionEmojiChat(texto) {
+    const limpio = String(texto || '').trim();
+    const packs = detectarReaccionesPremium(limpio);
+    if (estaEnPantallaDividida() && packs.length) {
+        packs.forEach(p => lanzarReaccionPremium(p.emoji, p.count, p.type));
+        return;
+    }
+    if (esSoloEmoji(limpio)) lanzarLluviaEmoji(limpio);
+}
+
+function lanzarReaccionPremium(emoji, cantidad, tipo) {
     if (!estaEnPantallaDividida()) return;
-    const total = Math.max(3, Math.min(Number(cantidad) || 3, 24));
+    const type = tipo || 'default';
+    const total = Math.max(3, Math.min(Number(cantidad) || 3, 36));
     const layer = document.createElement('div');
-    layer.className = 'chat-fire-reaction-layer';
+    layer.className = `chat-premium-reaction-layer glow-${type}`;
     document.body.appendChild(layer);
 
     for (let i = 0; i < total; i++) {
-        const flame = document.createElement('div');
-        flame.className = 'chat-fire-flame';
-        flame.textContent = '🔥';
-        const left = 12 + Math.random() * 76;
-        const size = 38 + Math.random() * 58;
-        const delay = Math.random() * 0.24;
-        flame.style.left = left + 'vw';
-        flame.style.fontSize = size + 'px';
-        flame.style.animationDelay = delay.toFixed(2) + 's';
-        flame.style.setProperty('--fire-drift-a', ((Math.random() - 0.5) * 60).toFixed(0) + 'px');
-        flame.style.setProperty('--fire-drift-b', ((Math.random() - 0.5) * 110).toFixed(0) + 'px');
-        flame.style.setProperty('--fire-drift-c', ((Math.random() - 0.5) * 150).toFixed(0) + 'px');
-        flame.style.setProperty('--fire-rot-a', ((Math.random() - 0.5) * 18).toFixed(0) + 'deg');
-        flame.style.setProperty('--fire-rot-b', ((Math.random() - 0.5) * 36).toFixed(0) + 'deg');
-        flame.style.setProperty('--fire-rot-c', ((Math.random() - 0.5) * 70).toFixed(0) + 'deg');
-        layer.appendChild(flame);
+        const p = document.createElement('div');
+        p.className = `premium-reaction-particle ${type}`;
+        p.textContent = emoji;
+        const left = 8 + Math.random() * 84;
+        const bottom = 6 + Math.random() * 18;
+        const sizeBase = type === 'confetti' ? 19 : type === 'smoke' ? 34 : 30;
+        const sizeRange = type === 'confetti' ? 18 : type === 'smoke' ? 44 : 46;
+        const size = sizeBase + Math.random() * sizeRange;
+        const delay = Math.random() * 0.34;
+        const dur = 1.1 + Math.random() * 0.55;
+        p.style.setProperty('--start-left', left + 'vw');
+        p.style.setProperty('--start-bottom', bottom + 'vh');
+        p.style.setProperty('--size', size.toFixed(0) + 'px');
+        p.style.setProperty('--delay', delay.toFixed(2) + 's');
+        p.style.setProperty('--dur', dur.toFixed(2) + 's');
+        p.style.setProperty('--rise-a', -(10 + Math.random() * 8).toFixed(0) + 'vh');
+        p.style.setProperty('--rise-b', -(22 + Math.random() * 10).toFixed(0) + 'vh');
+        p.style.setProperty('--rise-c', -(35 + Math.random() * 14).toFixed(0) + 'vh');
+        p.style.setProperty('--drift-a', ((Math.random() - 0.5) * 70).toFixed(0) + 'px');
+        p.style.setProperty('--drift-b', ((Math.random() - 0.5) * 120).toFixed(0) + 'px');
+        p.style.setProperty('--drift-c', ((Math.random() - 0.5) * 180).toFixed(0) + 'px');
+        p.style.setProperty('--rot-a', ((Math.random() - 0.5) * 26).toFixed(0) + 'deg');
+        p.style.setProperty('--rot-b', ((Math.random() - 0.5) * 60).toFixed(0) + 'deg');
+        p.style.setProperty('--rot-c', ((Math.random() - 0.5) * 110).toFixed(0) + 'deg');
+        layer.appendChild(p);
     }
-
     setTimeout(() => {
         if (layer.parentNode) layer.parentNode.removeChild(layer);
-    }, 1700);
+    }, 2300);
 }
+
+function lanzarFuegoRachaChat(cantidad) {
+    lanzarReaccionPremium('🔥', cantidad, 'fire');
+}
+
+// ══════════════════════════════════════════════════════════
+// REACCIONES LIVE TIPO TIKTOK — solo pantalla dividida
+// ══════════════════════════════════════════════════════════
+let _liveReactionSelected = '❤️';
+const _liveReactionAutoSequence = ['❤️', '👍', '🔥', '⚡', '🎉', '💨'];
+let _liveReactionAutoIndex = 0;
+let _liveReactionListener = null;
+let _liveReactionCountsListener = null;
+let _liveReactionSeen = new Set();
+let _liveReactionFirstLoad = true;
+
+function _liveReactionRootPath() { return `gameReactions/${salaActualKey}/live`; }
+function _liveReactionEventsRef() { return ref(db, `${_liveReactionRootPath()}/events`); }
+function _liveReactionCountsRef() { return ref(db, `${_liveReactionRootPath()}/counts`); }
+function _liveReactionCountRef(name) { return ref(db, `${_liveReactionRootPath()}/counts/${_reactionUserKey(name)}`); }
+function _reactionUserKey(name) { return String(name || 'usuario').trim().replace(/[.#$\/\[\]]/g, '_') || 'usuario'; }
+
+function _reactionTypeFromEmoji(emoji) {
+    const p = detectarReaccionesPremium(String(emoji || ''))[0];
+    if (p) return p.type;
+    if (emoji === '👍') return 'like';
+    return 'heart';
+}
+
+function _attachLiveReactionListener() {
+    if (!salaActualKey) return;
+    if (_liveReactionListener) { _liveReactionListener(); _liveReactionListener = null; }
+    if (_liveReactionCountsListener) { _liveReactionCountsListener(); _liveReactionCountsListener = null; }
+    _liveReactionSeen = new Set();
+    _liveReactionFirstLoad = true;
+
+    _liveReactionListener = onValue(_liveReactionEventsRef(), (snap) => {
+        const events = [];
+        snap.forEach(child => events.push({ key: child.key, val: child.val() }));
+        events.sort((a, b) => Number((a.val || {}).ts || 0) - Number((b.val || {}).ts || 0));
+
+        if (_liveReactionFirstLoad) {
+            events.forEach(ev => _liveReactionSeen.add(ev.key));
+            _liveReactionFirstLoad = false;
+            return;
+        }
+
+        events.forEach(ev => {
+            if (_liveReactionSeen.has(ev.key)) return;
+            _liveReactionSeen.add(ev.key);
+            const data = ev.val || {};
+            if (!estaEnPantallaDividida()) return;
+            lanzarReaccionLiveVisual(data.emoji || '❤️', data.usuario || '', 5);
+        });
+    });
+
+    _liveReactionCountsListener = onValue(_liveReactionCountsRef(), (snap) => {
+        const data = snap.val() || {};
+        renderConteoReaccionesLive(data);
+    });
+}
+
+function _actualizarDockReacciones() {
+    const dock = document.getElementById('split-reaction-dock');
+    if (!dock) return;
+    dock.classList.toggle('active', estaEnPantallaDividida());
+}
+
+function renderConteoReaccionesLive(data) {
+    const el = document.getElementById('split-reaction-counts');
+    if (!el) return;
+    const rows = Object.values(data || {})
+        .filter(Boolean)
+        .sort((a, b) => Number(b.count || 0) - Number(a.count || 0))
+        .slice(0, 2);
+    if (!rows.length) {
+        el.innerHTML = 'Reacciones<br><b>0</b>';
+        return;
+    }
+    el.innerHTML = rows.map(r => {
+        const name = escapeHtml(capitalizarNombre(r.name || 'Usuario')).slice(0, 10);
+        return `${name}: <b>${Number(r.count || 0)}</b>`;
+    }).join('<br>');
+}
+
+function lanzarReaccionLiveVisual(emoji, usuario, cantidad) {
+    if (!estaEnPantallaDividida()) return;
+    const layer = document.getElementById('split-live-reaction-layer') || document.body;
+    const total = Math.max(3, Math.min(Number(cantidad) || 5, 14));
+    const tipo = _reactionTypeFromEmoji(emoji);
+    for (let i = 0; i < total; i++) {
+        const p = document.createElement('div');
+        p.className = `split-live-particle ${tipo}`;
+        p.textContent = emoji;
+        const size = 28 + Math.random() * 22;
+        const delay = Math.random() * 0.18;
+        const dur = 1.35 + Math.random() * 0.55;
+        p.style.setProperty('--size', size.toFixed(0) + 'px');
+        p.style.setProperty('--delay', delay.toFixed(2) + 's');
+        p.style.setProperty('--dur', dur.toFixed(2) + 's');
+        p.style.setProperty('--drift-a', (-(20 + Math.random() * 54)).toFixed(0) + 'px');
+        p.style.setProperty('--drift-b', (-(42 + Math.random() * 72)).toFixed(0) + 'px');
+        p.style.setProperty('--drift-c', (-(64 + Math.random() * 98)).toFixed(0) + 'px');
+        p.style.setProperty('--rot-a', ((Math.random() - 0.5) * 24).toFixed(0) + 'deg');
+        p.style.setProperty('--rot-b', ((Math.random() - 0.5) * 58).toFixed(0) + 'deg');
+        p.style.setProperty('--rot-c', ((Math.random() - 0.5) * 120).toFixed(0) + 'deg');
+        layer.appendChild(p);
+        setTimeout(() => { if (p.parentNode) p.parentNode.removeChild(p); }, 2300);
+    }
+}
+
+async function enviarReaccionLive() {
+    if (!salaActualKey || !usuarioActual) return;
+    if (!estaEnPantallaDividida()) return;
+
+    const sequence = _liveReactionAutoSequence;
+    const selected = sequence[_liveReactionAutoIndex % sequence.length] || '❤️';
+    _liveReactionSelected = selected;
+    _liveReactionAutoIndex = (_liveReactionAutoIndex + 1) % sequence.length;
+
+    const main = document.getElementById('split-reaction-main');
+    if (main) {
+        main.textContent = sequence[_liveReactionAutoIndex % sequence.length] || '❤️';
+        main.classList.remove('tap-pop');
+        void main.offsetWidth;
+        main.classList.add('tap-pop');
+    }
+
+    await push(_liveReactionEventsRef(), { usuario: usuarioActual, emoji: selected, ts: Date.now() }).catch(() => {});
+    try {
+        const cRef = _liveReactionCountRef(usuarioActual);
+        const snap = await get(cRef);
+        const current = snap.exists() ? (snap.val() || {}) : {};
+        await set(cRef, { name: usuarioActual, count: Number(current.count || 0) + 1, updatedAt: Date.now() });
+    } catch(e) {}
+}
+function seleccionarReaccionLive(emoji) {
+    // Compatibilidad: ya no hay selector manual. Si alguna llamada antigua llega aquí,
+    // solo sincroniza el botón con la secuencia automática.
+    const idx = _liveReactionAutoSequence.indexOf(emoji);
+    if (idx >= 0) _liveReactionAutoIndex = idx;
+    _liveReactionSelected = _liveReactionAutoSequence[_liveReactionAutoIndex % _liveReactionAutoSequence.length] || '❤️';
+    const main = document.getElementById('split-reaction-main');
+    if (main) main.textContent = _liveReactionSelected;
+}
+(function _initLiveReactionDock() {
+    document.addEventListener('click', (e) => {
+        const main = e.target.closest('#split-reaction-main');
+        if (main) enviarReaccionLive();
+    });
+    setInterval(_actualizarDockReacciones, 500);
+    document.addEventListener('DOMContentLoaded', () => {
+        const main = document.getElementById('split-reaction-main');
+        if (main) main.textContent = _liveReactionAutoSequence[0];
+    });
+})();;
 
 function formatearHoraMs(ms) {
     if (!ms) return '';
@@ -8027,6 +8562,7 @@ window.cerrarJuegoWindow = function() {
         function _naipesDeckRef() { return ref(db, `${_naipesBasePath()}/naipesDeck/cards`); }
         function _naipesHandsRootRef() { return ref(db, `${_naipesBasePath()}/naipesHands`); }
         function _naipesPrizesRef() { return ref(db, `${_naipesBasePath()}/naipesPrizes`); }
+        function _naipesStreakRef() { return ref(db, `${_naipesBasePath()}/naipesStreak`); }
         function _naipesPrizeRef(playerKey) { return ref(db, `${_naipesBasePath()}/naipesPrizes/${playerKey}`); }
         function _naipesHandRef(playerKey) { return ref(db, `${_naipesBasePath()}/naipesHands/${playerKey}/cards`); }
         function _naipesKey(name) { return String(name || '').trim().replace(/[.#$\/[\]]/g, '_') || 'jugador'; }
@@ -8346,7 +8882,26 @@ window.cerrarJuegoWindow = function() {
                 status = 'finished';
                 currentTurnKey = '';
             }
-            if (status === 'finished') winner = _naipesBuildWinner(captured, players);
+            if (status === 'finished') {
+                winner = _naipesBuildWinner(captured, players);
+                if (winner && winner.type === 'winner') {
+                    try {
+                        const streakSnap = await get(_naipesStreakRef()).catch(() => null);
+                        const prev = streakSnap && streakSnap.val ? (streakSnap.val() || {}) : {};
+                        const streakCount = prev.currentWinnerKey === winner.key ? Number(prev.count || 0) + 1 : 1;
+                        const streakData = {
+                            currentWinnerKey: winner.key,
+                            currentWinnerName: winner.name,
+                            name: winner.name,
+                            count: streakCount,
+                            updatedAt: Date.now()
+                        };
+                        winner.streakCount = streakCount;
+                        await set(_naipesStreakRef(), streakData);
+                        data.streak = streakData;
+                    } catch(e) {}
+                }
+            }
 
             await set(_naipesHandRef(miKey), myHand);
             await set(_naipesHandRef(opKey), opHand);
@@ -8363,6 +8918,7 @@ window.cerrarJuegoWindow = function() {
                 lastCapturerKey,
                 message,
                 winner,
+                streak: data.streak || null,
                 lastMoveAt: Date.now()
             });
         }
@@ -8405,12 +8961,29 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('naipes-status').innerHTML = data.message || 'Partida en curso.';
             const myTurn = data.status === 'playing' && data.currentTurnKey === miKey;
             document.getElementById('naipes-turn-pill').textContent = data.status === 'finished' ? 'Finalizado' : (myTurn ? 'Tu turno' : 'Turno rival');
+            _naipesRenderStreakBadge(data);
 
             _naipesRenderCards('naipes-table', table, false, false);
             _naipesRenderHand(myTurn);
             _naipesRenderOpponentHand(opKey);
             _naipesRenderCards('naipes-my-captured', myCap, true, false);
             _naipesRenderCards('naipes-op-captured', opCap, true, false);
+        }
+
+        function _naipesRenderStreakBadge(data) {
+            const el = document.getElementById('naipes-streak-badge');
+            if (!el) return;
+            const winner = (data && data.winner) ? data.winner : null;
+            const streak = winner && Number(winner.streakCount || 0) >= 2
+                ? { name: winner.name, count: Number(winner.streakCount || 0) }
+                : (data && data.streak && Number(data.streak.count || 0) >= 2 ? data.streak : null);
+            if (!streak) {
+                el.classList.remove('visible');
+                el.textContent = '';
+                return;
+            }
+            el.textContent = `🔥 ${capitalizarNombre(streak.name || streak.currentWinnerName || 'Jugador')} lleva ${Number(streak.count || 0)} victorias seguidas`;
+            el.classList.add('visible');
         }
 
         function _naipesRenderHand(myTurn) {
@@ -8458,8 +9031,8 @@ window.cerrarJuegoWindow = function() {
             if (containerId === 'naipes-my-captured' || containerId === 'naipes-op-captured') {
                 requestAnimationFrame(() => {
                     try {
-                        if (containerId === 'naipes-my-captured') cont.scrollLeft = 0;
-                        else cont.scrollLeft = cont.scrollWidth;
+                        if (containerId === 'naipes-my-captured') cont.scrollLeft = cont.scrollWidth;
+                        else cont.scrollLeft = 0;
                     } catch(e) {}
                 });
             }
@@ -8516,7 +9089,8 @@ window.cerrarJuegoWindow = function() {
             }
             if (trophy) trophy.textContent = icon;
             if (titleEl) titleEl.textContent = title;
-            if (msgEl) msgEl.innerHTML = `Resultado final de <b>Naipes Diga</b><br>${p1Name}: <b>${p1Score}</b> cartas · ${p2Name}: <b>${p2Score}</b> cartas`;
+            const streakLine = winner && Number(winner.streakCount || 0) >= 2 ? `<br><span style="display:inline-block;margin-top:8px;padding:5px 10px;border-radius:999px;background:rgba(255,92,0,.18);border:1px solid rgba(255,180,0,.38);color:#ffd166;font-weight:900;">🔥 ${capitalizarNombre(winner.name)} lleva ${Number(winner.streakCount || 0)} victorias seguidas</span>` : '';
+            if (msgEl) msgEl.innerHTML = `Resultado final de <b>Naipes Diga</b><br>${p1Name}: <b>${p1Score}</b> cartas · ${p2Name}: <b>${p2Score}</b> cartas${streakLine}`;
 
             const premioGanador = winner.type === 'winner' ? _naipesPrizeForWinner(data, winner.key) : '';
             if (premioGanador) {
@@ -11238,6 +11812,7 @@ window.cerrarJuegoWindow = function() {
         window.seleccionarOpcionPremio = seleccionarOpcionPremio;
         window.confirmarPremio         = confirmarPremio;
         window.lanzarConfetti          = lanzarConfetti;
+        window.toggleDisfrazMensajes   = toggleDisfrazMensajes;
         window.capitalizarNombre       = capitalizarNombre;
         window.formatearHora           = function(f){ return formatearHoraMs(f instanceof Date ? f.getTime() : f); };
         window.seleccionarOpcionQuiz    = seleccionarOpcionQuiz;
