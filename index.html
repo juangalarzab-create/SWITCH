@@ -5472,7 +5472,7 @@
 
     <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, push, set, onValue, remove, update, get, onDisconnect } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, push, set, onValue, remove, update, get, onDisconnect, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
 // ============================================================
@@ -6538,29 +6538,57 @@ function lanzarReaccionLiveVisual(emoji, usuario, cantidad) {
     }
 }
 
-async function enviarReaccionLive() {
+function enviarReaccionLive() {
     if (!salaActualKey || !usuarioActual) return;
     if (!estaEnPantallaDividida()) return;
 
     const sequence = _liveReactionAutoSequence;
     const selected = sequence[_liveReactionAutoIndex % sequence.length] || '❤️';
+
+    // Cada toque cuenta inmediatamente: no hay espera, bloqueo ni selector.
     _liveReactionSelected = selected;
     _liveReactionAutoIndex = (_liveReactionAutoIndex + 1) % sequence.length;
 
     const main = document.getElementById('split-reaction-main');
     if (main) {
+        // El botón muestra cuál será la siguiente reacción, pero el toque actual ya fue enviado.
         main.textContent = sequence[_liveReactionAutoIndex % sequence.length] || '❤️';
         main.classList.remove('tap-pop');
         void main.offsetWidth;
         main.classList.add('tap-pop');
     }
 
-    await push(_liveReactionEventsRef(), { usuario: usuarioActual, emoji: selected, ts: Date.now() }).catch(() => {});
+    // Visual instantáneo para quien toca. Se marca el evento como visto para evitar duplicado
+    // cuando Firebase devuelva el mismo evento al emisor.
+    let evRef = null;
+    try {
+        evRef = push(_liveReactionEventsRef());
+        if (evRef && evRef.key) _liveReactionSeen.add(evRef.key);
+    } catch(e) {
+        evRef = null;
+    }
+
+    lanzarReaccionLiveVisual(selected, usuarioActual, 5);
+
+    const payload = {
+        usuario: usuarioActual,
+        emoji: selected,
+        ts: Date.now(),
+        nonce: `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+    };
+
+    if (evRef) {
+        set(evRef, payload).catch(() => {});
+    } else {
+        push(_liveReactionEventsRef(), payload).catch(() => {});
+    }
+
     try {
         const cRef = _liveReactionCountRef(usuarioActual);
-        const snap = await get(cRef);
-        const current = snap.exists() ? (snap.val() || {}) : {};
-        await set(cRef, { name: usuarioActual, count: Number(current.count || 0) + 1, updatedAt: Date.now() });
+        runTransaction(cRef, (current) => {
+            const count = Number((current && current.count) || 0) + 1;
+            return { name: usuarioActual, count, updatedAt: Date.now() };
+        }).catch(() => {});
     } catch(e) {}
 }
 function seleccionarReaccionLive(emoji) {
