@@ -526,15 +526,18 @@
             background: #1a1a1a;
             padding: 0 12px;
             padding-top: env(safe-area-inset-top, 0px);
-            min-height: calc(52px + env(safe-area-inset-top, 0px));
+            min-height: calc(44px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             display: none;
             justify-content: flex-start;
             align-items: flex-end;
-            padding-bottom: 8px;
+            padding-bottom: 6px;
             gap: 10px;
             box-shadow: 0 1px 6px rgba(0,0,0,0.6);
             flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         /* Flecha atrás — reemplaza btn-home */
@@ -939,6 +942,9 @@
             gap: 10px;
             align-items: center;
             flex-shrink: 0;
+            position: sticky;
+            bottom: 0;
+            z-index: 10;
         }
 
         /* ===== BARRA DE EMOJIS RÁPIDOS (arriba del input) ===== */
@@ -954,6 +960,9 @@
             scrollbar-width: thin;
             scrollbar-color: #444 transparent;
             -webkit-overflow-scrolling: touch;
+            position: sticky;
+            bottom: 0;
+            z-index: 9;
         }
         .emoji-bar::-webkit-scrollbar {
             height: 4px;
@@ -1196,7 +1205,7 @@
             right: 0;
             top: 0;
             width: 350px;
-            height: 100vh;
+            height: 100dvh;
             background: #ffffff;
             border-left: 1px solid #ddd;
             z-index: 900;
@@ -1210,10 +1219,12 @@
 
         .games-header {
             padding: 16px;
+            padding-top: calc(16px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #ddd;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .games-title {
@@ -1364,13 +1375,14 @@
             position: fixed;
             left: 0;
             top: calc(50dvh + env(safe-area-inset-top, 0px) / 2);
-            height: 50vh;
+            height: calc(50dvh - env(safe-area-inset-bottom, 0px) / 2);
             z-index: 799;
             border-right: none;
             border-top: 3px solid rgba(255, 255, 255, 0.3);
             display: flex !important;
             flex-direction: column;
             overflow: hidden;
+            padding-bottom: 0;
         }
         .screen-chat.jugando .chat-header {
             flex-shrink: 0;
@@ -1415,6 +1427,7 @@
         .screen-chat.jugando .input-area {
             flex-shrink: 0;
             padding: 4px 6px;
+            padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
             gap: 4px;
             background: #1a1a1a;
             border-top: 1px solid #333;
@@ -1441,6 +1454,7 @@
         }
         .game-window.jugando .game-header {
             padding: 6px 12px;
+            padding-top: calc(6px + env(safe-area-inset-top, 0px));
         }
         .game-window.jugando .stop-calificacion-container {
             padding: 8px;
@@ -3343,6 +3357,46 @@
         }
         .quiz-exit-btn:hover { background: rgba(255,255,255,0.06); color: #ccc; border-color: #666; }
 
+        .quiz-next-btn {
+            background: linear-gradient(135deg, #0088cc, #006fa8);
+            color: #fff;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: all 0.2s;
+            box-shadow: 0 3px 12px rgba(0,136,204,0.35);
+        }
+        .quiz-next-btn:hover { background: linear-gradient(135deg, #009ae6, #007cc0); }
+
+        /* Alerta vistosa de resultado de pregunta en tiempo real */
+        .quiz-score-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.7);
+            background: linear-gradient(135deg, #1a1a3f, #0d0d2b);
+            border: 2px solid #ffd700;
+            border-radius: 18px;
+            padding: 20px 32px;
+            text-align: center;
+            z-index: 9000;
+            opacity: 0;
+            transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.25s;
+            pointer-events: none;
+            min-width: 200px;
+        }
+        .quiz-score-alert.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        .quiz-score-alert-emoji { font-size: 36px; margin-bottom: 6px; }
+        .quiz-score-alert-title { color: #ffd700; font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+        .quiz-score-alert-detail { color: #ccc; font-size: 13px; }
+
         .quiz-result-banner {
             font-size: 15px;
             font-weight: bold;
@@ -3354,6 +3408,12 @@
         .quiz-result-banner.show { display: block; }
         .quiz-result-banner.correct-banner { background: rgba(76,175,80,0.2); color: #4caf50; border: 1px solid #4caf50; }
         .quiz-result-banner.wrong-banner { background: rgba(211,47,47,0.15); color: #ef5350; border: 1px solid #d32f2f; }
+        /* Selección propia pendiente de calificación */
+        .quiz-option-btn.my-selection {
+            border-color: #ffd700 !important;
+            background: rgba(255,215,0,0.12) !important;
+            color: #ffd700 !important;
+        }
 
         /* ===== RESPONSIVE - MOBILE FIRST ===== */
         @media (max-width: 768px) {
@@ -4246,8 +4306,8 @@
                 <div class="stop-title" style="color:#ce93d8;">🧠 QUIZ</div>
                 <div class="lobby-info" style="margin-bottom:12px; text-align:center;">
                     Responde preguntas de cultura general, ciencia, literatura y más.<br>
-                    <b>El primero en pulsar</b> puede responder. ¡Si fallas, no sumas!<br>
-                    Con premio: <b>10 preguntas</b>, gana quien más acierte.
+                    Cada uno marca su respuesta; al marcar ambos, el sistema califica.<br>
+                    <b>Sin premio:</b> libre, sin límite de preguntas. <b>Con premio: 5 preguntas</b>, conteo de 12s.
                 </div>
                 <div class="lobby-prize-status" id="quiz-lobby-mi-premio" style="margin:0 auto 8px; max-width:280px;">
                     🎁 Tu premio: <span class="pending">sin elegir</span>
@@ -4286,14 +4346,22 @@
 
                 <div class="quiz-countdown-box" id="quizCountdownBox">
                     <div class="quiz-countdown-ring spinning-cd">
-                        <span class="quiz-countdown-num" id="quizCountdownNum">5</span>
+                        <span class="quiz-countdown-num" id="quizCountdownNum">12</span>
                     </div>
-                    <div class="quiz-countdown-label">Siguiente pregunta...</div>
+                    <div class="quiz-countdown-label">Tiempo restante...</div>
                 </div>
+                <button class="quiz-next-btn" id="quizNextBtn" onclick="solicitarSiguientePregunta()" style="display:none;">➡️ Siguiente pregunta</button>
                 <button class="quiz-exit-btn" id="quizExitBtn" onclick="cerrarJuegoWindow()" style="display:none;">Salir al menú de juegos</button>
             </div>
 
         </div>
+    </div>
+
+    <!-- QUIZ SCORE ALERT (vistoso, en tiempo real) -->
+    <div class="quiz-score-alert" id="quizScoreAlert">
+        <div class="quiz-score-alert-emoji" id="quizScoreAlertEmoji">🏆</div>
+        <div class="quiz-score-alert-title" id="quizScoreAlertTitle">¡Correcto!</div>
+        <div class="quiz-score-alert-detail" id="quizScoreAlertDetail">+1 punto</div>
     </div>
 
     <!-- MODAL PANEL ADMINISTRADOR -->
@@ -6134,21 +6202,28 @@ function _activarBotParaJuego(juego) {
         window._botRespondioQuiz = function() {
             if (!window._modoBot) return;
             const state = quizGameState;
-            if (!state || state.respondioAlguien) return;
+            if (!state || state.yaMarcoOponente) return;
             const p = state.preguntas[state.preguntaActual];
             if (!p) return;
             // Bot acierta 50% de las veces
             const acierta = Math.random() < 0.5;
             const botIdx = acierta ? p.ans : ([0,1,2].filter(i=>i!==p.ans)[Math.floor(Math.random()*2)]);
             // Simular que el bot respondió
-            quizGameState.respondioAlguien = true;
-            quizGameState.buzzeadoPor = 'oponente';
-            const buttons = document.querySelectorAll('#quizOptionsGrid .quiz-option-btn');
-            buttons.forEach(b => b.disabled = true);
-            document.getElementById('quizP2Status').textContent = '⚡ ¡PULSÓ!';
+            quizGameState.yaMarcoOponente = true;
+            quizGameState.opRespuesta = botIdx;
+            document.getElementById('quizP2Status').textContent = '✅ Respondió';
             document.getElementById('quizStatusP2').classList.add('buzzed');
-            document.getElementById('quizBuzzStatus').textContent = '⚡ Sistema respondió primero';
-            setTimeout(() => { resolverRespuestaQuiz(botIdx, 'oponente'); }, 400);
+            // Si yo ya marqué → calificar
+            if (quizGameState.yaMarqueYo) {
+                if (quizGameState.modoRondas) { _detenerConteoYCalificar(); }
+                else { _calificarAmbos(); }
+            }
+            // Si yo no marqué en modo libre, el bot "esperó" → calificar con lo que hay
+            if (!quizGameState.yaMarqueYo && !quizGameState.modoRondas) {
+                setTimeout(() => {
+                    if (!quizGameState.yaCalifique) _calificarAmbos();
+                }, 2000);
+            }
         };
     } else if (juego === 'tictactoe') {
         // El bot de TicTacToe se activa cuando es su turno
@@ -7491,8 +7566,8 @@ window.cerrarJuegoWindow = function() {
                         { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
                             _tttClearSignal();
                             _tttSendSignal('quiz_rematch_declined');
-                            _quizResetCompleto();
-                            salirAlMenuJuegos();
+                            _hideNotify();
+                            // Ambos se quedan en pantalla, no salir
                         }}]
                     );
                     break;
@@ -7504,10 +7579,9 @@ window.cerrarJuegoWindow = function() {
                 case 'quiz_rematch_declined':
                     _hideNotify();
                     _tttClearSignal();
-                    _quizResetCompleto();
-                    _showNotify('😔', 'Revancha rechazada', `${nombre} ha decidido no jugar de nuevo.`,
-                        [{ label: 'Ir al menú', cls: 'btn-notify-ok', cb: () => { _hideNotify(); salirAlMenuJuegos(); }}],
-                        () => salirAlMenuJuegos()
+                    _showNotify('😔', 'Revancha rechazada', `${nombre} prefirió no jugar de nuevo.`,
+                        [{ label: 'OK', cls: 'btn-notify-ok', cb: () => { _hideNotify(); }}],
+                        () => { _hideNotify(); }
                     );
                     break;
             }
@@ -8672,6 +8746,12 @@ window.cerrarJuegoWindow = function() {
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             iniciadorTicTacToe = 'X'; tttModoRondas = false; tttRondaActual = 1;
             quizGameState.puntajes = { mi: 0, oponente: 0 }; quizGameState.preguntaActual = 0;
+            quizGameState.miRespuesta = null; quizGameState.opRespuesta = null;
+            quizGameState.yaCalifique = false; quizGameState.yaMarqueYo = false; quizGameState.yaMarcoOponente = false;
+            quizGameState._yaFinalizo = false;
+            if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
+            if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
+            if (salaActualKey) { remove(ref(db, `gameData/${salaActualKey}/quiz`)).catch(() => {}); }
             _tttLimpiarFirebase();
             _tttClearSignal();
             // Limpiar listener redundante del modal-win exitSignal
@@ -8902,15 +8982,22 @@ window.cerrarJuegoWindow = function() {
         let quizGameState = {
             preguntas: [],
             preguntaActual: 0,
-            totalPreguntas: 10,
+            totalPreguntas: 5,
             puntajes: {},
-            modoRondas: false,
+            modoRondas: false,   // true = hay premio (5 preguntas con conteo)
             respondioAlguien: false,
-            buzzeadoPor: null, // 'mi' o 'oponente'
+            buzzeadoPor: null,
             esperandoRespuesta: false,
             historicoTotal: {},
             _cdInterval: null,
-            _simTimeout: null
+            _simTimeout: null,
+            miRespuesta: null,       // optIdx que yo marqué
+            opRespuesta: null,       // optIdx que marcó el oponente
+            yaCalifique: false,      // para no calificar dos veces
+            yaMarqueYo: false,       // si yo ya marqué mi respuesta
+            yaMarcoOponente: false,  // si el oponente ya marcó
+            _cdSeconds: 12,
+            _yaFinalizo: false
         };
 
         function iniciarQuiz() {
@@ -8985,9 +9072,9 @@ window.cerrarJuegoWindow = function() {
         function _quizDbRef() { return ref(db, `gameData/${salaActualKey}/quiz`); }
 
         function arrancarQuiz() {
-            _tttAttachSignalListener(); // escuchar señales (revancha, salida) durante Quiz
+            _tttAttachSignalListener();
             const hayPremio = !!(premiosJuego.quiz.mi || premiosJuego.quiz.oponente);
-            const numPregs = hayPremio ? 5 : 10;
+            const numPregs = hayPremio ? 5 : 999; // sin premio = ilimitado (banco grande)
 
             quizGameState.preguntaActual = 0;
             quizGameState.modoRondas = hayPremio;
@@ -8996,6 +9083,12 @@ window.cerrarJuegoWindow = function() {
             quizGameState.respondioAlguien = false;
             quizGameState.buzzeadoPor = null;
             quizGameState.esperandoRespuesta = false;
+            quizGameState.miRespuesta = null;
+            quizGameState.opRespuesta = null;
+            quizGameState.yaCalifique = false;
+            quizGameState.yaMarqueYo = false;
+            quizGameState.yaMarcoOponente = false;
+            quizGameState._yaFinalizo = false;
             if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
 
             document.getElementById('quiz-lobby').style.display = 'none';
@@ -9007,43 +9100,36 @@ window.cerrarJuegoWindow = function() {
 
             actualizarScoreboardQuiz();
 
-            // Modo bot: jugar localmente sin Firebase
             if (window._modoBot) {
                 const porNivelBot = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-                quizGameState.preguntas = [].concat(...porNivelBot).slice(0, numPregs);
+                quizGameState.preguntas = [].concat(...porNivelBot);
                 mostrarPreguntaQuiz();
                 return;
             }
 
-            // Determinar si soy el host: el que tiene la string mayor (tiebreak determinista)
             _quizIsHost = usuarioActual > (oponenteActual || '');
 
             if (_quizIsHost) {
-                // Host: selecciona preguntas, las publica en Firebase y empieza
-                // Ordenar por dificultad creciente, mezclando dentro de cada nivel
-            const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-            const todasOrdenadas = [].concat(...porNivel);
-            const pregsSeleccionadas = todasOrdenadas.slice(0, numPregs);
-                quizGameState.preguntas = pregsSeleccionadas;
-                // Publicar en Firebase (sin la respuesta correcta en el campo visible)
-                const preguntasParaFirebase = pregsSeleccionadas.map((p, idx) => ({
-                    idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans, total: numPregs
+                const porNivel = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
+                const todasOrdenadas = [].concat(...porNivel);
+                // Siempre publicar todo el banco en Firebase (el límite lo maneja el cliente)
+                quizGameState.preguntas = todasOrdenadas;
+                const preguntasParaFirebase = todasOrdenadas.map((p, idx) => ({
+                    idx, cat: p.cat, q: p.q, opts: p.opts, ans: p.ans
                 }));
                 set(_quizDbRef(), {
                     preguntas: preguntasParaFirebase,
                     preguntaActual: 0,
                     puntajes: { [usuarioActual]: 0, [oponenteActual || '__op']: 0 },
-                    respuestas: {}
+                    respuestas: {},
+                    modoRondas: hayPremio,
+                    solicitudSiguiente: null
                 }).then(() => {
                     _quizAdjuntarListener();
                     mostrarPreguntaQuiz();
                 }).catch(e => { console.error('[QUIZ] Error publicando preguntas:', e); mostrarPreguntaQuiz(); });
             } else {
-                // Guest: esperar a que el host publique las preguntas
                 quizGameState.preguntas = [];
-                document.getElementById('quiz-lobby').style.display = 'none';
-                document.getElementById('quiz-question-view').classList.add('active');
-                document.getElementById('quizScoreboard').classList.add('visible');
                 document.getElementById('quizQuestionText').textContent = '⏳ Esperando preguntas...';
                 _quizAdjuntarListener();
             }
@@ -9061,14 +9147,14 @@ window.cerrarJuegoWindow = function() {
                 const esPrimeraVez = quizGameState.preguntas.length === 0;
                 if (!_quizIsHost || esPrimeraVez) {
                     quizGameState.preguntas = data.preguntas;
+                    quizGameState.modoRondas = !!data.modoRondas;
+                    const roundEl = document.getElementById('quiz-round-indicator');
+                    if (quizGameState.modoRondas) { roundEl.classList.add('visible'); } else { roundEl.classList.remove('visible'); }
                 }
-
-                // Sincronizar índice de pregunta actual
-                const newIdx = data.preguntaActual || 0;
 
                 // Guest recibe preguntas por primera vez -> mostrar pregunta
                 if (!_quizIsHost && esPrimeraVez && quizGameState.preguntas.length > 0) {
-                    quizGameState.preguntaActual = newIdx;
+                    quizGameState.preguntaActual = data.preguntaActual || 0;
                     mostrarPreguntaQuiz();
                 }
 
@@ -9077,33 +9163,59 @@ window.cerrarJuegoWindow = function() {
                 const miPuntoDb = puntajesDb[usuarioActual] || 0;
                 const opKey = oponenteActual || Object.keys(puntajesDb).find(k => k !== usuarioActual) || '';
                 const opPuntoDb = puntajesDb[opKey] || 0;
-
                 if (miPuntoDb !== quizGameState.puntajes.mi || opPuntoDb !== quizGameState.puntajes.oponente) {
                     quizGameState.puntajes.mi = miPuntoDb;
                     quizGameState.puntajes.oponente = opPuntoDb;
                     actualizarScoreboardQuiz();
                 }
 
-                // Procesar respuesta del oponente si llegó
+                const newIdx = data.preguntaActual || 0;
+
+                // Procesar respuesta del oponente
                 const respuestas = data.respuestas || {};
                 const opResp = respuestas[opKey];
-                if (opResp && opResp.pregIdx === newIdx && !quizGameState.respondioAlguien) {
-                    // El oponente respondió primero (y yo no había respondido)
-                    quizGameState.respondioAlguien = true;
-                    quizGameState.buzzeadoPor = 'oponente';
-                    _mostrarRespuestaOponente(opResp.optIdx);
+                if (opResp && opResp.pregIdx === quizGameState.preguntaActual && !quizGameState.yaMarcoOponente) {
+                    quizGameState.yaMarcoOponente = true;
+                    quizGameState.opRespuesta = opResp.optIdx;
+                    // Mostrar que oponente ya marcó
+                    document.getElementById('quizP2Status').textContent = '✅ Respondió';
+                    document.getElementById('quizStatusP2').classList.add('buzzed');
+                    // Si modo rondas y ambos marcaron → calificar
+                    if (quizGameState.modoRondas && quizGameState.yaMarqueYo) {
+                        _detenerConteoYCalificar();
+                    }
+                    // Si modo libre y ambos marcaron → calificar
+                    if (!quizGameState.modoRondas && quizGameState.yaMarqueYo) {
+                        _calificarAmbos();
+                    }
                 }
 
-                // Avanzar a nueva pregunta si cambió el índice
-                if (newIdx > quizGameState.preguntaActual && newIdx < quizGameState.preguntas.length) {
+                // Solicitud de siguiente pregunta (modo libre: cualquiera la puede pedir)
+                const solNext = data.solicitudSiguiente;
+                if (solNext && solNext.pregIdx === quizGameState.preguntaActual && !quizGameState.yaCalifique) {
+                    // El otro usuario ya avanzó → ocultar mi botón si lo tenía, avanzar
+                    const nb = document.getElementById('quizNextBtn');
+                    if (nb) nb.style.display = 'none';
+                    // Si aún no califiqué, calificar primero
+                    if (!quizGameState.yaCalifique) _calificarAmbos();
+                    setTimeout(() => _avanzarLocalmente(), 400);
+                } else if (solNext && solNext.pregIdx === quizGameState.preguntaActual && quizGameState.yaCalifique) {
+                    // Ya califiqué pero recién llegó la señal → avanzar
+                    const nb = document.getElementById('quizNextBtn');
+                    if (nb) nb.style.display = 'none';
+                    setTimeout(() => _avanzarLocalmente(), 200);
+                }
+
+                // Avanzar a nueva pregunta si cambió el índice (modo rondas, host lo avanza)
+                if (newIdx > quizGameState.preguntaActual) {
                     quizGameState.preguntaActual = newIdx;
                     setTimeout(() => mostrarPreguntaQuiz(), 300);
-                } else if (newIdx >= quizGameState.preguntas.length && data.finalizado) {
-                    // Juego terminado por Firebase
-                    if (!quizGameState._yaFinalizo) {
-                        quizGameState._yaFinalizo = true;
-                        mostrarGanadorFinalQuiz();
-                    }
+                }
+
+                // Juego terminado (modo rondas)
+                if (data.finalizado && !quizGameState._yaFinalizo) {
+                    quizGameState._yaFinalizo = true;
+                    mostrarGanadorFinalQuiz();
                 }
             });
         }
@@ -9127,11 +9239,21 @@ window.cerrarJuegoWindow = function() {
             quizGameState.respondioAlguien = false;
             quizGameState.buzzeadoPor = null;
             quizGameState.esperandoRespuesta = false;
-            quizGameState._yaFinalizo = quizGameState._yaFinalizo || false;
+            quizGameState.miRespuesta = null;
+            quizGameState.opRespuesta = null;
+            quizGameState.yaCalifique = false;
+            quizGameState.yaMarqueYo = false;
+            quizGameState.yaMarcoOponente = false;
 
             document.getElementById('quizCategoryBadge').textContent = p.cat;
-            document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1} de ${total}`;
-            document.getElementById('quiz-round-indicator').textContent = `PREGUNTA ${idx + 1} / ${total}`;
+            // Modo rondas: mostrar "Pregunta X de 5", libre: solo número
+            if (quizGameState.modoRondas) {
+                document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1} de 5`;
+                document.getElementById('quiz-round-indicator').textContent = `PREGUNTA ${idx + 1} / 5`;
+            } else {
+                document.getElementById('quizQuestionNumber').textContent = `Pregunta ${idx + 1}`;
+                document.getElementById('quiz-round-indicator').textContent = `PREGUNTA ${idx + 1}`;
+            }
             document.getElementById('quizQuestionText').textContent = p.q;
             document.getElementById('quizBuzzStatus').textContent = '';
             document.getElementById('quizResultBanner').className = 'quiz-result-banner';
@@ -9141,6 +9263,8 @@ window.cerrarJuegoWindow = function() {
             if (cdBox) cdBox.classList.remove('visible');
             const exitBtnQ = document.getElementById('quizExitBtn');
             if (exitBtnQ) exitBtnQ.style.display = 'none';
+            const nextBtn = document.getElementById('quizNextBtn');
+            if (nextBtn) nextBtn.style.display = 'none';
 
             document.getElementById('quizP1Status').textContent = '🟡 Esperando...';
             document.getElementById('quizP2Status').textContent = '🟡 Esperando...';
@@ -9159,7 +9283,11 @@ window.cerrarJuegoWindow = function() {
                 grid.appendChild(btn);
             });
 
-            // Si estamos en modo bot, programar respuesta automática del bot
+            // Modo rondas: iniciar conteo de 12 segundos (se pausa cuando ambos responden)
+            if (quizGameState.modoRondas) {
+                _iniciarConteoRondas();
+            }
+
             if (window._modoBot && typeof window._botRespondioQuiz === 'function') {
                 const botDelay = 1500 + Math.random() * 2500;
                 setTimeout(() => { if (window._modoBot) window._botRespondioQuiz(); }, botDelay);
@@ -9167,18 +9295,19 @@ window.cerrarJuegoWindow = function() {
         }
 
         function seleccionarOpcionQuiz(optIdx, btnEl) {
-            if (quizGameState.respondioAlguien) return;
-            quizGameState.respondioAlguien = true;
-            quizGameState.buzzeadoPor = 'mi';
-            quizGameState.esperandoRespuesta = true;
+            if (quizGameState.yaMarqueYo) return; // ya marqué, no cambiar
+            quizGameState.yaMarqueYo = true;
+            quizGameState.miRespuesta = optIdx;
 
-            bloquearBotonesQuiz();
+            // Bloquear solo mis botones visualmente (deshabilitados para mí)
+            document.querySelectorAll('#quizOptionsGrid .quiz-option-btn').forEach(b => b.disabled = true);
+            // Marcar visualmente cuál elegí (pendiente de calificación)
+            btnEl.classList.add('my-selection');
 
-            document.getElementById('quizP1Status').textContent = '⚡ ¡PULSÓ!';
+            document.getElementById('quizP1Status').textContent = '✅ Respondió';
             document.getElementById('quizStatusP1').classList.add('buzzed');
-            document.getElementById('quizBuzzStatus').textContent = `⚡ ${capitalizarNombre(usuarioActual) || 'Tú'} respondió primero`;
 
-            // Publicar mi respuesta en Firebase para que el oponente la vea
+            // Publicar mi respuesta en Firebase
             const idx = quizGameState.preguntaActual;
             if (!window._modoBot && salaActualKey && oponenteActual) {
                 set(ref(db, `gameData/${salaActualKey}/quiz/respuestas/${usuarioActual}`), {
@@ -9186,54 +9315,174 @@ window.cerrarJuegoWindow = function() {
                 }).catch(e => console.warn('[QUIZ] Error enviando respuesta:', e));
             }
 
-            setTimeout(() => { resolverRespuestaQuiz(optIdx, 'mi'); }, 400);
+            // Modo rondas: el último en marcar detiene el conteo y califica
+            if (quizGameState.modoRondas) {
+                if (quizGameState.yaMarcoOponente) {
+                    _detenerConteoYCalificar();
+                }
+                // Si no ha marcado el oponente, el conteo sigue corriendo
+            } else {
+                // Modo libre: si el oponente ya marcó, calificar ahora
+                if (quizGameState.yaMarcoOponente) {
+                    _calificarAmbos();
+                }
+                // Si no ha marcado, esperar
+            }
         }
 
-        function _mostrarRespuestaOponente(optIdx) {
-            bloquearBotonesQuiz();
-            document.getElementById('quizP2Status').textContent = '⚡ ¡PULSÓ!';
-            document.getElementById('quizStatusP2').classList.add('buzzed');
-            document.getElementById('quizBuzzStatus').textContent = '⚡ Oponente respondió primero';
-            setTimeout(() => { resolverRespuestaQuiz(optIdx, 'oponente'); }, 400);
+        function _iniciarConteoRondas() {
+            let secs = 12;
+            const cdBox = document.getElementById('quizCountdownBox');
+            const cdNum = document.getElementById('quizCountdownNum');
+            if (cdBox) { cdBox.classList.add('visible'); if (cdNum) cdNum.textContent = secs; }
+            quizGameState._cdInterval = setInterval(() => {
+                secs--;
+                if (cdNum) cdNum.textContent = secs;
+                if (secs <= 0) {
+                    clearInterval(quizGameState._cdInterval);
+                    quizGameState._cdInterval = null;
+                    if (cdBox) cdBox.classList.remove('visible');
+                    // Tiempo agotado: calificar con lo que haya
+                    _calificarAmbos();
+                }
+            }, 1000);
         }
 
-        // Función vacía para compatibilidad (ya no se usa simulación)
+        function _detenerConteoYCalificar() {
+            if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
+            const cdBox = document.getElementById('quizCountdownBox');
+            if (cdBox) cdBox.classList.remove('visible');
+            _calificarAmbos();
+        }
+
+        function _calificarAmbos() {
+            if (quizGameState.yaCalifique) return;
+            quizGameState.yaCalifique = true;
+
+            const p = quizGameState.preguntas[quizGameState.preguntaActual];
+            const miOpt = quizGameState.miRespuesta;
+            const opOpt = quizGameState.opRespuesta;
+
+            // Revelar opciones correctas e incorrectas
+            const buttons = document.querySelectorAll('#quizOptionsGrid .quiz-option-btn');
+            buttons.forEach((btn, i) => {
+                btn.disabled = true;
+                btn.classList.remove('my-selection');
+                if (i === p.ans) btn.classList.add('reveal-correct');
+                if (miOpt !== null && i === miOpt && miOpt !== p.ans) btn.classList.add('wrong');
+                if (miOpt !== null && i === miOpt && miOpt === p.ans) btn.classList.add('correct');
+            });
+
+            // Calcular puntos
+            const yoCorrecta = miOpt !== null && miOpt === p.ans;
+            const opCorrecta = opOpt !== null && opOpt === p.ans;
+
+            let alertEmoji = '🤝';
+            let alertTitle = 'Sin puntos';
+            let alertDetail = 'Ninguno acertó';
+
+            if (yoCorrecta && opCorrecta) {
+                quizGameState.puntajes.mi++;
+                quizGameState.puntajes.oponente++;
+                alertEmoji = '🎉';
+                alertTitle = '¡Ambos acertaron!';
+                alertDetail = `+1 para cada uno`;
+                if (!window._modoBot && salaActualKey) {
+                    set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${usuarioActual}`), quizGameState.puntajes.mi).catch(() => {});
+                    if (oponenteActual) set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${oponenteActual}`), quizGameState.puntajes.oponente).catch(() => {});
+                }
+            } else if (yoCorrecta) {
+                quizGameState.puntajes.mi++;
+                alertEmoji = '✅';
+                alertTitle = `¡Tú acertaste!`;
+                alertDetail = `+1 para ${capitalizarNombre(usuarioActual) || 'Ti'}`;
+                if (!window._modoBot && salaActualKey) {
+                    set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${usuarioActual}`), quizGameState.puntajes.mi).catch(() => {});
+                }
+            } else if (opCorrecta) {
+                quizGameState.puntajes.oponente++;
+                alertEmoji = '😅';
+                alertTitle = `¡${nombreOponente()} acertó!`;
+                alertDetail = `+1 para ${nombreOponente()}`;
+                if (!window._modoBot && salaActualKey && oponenteActual) {
+                    set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${oponenteActual}`), quizGameState.puntajes.oponente).catch(() => {});
+                }
+            } else if (miOpt === null && opOpt === null) {
+                alertEmoji = '⏰';
+                alertTitle = 'Tiempo agotado';
+                alertDetail = 'Nadie respondió';
+            }
+
+            actualizarScoreboardQuiz();
+            _mostrarQuizScoreAlert(alertEmoji, alertTitle, alertDetail);
+
+            // Modo rondas con premio: no mostrar botón siguiente, host avanza automáticamente
+            if (quizGameState.modoRondas) {
+                setTimeout(() => {
+                    if (_quizIsHost) { avanzarPreguntaQuizRondas(); }
+                }, 2500);
+            } else {
+                // Modo libre: mostrar botón "Siguiente pregunta"
+                const nb = document.getElementById('quizNextBtn');
+                if (nb) nb.style.display = '';
+            }
+        }
+
+        function _mostrarQuizScoreAlert(emoji, title, detail) {
+            const alertEl = document.getElementById('quizScoreAlert');
+            if (!alertEl) return;
+            document.getElementById('quizScoreAlertEmoji').textContent = emoji;
+            document.getElementById('quizScoreAlertTitle').textContent = title;
+            document.getElementById('quizScoreAlertDetail').textContent = detail;
+            alertEl.classList.add('show');
+            setTimeout(() => alertEl.classList.remove('show'), 2200);
+        }
+
+        // Modo libre: cualquier usuario pide siguiente pregunta
+        function solicitarSiguientePregunta() {
+            const nb = document.getElementById('quizNextBtn');
+            if (nb) nb.style.display = 'none';
+            // Publicar señal en Firebase para que el otro también avance
+            if (!window._modoBot && salaActualKey) {
+                set(ref(db, `gameData/${salaActualKey}/quiz/solicitudSiguiente`), {
+                    pregIdx: quizGameState.preguntaActual,
+                    ts: Date.now()
+                }).catch(() => {});
+            }
+            // Avanzar yo también
+            _avanzarLocalmente();
+        }
+
+        function _avanzarLocalmente() {
+            const siguiente = quizGameState.preguntaActual + 1;
+            quizGameState.preguntaActual = siguiente;
+            // Limpiar respuestas en Firebase si soy host
+            if (!window._modoBot && salaActualKey) {
+                set(ref(db, `gameData/${salaActualKey}/quiz/respuestas`), {}).catch(() => {});
+                set(ref(db, `gameData/${salaActualKey}/quiz/solicitudSiguiente`), null).catch(() => {});
+            }
+            mostrarPreguntaQuiz();
+        }
+
+        // Función vacía para compatibilidad
+        function _mostrarRespuestaOponente(optIdx) {}
         function oponenteBuzzQuiz() {}
 
         function resolverRespuestaQuiz(elegidoIdx, quien) {
+            // Mantenida por compatibilidad con bot mode
             const p = quizGameState.preguntas[quizGameState.preguntaActual];
             const esCorrecta = elegidoIdx === p.ans;
             const buttons = document.querySelectorAll('#quizOptionsGrid .quiz-option-btn');
-
             buttons.forEach((btn, i) => {
                 btn.disabled = true;
                 if (i === p.ans) btn.classList.add('reveal-correct');
                 if (i === elegidoIdx && !esCorrecta) btn.classList.add('wrong');
                 if (i === elegidoIdx && esCorrecta) btn.classList.add('correct');
             });
-
-            const banner = document.getElementById('quizResultBanner');
             if (esCorrecta) {
-                if (quien === 'mi') {
-                    quizGameState.puntajes.mi++;
-                    banner.textContent = '✅ ¡Correcto! +1 punto';
-                    banner.className = 'quiz-result-banner show correct-banner';
-                    if (!window._modoBot && salaActualKey) {
-                        set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${usuarioActual}`), quizGameState.puntajes.mi).catch(() => {});
-                    }
-                } else {
-                    quizGameState.puntajes.oponente++;
-                    banner.textContent = `❌ El oponente acertó primero. +1 para ${nombreOponente()}`;
-                    banner.className = 'quiz-result-banner show wrong-banner';
-                    if (!window._modoBot && salaActualKey && oponenteActual) {
-                        set(ref(db, `gameData/${salaActualKey}/quiz/puntajes/${oponenteActual}`), quizGameState.puntajes.oponente).catch(() => {});
-                    }
-                }
-            } else {
-                banner.textContent = quien === 'mi' ? '❌ Incorrecto. Sin puntos.' : '❌ Oponente falló. Sin puntos.';
-                banner.className = 'quiz-result-banner show wrong-banner';
+                if (quien === 'mi') quizGameState.puntajes.mi++;
+                else quizGameState.puntajes.oponente++;
             }
-
             actualizarScoreboardQuiz();
             iniciarCountdownQuiz();
         }
@@ -9259,9 +9508,10 @@ window.cerrarJuegoWindow = function() {
             }, 1000);
         }
 
-        function avanzarPreguntaQuiz() {
+        function avanzarPreguntaQuizRondas() {
             const siguiente = quizGameState.preguntaActual + 1;
-            if (siguiente >= quizGameState.preguntas.length) {
+            if (siguiente >= 5) {
+                // Ronda completa de 5 preguntas
                 if (!window._modoBot && _quizIsHost && salaActualKey) {
                     set(ref(db, `gameData/${salaActualKey}/quiz/finalizado`), true).catch(() => {});
                     set(ref(db, `gameData/${salaActualKey}/quiz/preguntaActual`), siguiente).catch(() => {});
@@ -9278,6 +9528,15 @@ window.cerrarJuegoWindow = function() {
                 set(ref(db, `gameData/${salaActualKey}/quiz/respuestas`), {}).catch(() => {});
             }
             mostrarPreguntaQuiz();
+        }
+
+        function avanzarPreguntaQuiz() {
+            // Alias para compatibilidad
+            if (quizGameState.modoRondas) {
+                avanzarPreguntaQuizRondas();
+            } else {
+                _avanzarLocalmente();
+            }
         }
 
         function mostrarGanadorFinalQuiz() {
@@ -9339,10 +9598,27 @@ window.cerrarJuegoWindow = function() {
             if (btnReplay) {
                 btnReplay.style.display = '';
                 btnReplay.textContent = '🔄 Revancha';
-                btnReplay.onclick = _doRevanchaQuizReal;
+                btnReplay.onclick = _pedirRevanchaQuiz;
             }
             _prepararModalWinSalir();
             document.getElementById('modal-win').classList.add('active');
+        }
+
+        function _pedirRevanchaQuiz() {
+            const ts = Date.now();
+            window._quizMiRematchTs = ts;
+            // Enviar señal de revancha al oponente
+            _tttSendSignal('quiz_rematch_request', { nombre: capitalizarNombre(usuarioActual), ts });
+            // Mostrar notificación de espera al que pidió revancha
+            document.getElementById('modal-win').classList.remove('active');
+            _showNotify('⏳', 'Revancha enviada', `Esperando respuesta de ${nombreOponente()}...`,
+                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
+                    _tttClearSignal();
+                    _hideNotify();
+                    // Volver a mostrar modal-win con mismos datos
+                    document.getElementById('modal-win').classList.add('active');
+                }}]
+            );
         }
 
         function _quizResetCompleto() {
@@ -9352,26 +9628,63 @@ window.cerrarJuegoWindow = function() {
             quizGameState.preguntaActual = 0;
             quizGameState.historicoTotal = {};
             quizGameState._yaFinalizo = false;
+            quizGameState.miRespuesta = null;
+            quizGameState.opRespuesta = null;
+            quizGameState.yaCalifique = false;
+            quizGameState.yaMarqueYo = false;
+            quizGameState.yaMarcoOponente = false;
+            if (quizGameState._cdInterval) { clearInterval(quizGameState._cdInterval); quizGameState._cdInterval = null; }
             if (_quizRef_listener) { _quizRef_listener(); _quizRef_listener = null; }
         }
 
         function _doRevanchaQuizReal() {
             _hideNotify();
             document.getElementById('modal-win').classList.remove('active');
-            document.getElementById('quiz-lobby').style.display = 'none';
-            document.getElementById('quizScoreboard').classList.add('visible');
-            document.getElementById('quiz-question-view').classList.add('active');
-            quizGameState.preguntaActual = 0;
-            quizGameState.puntajes = { mi: 0, oponente: 0 };
-            quizGameState._yaFinalizo = false;
             // Limpiar nodo de Firebase para nueva partida
             if (salaActualKey) { remove(_quizDbRef()).catch(() => {}); }
-            // Re-seleccionar preguntas del banco
-            const numPregs = quizGameState.modoRondas ? 5 : 10;
-            const porNivelRev = [1,2,3,4].map(d => mezclarArray(quizBancoPeguntas.filter(p => p.dif === d)));
-            quizGameState.preguntas = [].concat(...porNivelRev).slice(0, numPregs);
-            actualizarScoreboardQuiz();
-            arrancarQuiz();
+            // Reset completo de estado
+            _quizResetCompleto();
+            // Mostrar countdown de 3s y luego volver al LOBBY de premios
+            _quizMostrarCountdownRevancha();
+        }
+
+        function _quizMostrarCountdownRevancha() {
+            const cdModal = document.getElementById('modal-rematch-cd');
+            const cdMsg = document.getElementById('rematch-cd-msg');
+            const cdNum = document.getElementById('rematch-cd-num');
+            const cdIcon = document.getElementById('rematch-cd-icon');
+            if (cdModal) {
+                if (cdIcon) cdIcon.textContent = '🧠';
+                if (cdMsg) cdMsg.textContent = '¡Revancha Quiz! Volviendo al lobby de premios...';
+                if (cdNum) cdNum.textContent = '3';
+                cdModal.classList.add('active');
+                let secs = 3;
+                const t = setInterval(() => {
+                    secs--;
+                    if (cdNum) cdNum.textContent = secs;
+                    if (secs <= 0) {
+                        clearInterval(t);
+                        cdModal.classList.remove('active');
+                        if (cdIcon) cdIcon.textContent = '🔄';
+                        _volverLobbyQuiz();
+                    }
+                }, 1000);
+            } else {
+                setTimeout(_volverLobbyQuiz, 1500);
+            }
+        }
+
+        function _volverLobbyQuiz() {
+            // Volver al lobby de selección de premios del Quiz
+            document.getElementById('quiz-lobby').style.display = 'flex';
+            document.getElementById('quiz-question-view').classList.remove('active');
+            document.getElementById('quizScoreboard').classList.remove('visible');
+            document.getElementById('quiz-round-indicator').classList.remove('visible');
+            const btn = document.getElementById('btn-comenzar-quiz');
+            if (btn) { btn.disabled = false; btn.textContent = 'Comenzar'; }
+            actualizarLobbyQuiz();
+            // Re-escuchar señales del oponente
+            _tttAttachSignalListener();
         }
 
 
@@ -9404,6 +9717,7 @@ window.cerrarJuegoWindow = function() {
         window.seleccionarOpcionQuiz    = seleccionarOpcionQuiz;
         window.oponenteBuzzQuiz         = oponenteBuzzQuiz;
         window.avanzarPreguntaQuiz      = avanzarPreguntaQuiz;
+        window.solicitarSiguientePregunta = solicitarSiguientePregunta;
 
         // ============================================================
         // INIT APP
