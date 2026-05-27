@@ -71,6 +71,13 @@
 
         /* ===== CARRUSEL ===== */
 
+
+        :root {
+            --ios-safe-top-fallback: 0px;
+            --app-safe-top: max(env(safe-area-inset-top, 0px), var(--ios-safe-top-fallback));
+            --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
         body {
             font-family: 'Segoe UI', sans-serif;
             background: #121212;
@@ -525,7 +532,7 @@
         .chat-header {
             background: #1a1a1a;
             padding: 0 12px;
-            padding-top: env(safe-area-inset-top, 0px);
+            padding-top: var(--app-safe-top);
             min-height: calc(44px + env(safe-area-inset-top, 0px));
             border-bottom: 1px solid #222;
             display: none;
@@ -1357,10 +1364,10 @@
 
         .game-window.jugando {
             width: 100vw;
-            height: calc(50dvh - env(safe-area-inset-top, 0px) / 2);
+            height: calc(50dvh - var(--app-safe-top) / 2 - var(--app-safe-bottom) / 2);
             right: 0;
             left: 0;
-            top: env(safe-area-inset-top, 0px);
+            top: var(--app-safe-top);
             bottom: auto;
             border-radius: 0;
             position: fixed;
@@ -1374,8 +1381,8 @@
             width: 100vw;
             position: fixed;
             left: 0;
-            top: calc(50dvh + env(safe-area-inset-top, 0px) / 2);
-            height: calc(50dvh - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) / 2);
+            top: calc(50dvh + var(--app-safe-top) / 2 - var(--app-safe-bottom) / 2);
+            height: calc(50dvh - var(--app-safe-top) / 2 - var(--app-safe-bottom) / 2);
             z-index: 799;
             border-right: none;
             border-top: 3px solid rgba(255, 255, 255, 0.3);
@@ -1454,7 +1461,7 @@
         }
         .game-window.jugando .game-header {
             padding: 6px 12px;
-            padding-top: calc(6px + env(safe-area-inset-top, 0px));
+            padding-top: 6px;
         }
         .game-window.jugando .stop-calificacion-container {
             padding: 8px;
@@ -1975,6 +1982,18 @@
             color: #fff;
             border: 1px solid rgba(255,255,255,.18);
         }
+        .naipes-lobby .lobby-prize-status {
+            background: rgba(0,0,0,.32);
+            border: 1px solid rgba(255,215,0,.32);
+            border-radius: 12px;
+            padding: 10px 14px;
+            width: 100%;
+            color: #fff;
+            font-size: 13px;
+        }
+        .naipes-lobby .lobby-prize-status .pending { color: #8f9aaa; font-style: italic; }
+        .naipes-lobby .lobby-prize-status .ready { color: #ffd700; font-weight: 800; }
+
         .game-window.jugando .naipes-window .game-content,
         .game-window.jugando.naipes-window .game-content { padding: 6px; }
         .game-window.jugando .naipes-scoreboard { padding: 5px 6px; }
@@ -3750,10 +3769,10 @@
             /* JUEGOS EN MÓVIL: arriba el juego, abajo el chat */
             .game-window.jugando {
                 width: 100vw !important;
-                height: calc(50dvh - env(safe-area-inset-top, 0px) / 2) !important;
+                height: calc(50dvh - var(--app-safe-top) / 2 - var(--app-safe-bottom) / 2) !important;
                 right: 0 !important;
                 left: 0 !important;
-                top: env(safe-area-inset-top, 0px) !important;
+                top: var(--app-safe-top) !important;
                 bottom: auto !important;
                 border-radius: 0 !important;
                 border-bottom: 2px solid #ffffff !important;
@@ -3768,8 +3787,8 @@
                 overflow: hidden !important;
                 position: fixed !important;
                 left: 0 !important;
-                top: calc(50dvh + env(safe-area-inset-top, 0px) / 2) !important;
-                height: calc(50dvh - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) / 2) !important;
+                top: calc(50dvh + var(--app-safe-top) / 2 - var(--app-safe-bottom) / 2) !important;
+                height: calc(50dvh - var(--app-safe-top) / 2 - var(--app-safe-bottom) / 2) !important;
                 z-index: 799 !important;
                 border-right: none !important;
                 border-top: 2px solid #ffffff !important;
@@ -4046,6 +4065,59 @@
             display: inline-block;
             font-size: 1.1em;
         }
+
+        /* ===== REACCIÓN 🔥 EN PANTALLA DIVIDIDA ===== */
+        .chat-fire-reaction-layer {
+            position: fixed;
+            inset: 0;
+            z-index: 9997;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .chat-fire-reaction-layer::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 50% 42%, rgba(255, 95, 0, 0.16), rgba(255, 30, 0, 0.06) 32%, transparent 68%);
+            animation: chatFireGlow 1.15s ease-out forwards;
+        }
+        .chat-fire-flame {
+            position: absolute;
+            bottom: 8vh;
+            filter: drop-shadow(0 0 14px rgba(255, 100, 0, 0.75)) drop-shadow(0 0 28px rgba(255, 40, 0, 0.4));
+            opacity: 0;
+            user-select: none;
+            animation: chatFireBurn 1.25s cubic-bezier(0.22, 0.78, 0.28, 1) forwards;
+            transform-origin: center bottom;
+            mix-blend-mode: screen;
+        }
+        @keyframes chatFireGlow {
+            0% { opacity: 0; }
+            18% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        @keyframes chatFireBurn {
+            0% {
+                opacity: 0;
+                transform: translateY(28px) translateX(0) scale(0.55) rotate(0deg);
+            }
+            18% {
+                opacity: 0.72;
+            }
+            45% {
+                opacity: 0.9;
+                transform: translateY(-12vh) translateX(var(--fire-drift-a)) scale(1.18) rotate(var(--fire-rot-a));
+            }
+            72% {
+                opacity: 0.55;
+                transform: translateY(-23vh) translateX(var(--fire-drift-b)) scale(0.92) rotate(var(--fire-rot-b));
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-34vh) translateX(var(--fire-drift-c)) scale(0.25) rotate(var(--fire-rot-c));
+            }
+        }
+
 
         /* ===== PUSH BANNER (notif. dentro de la app) ===== */
         .push-banner {
@@ -4699,10 +4771,20 @@
             <div class="naipes-lobby" id="naipes-lobby">
                 <div class="naipes-lobby-title">🃏 NAIPES DIGA</div>
                 <div class="naipes-lobby-info">
-                    Reparte 4 cartas a cada jugador. Captura por número igual o usando una carta que sea igual a la suma de dos cartas de la mesa.
+                    Puedes jugar <b>con o sin premio</b>.<br>
+                    Captura por número igual o usando una carta que sea igual a la suma de dos cartas de la mesa.<br>
                     Cuando el mazo se acaba, las cartas restantes pasan al último jugador que capturó.
                 </div>
-                <button class="naipes-btn" id="btn-iniciar-naipes" onclick="iniciarPartidaNaipes()">▶ Iniciar partida</button>
+                <div class="lobby-prize-status" id="lobby-mi-premio-naipes" style="margin:0 auto 8px; max-width:280px;">
+                    🎁 Tu premio: <span class="pending">sin elegir</span>
+                </div>
+                <div class="lobby-prize-status" id="lobby-oponente-premio-naipes" style="margin:0 auto 14px; max-width:280px;">
+                    🎁 Premio del rival: <span class="pending">sin elegir</span>
+                </div>
+                <button class="btn-lobby btn-lobby-premio" style="max-width:280px; margin:0 auto 10px; display:block;" onclick="abrirSeleccionPremio('naipes')">
+                    🎁 Elegir premio
+                </button>
+                <button class="naipes-btn btn-lobby-iniciar" id="btn-iniciar-naipes" style="max-width:280px; margin:0 auto; display:block;" onclick="iniciarPartidaNaipes()">▶ Iniciar partida</button>
             </div>
 
             <div class="naipes-board" id="naipes-board">
@@ -5636,9 +5718,12 @@ function escucharMensajes() {
             if (!esPropio) {
                 // Estás en la sala → solo sonido suave (ya estás viendo el mensaje)
                 try { reproducirSonidoMsg(); } catch(e) {}
-                // Si es solo emoji → lluvia de emojis
-                if (lastMsg.tipo === 'texto' && esSoloEmoji(lastMsg.texto || '')) {
-                    try { lanzarLluviaEmoji(lastMsg.texto.trim()); } catch(e) {}
+                // Si es emoji/fuego → reacción visual; el fuego especial solo aparece en pantalla dividida
+                if (lastMsg.tipo === 'texto') {
+                    const _txtReaccion = String(lastMsg.texto || '').trim();
+                    if ((contarEmojisFuego(_txtReaccion) > 0 && estaEnPantallaDividida()) || esSoloEmoji(_txtReaccion)) {
+                        try { manejarReaccionEmojiChat(_txtReaccion); } catch(e) {}
+                    }
                 }
                 // Si la pestaña no tiene foco → notificación nativa para reactivar atención
                 if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
@@ -5744,6 +5829,61 @@ function lanzarLluviaEmoji(emoji) {
     setTimeout(() => {
         if (container.parentNode) container.parentNode.removeChild(container);
     }, 4500);
+}
+
+
+
+function estaEnPantallaDividida() {
+    const gameWindow = document.querySelector('.game-window.jugando.active');
+    const chatSplit = document.querySelector('.screen-chat.jugando');
+    return !!(gameWindow && chatSplit);
+}
+
+function contarEmojisFuego(texto) {
+    return (String(texto || '').match(/🔥/g) || []).length;
+}
+
+function manejarReaccionEmojiChat(texto) {
+    const limpio = String(texto || '').trim();
+    const fuegos = contarEmojisFuego(limpio);
+    if (fuegos > 0 && estaEnPantallaDividida()) {
+        lanzarFuegoRachaChat(fuegos * 3);
+        return;
+    }
+    if (esSoloEmoji(limpio)) {
+        lanzarLluviaEmoji(limpio);
+    }
+}
+
+function lanzarFuegoRachaChat(cantidad) {
+    if (!estaEnPantallaDividida()) return;
+    const total = Math.max(3, Math.min(Number(cantidad) || 3, 24));
+    const layer = document.createElement('div');
+    layer.className = 'chat-fire-reaction-layer';
+    document.body.appendChild(layer);
+
+    for (let i = 0; i < total; i++) {
+        const flame = document.createElement('div');
+        flame.className = 'chat-fire-flame';
+        flame.textContent = '🔥';
+        const left = 12 + Math.random() * 76;
+        const size = 38 + Math.random() * 58;
+        const delay = Math.random() * 0.24;
+        flame.style.left = left + 'vw';
+        flame.style.fontSize = size + 'px';
+        flame.style.animationDelay = delay.toFixed(2) + 's';
+        flame.style.setProperty('--fire-drift-a', ((Math.random() - 0.5) * 60).toFixed(0) + 'px');
+        flame.style.setProperty('--fire-drift-b', ((Math.random() - 0.5) * 110).toFixed(0) + 'px');
+        flame.style.setProperty('--fire-drift-c', ((Math.random() - 0.5) * 150).toFixed(0) + 'px');
+        flame.style.setProperty('--fire-rot-a', ((Math.random() - 0.5) * 18).toFixed(0) + 'deg');
+        flame.style.setProperty('--fire-rot-b', ((Math.random() - 0.5) * 36).toFixed(0) + 'deg');
+        flame.style.setProperty('--fire-rot-c', ((Math.random() - 0.5) * 70).toFixed(0) + 'deg');
+        layer.appendChild(flame);
+    }
+
+    setTimeout(() => {
+        if (layer.parentNode) layer.parentNode.removeChild(layer);
+    }, 1700);
 }
 
 function formatearHoraMs(ms) {
@@ -5852,9 +5992,9 @@ window.enviarMensaje = async function() {
     if (btn) { input.dispatchEvent(new Event('input')); }
     try {
         await pushMensaje({ usuario: usuarioActual, texto, tipo: 'texto' });
-        // Si el mensaje es solo emoji → lluvia local para el emisor
-        if (esSoloEmoji(texto)) {
-            try { lanzarLluviaEmoji(texto.trim()); } catch(e) {}
+        // Emoji/fuego local para el emisor; el fuego especial solo aparece en pantalla dividida
+        if ((contarEmojisFuego(texto) > 0 && estaEnPantallaDividida()) || esSoloEmoji(texto)) {
+            try { manejarReaccionEmojiChat(texto.trim()); } catch(e) {}
         }
     } catch(e) {
         showToast('❌ Error al enviar mensaje');
@@ -5874,8 +6014,8 @@ window.enviarMensaje = async function() {
         if (!emoji || !usuarioActual) return;
         try {
             await pushMensaje({ usuario: usuarioActual, texto: emoji, tipo: 'texto' });
-            // Lluvia local para el emisor también
-            try { lanzarLluviaEmoji(emoji); } catch(e) {}
+            // Reacción local para el emisor también
+            try { manejarReaccionEmojiChat(emoji); } catch(e) {}
         } catch(err) {
             showToast('❌ Error al enviar emoji');
         }
@@ -6309,7 +6449,7 @@ window.enviarAnuncioGlobal = async function() {
 // GAMES (todo el código original de juegos sin cambios)
 // ============================================================
 let juegoActual = null;
-let premiosJuego = { tictactoe: { mi: null, oponente: null }, stop: { mi: null, oponente: null }, quiz: { mi: null, oponente: null } };
+let premiosJuego = { tictactoe: { mi: null, oponente: null }, stop: { mi: null, oponente: null }, quiz: { mi: null, oponente: null }, naipes: { mi: null, oponente: null } };
 let tttModoRondas = false, tttRondaActual = 1, tttTotalRondas = 3;
 let victorias = {};
 let _rachaConsecutiva = { mi: 0, oponente: 0 }; // racha de victorias seguidas por juego
@@ -7723,6 +7863,8 @@ window.cerrarJuegoWindow = function() {
         function _naipesRef() { return ref(db, `${_naipesBasePath()}/naipes`); }
         function _naipesDeckRef() { return ref(db, `${_naipesBasePath()}/naipesDeck/cards`); }
         function _naipesHandsRootRef() { return ref(db, `${_naipesBasePath()}/naipesHands`); }
+        function _naipesPrizesRef() { return ref(db, `${_naipesBasePath()}/naipesPrizes`); }
+        function _naipesPrizeRef(playerKey) { return ref(db, `${_naipesBasePath()}/naipesPrizes/${playerKey}`); }
         function _naipesHandRef(playerKey) { return ref(db, `${_naipesBasePath()}/naipesHands/${playerKey}/cards`); }
         function _naipesKey(name) { return String(name || '').trim().replace(/[.#$\/[\]]/g, '_') || 'jugador'; }
         function _naipesArr(v) { return Array.isArray(v) ? v.filter(Boolean) : (v && typeof v === 'object' ? Object.values(v).filter(Boolean) : []); }
@@ -7784,6 +7926,47 @@ window.cerrarJuegoWindow = function() {
             if (opHandTitle) opHandTitle.textContent = `Mano de ${capitalizarNombre(rivalName || 'rival')}`;
         }
 
+        function _naipesPrizeValue(rec) {
+            if (!rec) return '';
+            if (typeof rec === 'string') return rec;
+            return rec.premio || '';
+        }
+
+        async function _naipesPublicarPremioLocal() {
+            if (!salaActualKey || !_naipesState.miKey) return;
+            const premio = premiosJuego.naipes && premiosJuego.naipes.mi ? premiosJuego.naipes.mi : '';
+            await set(_naipesPrizeRef(_naipesState.miKey), {
+                premio,
+                name: usuarioActual || '',
+                ts: Date.now()
+            }).catch(() => {});
+        }
+
+        async function _naipesLoadPrizesToState(players) {
+            if (!players || !salaActualKey) return;
+            try {
+                const snap = await get(_naipesPrizesRef());
+                const prizes = snap.val() || {};
+                if (_naipesState.miKey) premiosJuego.naipes.mi = _naipesPrizeValue(prizes[_naipesState.miKey]) || premiosJuego.naipes.mi || null;
+                if (_naipesState.opKey) premiosJuego.naipes.oponente = _naipesPrizeValue(prizes[_naipesState.opKey]) || premiosJuego.naipes.oponente || null;
+            } catch(e) {}
+        }
+
+        function actualizarLobbyNaipes() {
+            const mi = premiosJuego.naipes ? premiosJuego.naipes.mi : null;
+            const op = premiosJuego.naipes ? premiosJuego.naipes.oponente : null;
+            const miEl = document.getElementById('lobby-mi-premio-naipes');
+            const opEl = document.getElementById('lobby-oponente-premio-naipes');
+            if (miEl) miEl.innerHTML = mi
+                ? `🎁 Tu premio: <span class="ready">${mi}</span>`
+                : `🎁 Tu premio: <span class="pending">sin elegir (opcional)</span>`;
+            if (opEl) opEl.innerHTML = op
+                ? `🎁 Premio de ${nombreOponente()}: <span class="ready">${op}</span>`
+                : `🎁 Premio de ${nombreOponente()}: <span class="pending">sin elegir (opcional)</span>`;
+            const btn = document.getElementById('btn-iniciar-naipes');
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+        }
+
         function _naipesDetach() {
             if (_naipesListener) { _naipesListener(); _naipesListener = null; }
             if (_naipesHandListener) { _naipesHandListener(); _naipesHandListener = null; }
@@ -7796,6 +7979,7 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('pantalla-chat').classList.add('jugando');
             if (window._splitDividerShow) window._splitDividerShow();
             document.getElementById('naipes-modal-win').classList.remove('active');
+            document.getElementById('modal-win').classList.remove('active');
             document.getElementById('naipes-lobby').style.display = 'flex';
             document.getElementById('naipes-board').classList.remove('active');
             const btn = document.getElementById('btn-iniciar-naipes');
@@ -7804,10 +7988,14 @@ window.cerrarJuegoWindow = function() {
             if (title) title.textContent = `🃏 ${capitalizarNombre(usuarioActual || 'Tú')} Vs ${nombreOponente()}`;
             const players = await _naipesResolvePlayers();
             _naipesApplyPlayers(players);
+            await _naipesLoadPrizesToState(players);
+            actualizarLobbyNaipes();
+            _tttAttachSignalListener();
             _naipesAttachListener();
         }
 
-        function iniciarPartidaNaipes() {
+        async function iniciarPartidaNaipes() {
+            await _naipesPublicarPremioLocal();
             const btn = document.getElementById('btn-iniciar-naipes');
             if (btn) { btn.disabled = true; btn.textContent = '⏳ Esperando al rival...'; }
             const opLabel = oponenteActual ? capitalizarNombre(oponenteActual) : 'el otro jugador';
@@ -7831,6 +8019,8 @@ window.cerrarJuegoWindow = function() {
             document.getElementById('naipes-board').classList.add('active');
             const players = await _naipesResolvePlayers();
             _naipesApplyPlayers(players);
+            await _naipesLoadPrizesToState(players);
+            actualizarLobbyNaipes();
             _naipesAttachListener();
             const hostName = players.p1.name;
             const stateSnap = await get(_naipesRef()).catch(() => null);
@@ -7848,6 +8038,8 @@ window.cerrarJuegoWindow = function() {
                 p2Hand.push(deck.pop());
             }
             const tableCards = [deck.pop()];
+            const prizesSnap = await get(_naipesPrizesRef()).catch(() => null);
+            const prizes = prizesSnap && prizesSnap.val ? (prizesSnap.val() || {}) : {};
             const captured = {};
             captured[players.p1.key] = [];
             captured[players.p2.key] = [];
@@ -7857,6 +8049,7 @@ window.cerrarJuegoWindow = function() {
                 currentTurnKey: players.p1.key,
                 tableCards,
                 captured,
+                prizes,
                 deckCount: deck.length,
                 usedCount: 52 - deck.length,
                 lastCapturerKey: '',
@@ -7881,6 +8074,7 @@ window.cerrarJuegoWindow = function() {
                     if (win && win.classList.contains('active')) {
                         document.getElementById('naipes-lobby').style.display = 'flex';
                         document.getElementById('naipes-board').classList.remove('active');
+                        actualizarLobbyNaipes();
                     }
                     return;
                 }
@@ -8114,33 +8308,107 @@ window.cerrarJuegoWindow = function() {
             return div;
         }
 
+        function _naipesPrizeForWinner(data, winnerKey) {
+            const prizes = (data && data.prizes) ? data.prizes : {};
+            const firebasePrize = _naipesPrizeValue(prizes[winnerKey]);
+            if (firebasePrize) return firebasePrize;
+            if (winnerKey === _naipesState.miKey) return (premiosJuego.naipes && premiosJuego.naipes.mi) || '';
+            if (winnerKey === _naipesState.opKey) return (premiosJuego.naipes && premiosJuego.naipes.oponente) || '';
+            return '';
+        }
+
         function _naipesMostrarModal(data) {
-            const modal = document.getElementById('naipes-modal-win');
+            const modal = document.getElementById('modal-win');
             if (!modal || modal.classList.contains('active')) return;
+            document.getElementById('naipes-modal-win').classList.remove('active');
             const winner = data.winner || {};
             const players = data.players || {};
             const p1Name = players.p1 ? capitalizarNombre(players.p1.name) : 'Jugador 1';
             const p2Name = players.p2 ? capitalizarNombre(players.p2.name) : 'Jugador 2';
-            let title = 'Empate';
-            let text = `${p1Name}: ${winner.p1Score || 0} cartas. ${p2Name}: ${winner.p2Score || 0} cartas.`;
-            if (winner.type === 'winner') title = `Ganó ${capitalizarNombre(winner.name)}`;
-            document.getElementById('naipes-winner-title').textContent = title;
-            document.getElementById('naipes-winner-text').textContent = text;
+            const p1Score = winner.p1Score || 0;
+            const p2Score = winner.p2Score || 0;
+            const trophy = document.getElementById('win-trophy');
+            const titleEl = document.getElementById('win-title');
+            const msgEl = document.getElementById('win-message');
+            const prizeBox = document.getElementById('win-prize-box');
+            const prizeLabel = document.getElementById('win-prize-label');
+            const prizeValue = document.getElementById('win-prize-value');
+            const loserNote = document.getElementById('win-loser-note');
+            const btnAgain = document.getElementById('btn-play-again-win');
+            const btnExit = document.querySelector('#modal-win .btn-exit');
+
+            let title = 'EMPATE';
+            let icon = '🃏';
+            if (winner.type === 'winner') {
+                title = `GANÓ ${capitalizarNombre(winner.name)}`;
+                icon = winner.key === _naipesState.miKey ? '🏆' : '👑';
+            }
+            if (trophy) trophy.textContent = icon;
+            if (titleEl) titleEl.textContent = title;
+            if (msgEl) msgEl.innerHTML = `Resultado final de <b>Naipes Diga</b><br>${p1Name}: <b>${p1Score}</b> cartas · ${p2Name}: <b>${p2Score}</b> cartas`;
+
+            const premioGanador = winner.type === 'winner' ? _naipesPrizeForWinner(data, winner.key) : '';
+            if (premioGanador) {
+                if (prizeBox) prizeBox.style.display = 'block';
+                if (prizeLabel) prizeLabel.textContent = winner.key === _naipesState.miKey ? 'TU PREMIO' : `PREMIO DE ${capitalizarNombre(winner.name)}`;
+                if (prizeValue) prizeValue.textContent = premioGanador;
+                if (loserNote) {
+                    loserNote.style.display = winner.key === _naipesState.miKey ? 'none' : 'block';
+                    loserNote.textContent = `Te ganó ${capitalizarNombre(winner.name)}. Debes cumplir el premio elegido.`;
+                }
+            } else {
+                if (prizeBox) prizeBox.style.display = 'none';
+                if (loserNote) loserNote.style.display = 'none';
+            }
+
+            if (btnAgain) {
+                btnAgain.textContent = 'Revancha';
+                btnAgain.onclick = pedirRevanchaNaipes;
+            }
+            if (btnExit) btnExit.onclick = salirNaipesFinal;
             modal.classList.add('active');
+            if (winner.type === 'winner') lanzarConfetti();
+            _tttAttachSignalListener();
         }
 
-        async function pedirRevanchaNaipes() {
+        async function _naipesGoLobbyFresh() {
+            document.getElementById('modal-win').classList.remove('active');
             document.getElementById('naipes-modal-win').classList.remove('active');
+            _hideNotify();
+            premiosJuego.naipes.mi = null;
+            premiosJuego.naipes.oponente = null;
             if (salaActualKey) {
                 await remove(_naipesRef()).catch(() => {});
                 await remove(_naipesDeckRef()).catch(() => {});
                 await remove(_naipesHandsRootRef()).catch(() => {});
+                await remove(_naipesPrizesRef()).catch(() => {});
             }
-            pushMensaje({ usuario: 'Sistema', texto: `🔁 ${usuarioActual} pidió revancha en Naipes Diga`, tipo: 'texto' });
-            mostrarNaipes();
+            _naipesDetach();
+            await mostrarNaipes();
+            actualizarLobbyNaipes();
+            const btn = document.getElementById('btn-iniciar-naipes');
+            if (btn) { btn.disabled = false; btn.textContent = '▶ Iniciar partida'; }
+        }
+
+        async function pedirRevanchaNaipes() {
+            document.getElementById('modal-win').classList.remove('active');
+            document.getElementById('naipes-modal-win').classList.remove('active');
+            _tttAttachSignalListener();
+            window._naipesMiRematchTs = Date.now();
+            await _tttSendSignal('naipes_rematch_request', {
+                nombre: capitalizarNombre(usuarioActual),
+                ts: window._naipesMiRematchTs
+            });
+            _showNotify('🃏', 'Solicitud de revancha enviada', `Esperando que ${nombreOponente()} acepte la revancha de Naipes Diga.`,
+                [{ label: 'Cancelar', cls: 'btn-notify-decline', cb: () => {
+                    _tttSendSignal('naipes_rematch_cancelled', { nombre: capitalizarNombre(usuarioActual) });
+                    _hideNotify();
+                }}]
+            );
         }
 
         function salirNaipesFinal() {
+            document.getElementById('modal-win').classList.remove('active');
             document.getElementById('naipes-modal-win').classList.remove('active');
             salirAlMenuJuegos();
         }
@@ -8350,6 +8618,14 @@ window.cerrarJuegoWindow = function() {
                     actualizarLobbyQuiz();
                     _tttMostrarAlertaPremio(nombre, payload.premio || '?', false);
                     break;
+                case 'naipes_prize_chosen':
+                    premiosJuego.naipes.oponente = payload.premio || '?';
+                    actualizarLobbyNaipes();
+                    if (payload && payload.key && salaActualKey) {
+                        set(_naipesPrizeRef(payload.key), { premio: payload.premio || '', name: de || '', ts: Date.now() }).catch(() => {});
+                    }
+                    _tttMostrarAlertaPremio(nombre, payload.premio || '?', false);
+                    break;
                 case 'left_games': // Legacy — tratar como exit countdown
                     _tttDetachListener();
                     _tttClearSignal();
@@ -8423,6 +8699,48 @@ window.cerrarJuegoWindow = function() {
                     }
                     // Re-adjuntar listener siempre para recibir player_exit_cd del emisor
                     _tttAttachSignalListener();
+                    break;
+
+                // ── Revancha Naipes ──
+                case 'naipes_rematch_request':
+                    if (document.getElementById('modal-game-notify').classList.contains('active')) {
+                        const miTsN = window._naipesMiRematchTs || 0;
+                        const suTsN = (payload && payload.ts) ? payload.ts : 0;
+                        if (miTsN >= suTsN) return;
+                        _hideNotify();
+                    }
+                    document.getElementById('modal-win').classList.remove('active');
+                    document.getElementById('naipes-modal-win').classList.remove('active');
+                    _showNotify('🃏', '¡Revancha Naipes!', `${nombre} quiere jugar de nuevo. ¿Aceptas?`,
+                        [{ label: '✅ Aceptar', cls: 'btn-notify-accept', cb: () => {
+                            _tttClearSignal();
+                            _tttSendSignal('naipes_rematch_accepted', { nombre: capitalizarNombre(usuarioActual) });
+                            _hideNotify();
+                            _naipesGoLobbyFresh();
+                        }},
+                        { label: '❌ Rechazar', cls: 'btn-notify-decline', cb: () => {
+                            _tttClearSignal();
+                            _tttSendSignal('naipes_rematch_declined', { nombre: capitalizarNombre(usuarioActual) });
+                            _hideNotify();
+                        }}]
+                    );
+                    break;
+                case 'naipes_rematch_accepted':
+                    _hideNotify();
+                    _tttClearSignal();
+                    _naipesGoLobbyFresh();
+                    break;
+                case 'naipes_rematch_declined':
+                    _hideNotify();
+                    _tttClearSignal();
+                    _showNotify('😔', 'Revancha rechazada', `${nombre} prefirió no jugar de nuevo.`,
+                        [{ label: 'OK', cls: 'btn-notify-ok', cb: () => { _hideNotify(); }}],
+                        () => { _hideNotify(); }
+                    );
+                    break;
+                case 'naipes_rematch_cancelled':
+                    _hideNotify();
+                    _tttClearSignal();
                     break;
 
                 // ── Revancha Quiz ──
@@ -8994,7 +9312,7 @@ window.cerrarJuegoWindow = function() {
         }
 
         // ===== PREMIOS =====
-        let juegoSeleccionandoPremio = null; // 'tictactoe' o 'stop'
+        let juegoSeleccionandoPremio = null; // 'tictactoe', 'stop', 'quiz' o 'naipes'
         let premioOpcionSeleccionada = null;
 
         function abrirSeleccionPremio(juego) {
@@ -9053,6 +9371,10 @@ window.cerrarJuegoWindow = function() {
             } else if (juegoSeleccionandoPremio === 'quiz') {
                 _tttSendSignal('quiz_prize_chosen', { premio: premioFinal });
                 actualizarLobbyQuiz();
+            } else if (juegoSeleccionandoPremio === 'naipes') {
+                _tttSendSignal('naipes_prize_chosen', { premio: premioFinal, key: _naipesState.miKey });
+                actualizarLobbyNaipes();
+                _naipesPublicarPremioLocal().catch(() => {});
             }
             // Al emisor solo mostrar un toast discreto de confirmación (el modal grande es para el receptor)
             showToast('🎁 Premio guardado: ' + premioFinal);
@@ -9624,6 +9946,7 @@ window.cerrarJuegoWindow = function() {
             premiosJuego.tictactoe.mi = null; premiosJuego.tictactoe.oponente = null;
             premiosJuego.stop.mi = null; premiosJuego.stop.oponente = null;
             premiosJuego.quiz.mi = null; premiosJuego.quiz.oponente = null;
+            premiosJuego.naipes.mi = null; premiosJuego.naipes.oponente = null;
             victorias[usuarioActual] = 0; victorias['Oponente'] = 0;
             tableroTicTacToe = ['', '', '', '', '', '', '', '', ''];
             iniciadorTicTacToe = 'X'; tttModoRondas = false; tttRondaActual = 1;
@@ -9639,6 +9962,7 @@ window.cerrarJuegoWindow = function() {
                 remove(ref(db, `gameData/${salaActualKey}/naipes`)).catch(() => {});
                 remove(ref(db, `gameData/${salaActualKey}/naipesDeck`)).catch(() => {});
                 remove(ref(db, `gameData/${salaActualKey}/naipesHands`)).catch(() => {});
+                remove(ref(db, `gameData/${salaActualKey}/naipesPrizes`)).catch(() => {});
             }
             _tttLimpiarFirebase();
             _tttClearSignal();
