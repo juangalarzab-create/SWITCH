@@ -895,6 +895,7 @@
 
         /* Burbujas estilo imagen — más redondeadas */
         .burbuja {
+            position: relative;
             max-width: 75%;
             padding: 9px 14px 7px 14px;
             border-radius: 20px;
@@ -5177,7 +5178,9 @@
         .btn-pdf-fake .disguise-icon { margin: 0 !important; font-size: 17px; }
         .mensaje { position: relative; touch-action: pan-y; }
         .mensaje .burbuja { position: relative; }
-        .mensaje.swiping .burbuja { transform: translateX(28px); transition: transform .12s ease; }
+        .mensaje.swiping-reply .burbuja { transform: translateX(30px); transition: transform .12s ease; }
+        .mensaje.swiping-actions .burbuja { transform: translateX(-30px); transition: transform .12s ease; }
+        .mensaje.swiping-actions .burbuja::after { content: '⋯'; position: absolute; right: -24px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,.75); font-size: 22px; }
         .msg-reply-preview {
             border-left: 3px solid #0088cc;
             background: rgba(255,255,255,0.08);
@@ -6195,7 +6198,7 @@
             <div class="file-viewer-header">
                 <div class="file-viewer-title" id="file-viewer-title">Archivo</div>
                 <button class="file-viewer-btn primary" onclick="descargarArchivoActualVisor()" title="Descargar con el nombre original"><i class="fas fa-download"></i><span>Descargar</span></button>
-                <button class="file-viewer-btn" onclick="abrirArchivoExternoActual()" title="Abrir fuera de la app"><i class="fas fa-up-right-from-square"></i><span>Abrir</span></button>
+                <button class="file-viewer-btn" onclick="abrirArchivoExternoActual()" title="Abrir fuera de la app"><i class="fas fa-up-right-from-square"></i><span>Abrir fuera</span></button>
                 <button class="file-viewer-btn danger" onclick="cerrarVisorArchivo()" title="Cerrar"><i class="fas fa-times"></i></button>
             </div>
             <div class="file-viewer-body" id="file-viewer-body"></div>
@@ -7496,47 +7499,67 @@ window.seleccionarArchivoAdjunto = function() {
     if (input) input.click();
 };
 
+
 (function _initChatAdvancedDelegation() {
     document.addEventListener('DOMContentLoaded', () => {
         _ensureComposeBars();
         const cont = document.getElementById('mensajes');
         if (!cont) return;
-        let longTimer = null;
-        let startX = 0, startY = 0, startKey = null, moved = false, longDone = false;
-        const clearLong = () => { if (longTimer) { clearTimeout(longTimer); longTimer = null; } };
+        let startX = 0, startY = 0, startKey = null, moved = false;
+        const limpiarSwipeVisual = () => {
+            document.querySelectorAll('.mensaje.swiping-reply, .mensaje.swiping-actions').forEach(el => {
+                el.classList.remove('swiping-reply', 'swiping-actions');
+            });
+        };
         cont.addEventListener('pointerdown', (e) => {
             const pill = e.target.closest('[data-reaction-btn]');
             if (pill) return;
             const msg = e.target.closest('.mensaje[data-key]');
             if (!msg) return;
-            if (e.target.closest('audio, video, a, button, img, iframe, .msg-file-card')) return;
-            startX = e.clientX; startY = e.clientY; startKey = msg.dataset.key; moved = false; longDone = false;
-            clearLong();
-            longTimer = setTimeout(() => { longDone = true; abrirAccionesMensajeKey(startKey); }, 620);
+            // No bloquear el swipe sobre la tarjeta del archivo; solo ignorar controles interactivos reales.
+            if (e.target.closest('audio, video, a, button, img, iframe, input, textarea, select')) return;
+            startX = e.clientX;
+            startY = e.clientY;
+            startKey = msg.dataset.key;
+            moved = false;
+            limpiarSwipeVisual();
         });
         cont.addEventListener('pointermove', (e) => {
             if (!startKey) return;
             const dx = e.clientX - startX;
             const dy = Math.abs(e.clientY - startY);
             if (Math.abs(dx) > 8 || dy > 8) moved = true;
-            if (Math.abs(dx) > 12 || dy > 12) clearLong();
             const msg = cont.querySelector(`.mensaje[data-key="${_cssEscapeIdent(startKey)}"]`);
-            if (msg && dx > 18 && dy < 35) msg.classList.add('swiping');
+            if (!msg) return;
+            msg.classList.remove('swiping-reply', 'swiping-actions');
+            if (dy < 38 && dx > 18) {
+                // Deslizar a la derecha: responder cualquier mensaje.
+                msg.classList.add('swiping-reply');
+            } else if (dy < 38 && dx < -18 && msg.dataset.own === '1') {
+                // Deslizar a la izquierda: acciones solo para mis mensajes.
+                msg.classList.add('swiping-actions');
+            }
         });
         cont.addEventListener('pointerup', (e) => {
-            clearLong();
             const key = startKey;
             if (!key) return;
             const dx = e.clientX - startX;
             const dy = Math.abs(e.clientY - startY);
-            const msg = cont.querySelector(`.mensaje[data-key="${_cssEscapeIdent(key)}"]`);
-            if (msg) msg.classList.remove('swiping');
+            const msgEl = cont.querySelector(`.mensaje[data-key="${_cssEscapeIdent(key)}"]`);
+            const own = msgEl && msgEl.dataset.own === '1';
+            limpiarSwipeVisual();
             startKey = null;
-            if (longDone) return;
-            if (dx > 62 && dy < 42) { iniciarRespuestaMensaje(key); return; }
+            if (dx > 62 && dy < 42) {
+                iniciarRespuestaMensaje(key);
+                return;
+            }
+            if (dx < -62 && dy < 42 && own) {
+                abrirAccionesMensajeKey(key);
+                return;
+            }
             if (!moved && Math.abs(dx) < 8 && dy < 8) leerMensajeVoz(key);
         });
-        cont.addEventListener('pointercancel', () => { clearLong(); startKey = null; document.querySelectorAll('.mensaje.swiping').forEach(el => el.classList.remove('swiping')); });
+        cont.addEventListener('pointercancel', () => { startKey = null; limpiarSwipeVisual(); });
         cont.addEventListener('click', (e) => {
             const pill = e.target.closest('[data-reaction-btn]');
             if (!pill) return;
@@ -7570,6 +7593,8 @@ window.seleccionarArchivoAdjunto = function() {
 
 
 
+
+
 function _inferFileKind(mime, fileName, url) {
     const m = String(mime || '').toLowerCase();
     const n = String(fileName || url || '').toLowerCase().split('?')[0].split('#')[0];
@@ -7598,44 +7623,143 @@ function _safeDownloadName(name, mime) {
 function _isIOSLike() {
     return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
+function _fileCacheKey(url, fileName) {
+    const raw = String(url || '') + '|' + String(fileName || '');
+    let h = 0;
+    for (let i = 0; i < raw.length; i++) h = ((h << 5) - h + raw.charCodeAt(i)) | 0;
+    return 'file_' + Math.abs(h).toString(36);
+}
+const SWITCH_FILE_DB = 'switch_file_cache_v1';
+const SWITCH_FILE_STORE = 'files';
+function _openSwitchFileDB() {
+    return new Promise((resolve, reject) => {
+        if (!('indexedDB' in window)) { reject(new Error('IndexedDB no disponible')); return; }
+        const req = indexedDB.open(SWITCH_FILE_DB, 1);
+        req.onupgradeneeded = () => {
+            const dbx = req.result;
+            if (!dbx.objectStoreNames.contains(SWITCH_FILE_STORE)) dbx.createObjectStore(SWITCH_FILE_STORE, { keyPath: 'key' });
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error || new Error('No se pudo abrir caché'));
+    });
+}
+async function _getCachedFileRecord(key) {
+    try {
+        const dbx = await _openSwitchFileDB();
+        return await new Promise((resolve, reject) => {
+            const tx = dbx.transaction(SWITCH_FILE_STORE, 'readonly');
+            const req = tx.objectStore(SWITCH_FILE_STORE).get(key);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error || new Error('No se pudo leer caché'));
+            tx.oncomplete = () => dbx.close();
+        });
+    } catch(e) { return null; }
+}
+async function _putCachedFileRecord(record) {
+    try {
+        const dbx = await _openSwitchFileDB();
+        await new Promise((resolve, reject) => {
+            const tx = dbx.transaction(SWITCH_FILE_STORE, 'readwrite');
+            tx.objectStore(SWITCH_FILE_STORE).put(record);
+            tx.oncomplete = () => { dbx.close(); resolve(); };
+            tx.onerror = () => { try { dbx.close(); } catch(_) {} reject(tx.error || new Error('No se pudo guardar caché')); };
+        });
+    } catch(e) {}
+}
+function _markFileCached(key, fileName) {
+    try {
+        const meta = JSON.parse(localStorage.getItem('switch_file_cache_meta') || '{}');
+        meta[key] = { fileName, at: Date.now() };
+        localStorage.setItem('switch_file_cache_meta', JSON.stringify(meta));
+    } catch(e) {}
+}
+function _isFileCachedSync(key) {
+    try {
+        const meta = JSON.parse(localStorage.getItem('switch_file_cache_meta') || '{}');
+        return !!meta[key];
+    } catch(e) { return false; }
+}
+async function _getFileBlobCached(url, fileName, mimeType, showProgressText = 'Preparando archivo...') {
+    const mediaUrl = normalizarMediaUrl(url);
+    if (!mediaUrl) throw new Error('Archivo no disponible');
+    const safeName = _safeDownloadName(fileName, mimeType);
+    const key = _fileCacheKey(mediaUrl, safeName);
+    const cached = await _getCachedFileRecord(key);
+    if (cached && cached.blob) {
+        _markFileCached(key, safeName);
+        return { blob: cached.blob, key, fileName: cached.fileName || safeName, mimeType: cached.mimeType || mimeType || cached.blob.type || '' };
+    }
+    showLoading(showProgressText);
+    const res = await fetch(mediaUrl, { mode: 'cors', cache: 'force-cache' });
+    if (!res.ok) throw new Error('No se pudo leer el archivo');
+    const blob = await res.blob();
+    const finalMime = mimeType || blob.type || '';
+    await _putCachedFileRecord({ key, url: mediaUrl, fileName: safeName, mimeType: finalMime, blob, savedAt: Date.now() });
+    _markFileCached(key, safeName);
+    return { blob, key, fileName: safeName, mimeType: finalMime };
+}
+function _renderFileViewerBody(kind, blobUrl, name, mime) {
+    const safeUrl = escapeAttr(blobUrl);
+    const safeName = escapeAttr(name);
+    if (kind === 'pdf') {
+        return `<object data="${safeUrl}" type="application/pdf" aria-label="${safeName}">
+                    <iframe src="${safeUrl}" title="${safeName}"></iframe>
+                </object>
+                <div class="file-viewer-note">Si tu iPhone no muestra el PDF dentro del recuadro, usa <b>Abrir fuera</b>. La app ya usa la copia preparada, no vuelve a pedir otra descarga desde el chat.</div>`;
+    }
+    if (kind === 'video') return `<video controls playsinline preload="metadata" src="${safeUrl}"></video>`;
+    if (kind === 'audio') return `<audio controls preload="metadata" src="${safeUrl}"></audio>`;
+    if (kind === 'image') return `<img src="${safeUrl}" alt="${safeName}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+    return `<div class="file-viewer-fallback"><i class="fas fa-file"></i><strong>${escapeHtml(name)}</strong><p>Este tipo de archivo no se puede visualizar dentro de la app. Puedes descargarlo o abrirlo fuera de SWITCH.</p></div>`;
+}
 window._currentViewerFile = null;
-window.abrirVisorArchivo = function(url, fileName, mimeType) {
+window._currentViewerObjectUrl = null;
+window.abrirVisorArchivo = async function(url, fileName, mimeType) {
     const mediaUrl = normalizarMediaUrl(url);
     if (!mediaUrl) { showToast('Archivo no disponible'); return; }
-    const name = fileName || 'archivo';
-    const mime = mimeType || '';
-    const kind = _inferFileKind(mime, name, mediaUrl);
+    const name = _safeDownloadName(fileName || 'archivo', mimeType);
+    const kind = _inferFileKind(mimeType, name, mediaUrl);
     const modal = document.getElementById('file-viewer-modal');
     const body = document.getElementById('file-viewer-body');
     const title = document.getElementById('file-viewer-title');
-    if (!modal || !body || !title) {
-        window.open(mediaUrl, '_blank', 'noopener');
-        return;
-    }
-    window._currentViewerFile = { url: mediaUrl, fileName: name, mimeType: mime };
+    if (!modal || !body || !title) { window.open(mediaUrl, '_blank', 'noopener'); return; }
     title.textContent = name;
-    if (kind === 'pdf') {
-        body.innerHTML = `<iframe src="${escapeAttr(mediaUrl)}#toolbar=1&navpanes=0" title="${escapeAttr(name)}"></iframe>`;
-    } else if (kind === 'video') {
-        body.innerHTML = `<video controls playsinline preload="metadata" src="${escapeAttr(mediaUrl)}"></video>`;
-    } else if (kind === 'audio') {
-        body.innerHTML = `<audio controls preload="metadata" src="${escapeAttr(mediaUrl)}"></audio>`;
-    } else if (kind === 'image') {
-        body.innerHTML = `<img src="${escapeAttr(mediaUrl)}" alt="${escapeAttr(name)}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
-    } else {
-        body.innerHTML = `<div class="file-viewer-fallback"><i class="fas fa-file"></i><strong>${escapeHtml(name)}</strong><p>Este tipo de archivo no se puede visualizar dentro de la app. Puedes descargarlo o abrirlo fuera de SWITCH.</p></div>`;
-    }
+    body.innerHTML = `<div class="file-viewer-loading"><i class="fas fa-spinner"></i><div>Preparando vista del archivo...</div><small>Si ya lo descargaste antes, se usará la copia guardada en la app.</small></div>`;
     modal.classList.add('active');
+    try {
+        if (window._currentViewerObjectUrl) {
+            try { URL.revokeObjectURL(window._currentViewerObjectUrl); } catch(e) {}
+            window._currentViewerObjectUrl = null;
+        }
+        const cached = await _getFileBlobCached(mediaUrl, name, mimeType, 'Preparando vista...');
+        hideLoading();
+        const blobMime = cached.mimeType || mimeType || cached.blob.type || '';
+        const finalKind = _inferFileKind(blobMime, cached.fileName, mediaUrl);
+        const blobUrl = URL.createObjectURL(cached.blob);
+        window._currentViewerObjectUrl = blobUrl;
+        window._currentViewerFile = { url: mediaUrl, blobUrl, fileName: cached.fileName || name, mimeType: blobMime, cacheKey: cached.key };
+        body.innerHTML = _renderFileViewerBody(finalKind, blobUrl, cached.fileName || name, blobMime);
+    } catch(e) {
+        hideLoading();
+        window._currentViewerFile = { url: mediaUrl, fileName: name, mimeType: mimeType || '' };
+        body.innerHTML = `<div class="file-viewer-fallback"><i class="fas fa-triangle-exclamation"></i><strong>${escapeHtml(name)}</strong><p>No se pudo preparar la vista interna. Puedes abrirlo fuera de la app o intentar descargarlo nuevamente.</p></div>`;
+        showToast('No se pudo abrir dentro de la app');
+    }
 };
 window.cerrarVisorArchivo = function() {
     const modal = document.getElementById('file-viewer-modal');
     const body = document.getElementById('file-viewer-body');
     if (modal) modal.classList.remove('active');
     if (body) body.innerHTML = '';
+    if (window._currentViewerObjectUrl) {
+        try { URL.revokeObjectURL(window._currentViewerObjectUrl); } catch(e) {}
+        window._currentViewerObjectUrl = null;
+    }
 };
 window.abrirArchivoExternoActual = function() {
     const f = window._currentViewerFile;
-    if (f && f.url) window.open(f.url, '_blank', 'noopener');
+    if (!f) return;
+    window.open(f.blobUrl || f.url, '_blank', 'noopener');
 };
 window.descargarArchivoActualVisor = function() {
     const f = window._currentViewerFile;
@@ -7645,28 +7769,29 @@ window.descargarArchivoSwitch = async function(url, fileName, mimeType) {
     const mediaUrl = normalizarMediaUrl(url);
     if (!mediaUrl) { showToast('Archivo no disponible'); return; }
     const name = _safeDownloadName(fileName, mimeType);
-    showLoading('Preparando descarga...');
     try {
-        const res = await fetch(mediaUrl);
-        if (!res.ok) throw new Error('No se pudo leer el archivo');
-        const blob = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
+        const cached = await _getFileBlobCached(mediaUrl, name, mimeType, 'Preparando descarga...');
+        hideLoading();
+        const blobUrl = URL.createObjectURL(cached.blob);
         const a = document.createElement('a');
         a.href = blobUrl;
-        a.download = name;
+        a.download = cached.fileName || name;
         a.rel = 'noopener';
         document.body.appendChild(a);
         a.click();
         setTimeout(() => {
             try { URL.revokeObjectURL(blobUrl); } catch(e) {}
             if (a.parentNode) a.parentNode.removeChild(a);
-        }, 4000);
-        hideLoading();
-        showToast(`✅ Descarga lista: ${name}`, 3500);
+        }, 5000);
+        if (_isIOSLike()) {
+            showToast(`Archivo preparado: ${cached.fileName || name}. Si iPhone no lo guarda directo, toca Abrir fuera y usa Compartir > Guardar en Archivos.`, 6500);
+        } else {
+            showToast(`✅ Descarga lista: ${cached.fileName || name}`, 3500);
+        }
     } catch(e) {
         hideLoading();
         if (_isIOSLike()) {
-            showToast('En iPhone se abrirá el archivo. Usa Compartir o mantén presionado para guardarlo.', 5200);
+            showToast('En iPhone se abrirá el archivo. Usa Compartir > Guardar en Archivos.', 5200);
         } else {
             showToast('No se pudo descargar directo. Se abrirá el archivo.', 3500);
         }
@@ -7715,6 +7840,8 @@ function buildMsgHTML(msg) {
         const encName = encodeURIComponent(fileName || 'archivo');
         const encMime = encodeURIComponent(mimeType || '');
         const canView = mediaUrl && puedePrevisualizarArchivo(mimeType, mediaUrl, fileName);
+        const cacheKey = mediaUrl ? _fileCacheKey(mediaUrl, _safeDownloadName(fileName, mimeType)) : '';
+        const cachedLabel = cacheKey && _isFileCachedSync(cacheKey) ? 'Descargado' : 'Descargar';
         const viewBtn = canView
             ? `<button type="button" class="msg-file-action" onclick="event.stopPropagation(); abrirVisorArchivo(decodeURIComponent('${encUrl}'), decodeURIComponent('${encName}'), decodeURIComponent('${encMime}'))"><i class="fas fa-eye"></i> Ver</button>`
             : '';
@@ -7726,7 +7853,7 @@ function buildMsgHTML(msg) {
                     </div>
                     <div class="msg-file-actions">
                         ${viewBtn}
-                        <button type="button" class="msg-file-action download" onclick="event.stopPropagation(); descargarArchivoSwitch(decodeURIComponent('${encUrl}'), decodeURIComponent('${encName}'), decodeURIComponent('${encMime}'))"><i class="fas fa-download"></i> Descargar</button>
+                        <button type="button" class="msg-file-action download" onclick="event.stopPropagation(); descargarArchivoSwitch(decodeURIComponent('${encUrl}'), decodeURIComponent('${encName}'), decodeURIComponent('${encMime}'))"><i class="fas fa-download"></i> ${cachedLabel}</button>
                     </div>
                </div>`
             : `<div class="msg-media-error">⚠️ Archivo no disponible o URL inválida</div>`;
