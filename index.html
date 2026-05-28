@@ -8032,42 +8032,6 @@ async function subirArchivoTelegram(blob, filename, caption, options = {}) {
 
     const filePath = fileData.result.file_path;
     return `${TG_FILE_API}/${filePath}`;
-}) {
-    const formData = new FormData();
-    formData.append('chat_id', TELEGRAM_CHAT_ID);
-    formData.append('caption', caption || '');
-
-    const isAudio = blob.type.startsWith('audio');
-    const endpoint = isAudio ? 'sendVoice' : 'sendPhoto';
-    const fieldName = isAudio ? 'voice' : 'photo';
-
-    formData.append(fieldName, blob, filename);
-    if (isAudio && options && Number(options.durationMs) > 0) {
-        formData.append('duration', String(Math.max(1, Math.round(Number(options.durationMs) / 1000))));
-    }
-
-    const res  = await fetch(`${TG_API}/${endpoint}`, { method: 'POST', body: formData });
-    const data = await res.json();
-
-    if (!data.ok) throw new Error(data.description || 'Telegram error');
-
-    // Extract file_id from response
-    let fileId;
-    if (isAudio) {
-        fileId = data.result.voice?.file_id;
-    } else {
-        const photos = data.result.photo;
-        fileId = photos[photos.length - 1]?.file_id;
-    }
-    if (!fileId) throw new Error('No file_id from Telegram');
-
-    // Get the actual download URL
-    const fileRes  = await fetch(`${TG_API}/getFile?file_id=${fileId}`);
-    const fileData = await fileRes.json();
-    if (!fileData.ok) throw new Error('Cannot get file path');
-
-    const filePath = fileData.result.file_path;
-    return `${TG_FILE_API}/${filePath}`;
 }
 
 // Image sending with validation + preview
