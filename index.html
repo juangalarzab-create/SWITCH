@@ -4659,6 +4659,177 @@
             .btn-chat-disguise .disguise-label { display: none; }
         }
 
+
+        /* ===== MEJORAS UI / VALIDACIÓN MULTIMEDIA ===== */
+        .chat-disguise-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            flex-shrink: 0;
+            max-width: 112px;
+            margin-left: 4px;
+        }
+        .chat-disguise-wrap .header-typing-status {
+            width: 112px;
+            max-width: 112px;
+            min-height: 14px;
+            text-align: center;
+            font-size: 10px;
+            line-height: 1.15;
+            color: #8ed8ff;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .screen-chat.jugando .chat-disguise-wrap {
+            max-width: 74px;
+            margin-left: 2px;
+        }
+        .screen-chat.jugando .chat-disguise-wrap .header-typing-status {
+            width: 74px;
+            max-width: 74px;
+            font-size: 9px;
+            min-height: 11px;
+        }
+        .game-header {
+            gap: 14px !important;
+        }
+        .game-header .btn-voice-game {
+            margin-left: auto !important;
+            margin-right: 18px !important;
+        }
+        .btn-close-game {
+            min-width: 36px;
+            min-height: 36px;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            transition: background .18s, transform .18s;
+        }
+        .btn-close-game:hover {
+            background: rgba(255,255,255,0.16);
+            transform: scale(1.06);
+        }
+        .modal {
+            background: rgba(0, 0, 0, 0.68);
+            backdrop-filter: blur(6px);
+        }
+        .modal-content {
+            background: linear-gradient(160deg, #191919, #101820);
+            border: 1px solid rgba(0,136,204,.35);
+            box-shadow: 0 18px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
+            color: #fff;
+        }
+        .modal-title {
+            color: #fff;
+        }
+        .modal-input {
+            background: rgba(255,255,255,.08);
+            border-color: rgba(255,255,255,.16);
+            color: #fff;
+        }
+        .modal-input:focus {
+            border-color: #0088cc;
+            background: rgba(255,255,255,.12);
+        }
+        .modal-cancel {
+            background: rgba(255,255,255,.08);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,.16);
+        }
+        .modal-confirm {
+            background: linear-gradient(135deg, #0088cc, #006ea6);
+            color: #fff;
+        }
+        .media-preview-modal {
+            z-index: 10040;
+        }
+        .media-preview-content {
+            max-width: 420px;
+            width: min(92vw, 420px);
+            padding: 24px;
+            border-radius: 18px;
+        }
+        .media-preview-body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 90px;
+            margin: 12px 0;
+            background: rgba(255,255,255,.06);
+            border: 1px solid rgba(255,255,255,.10);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .media-preview-body img {
+            max-width: 100%;
+            max-height: 280px;
+            object-fit: contain;
+            display: block;
+        }
+        .media-preview-body audio {
+            width: 100%;
+            padding: 10px;
+        }
+        .media-preview-meta {
+            color: rgba(255,255,255,.72);
+            font-size: 12px;
+            line-height: 1.45;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+        .media-preview-actions .modal-btn {
+            min-height: 44px;
+        }
+        .media-duration-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(0,136,204,.14);
+            border: 1px solid rgba(0,136,204,.35);
+            color: #8ed8ff;
+            font-weight: 700;
+        }
+        .msg-media-error {
+            color: rgba(255,255,255,.65);
+            font-size: 13px;
+            padding: 8px 0;
+        }
+        .msg-audio-label {
+            color: rgba(255,255,255,.72);
+            font-size: 12px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .loading-overlay {
+            backdrop-filter: blur(6px);
+        }
+        .loading-text {
+            background: rgba(0,0,0,.28);
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,.08);
+        }
+        .toast {
+            white-space: normal;
+            line-height: 1.35;
+            box-shadow: 0 8px 24px rgba(0,0,0,.35);
+        }
+        @media (max-width: 390px) {
+            .chat-disguise-wrap { max-width: 52px; }
+            .chat-disguise-wrap .header-typing-status { width: 52px; max-width: 52px; }
+            .game-header .btn-voice-game { margin-right: 12px !important; }
+        }
+
     </style>
 </head>
 <body>
@@ -4738,12 +4909,13 @@
                             <span class="presence-label offline" id="presence-label">offline</span>
                         </div>
                     </div>
-                    <!-- Indicador escritura -->
-                    <div class="header-typing-status" id="header-typing-status"></div>
-                    <!-- Switch visual para disfrazar mensajes -->
-                    <button class="btn-chat-disguise" id="btn-chat-disguise" onclick="toggleDisfrazMensajes()" title="Disfrazar mensajes como cuento">
-                        <span class="disguise-icon">🐷</span><span class="disguise-label">Cuento</span>
-                    </button>
+                    <!-- Indicador escritura + Switch visual para disfrazar mensajes -->
+                    <div class="chat-disguise-wrap">
+                        <div class="header-typing-status" id="header-typing-status"></div>
+                        <button class="btn-chat-disguise" id="btn-chat-disguise" onclick="toggleDisfrazMensajes()" title="Disfrazar mensajes como cuento">
+                            <span class="disguise-icon">🐷</span><span class="disguise-label">Cuento</span>
+                        </button>
+                    </div>
                     <!-- Botón llamada WebRTC -->
                     <button class="btn-call-header" id="btn-call-header" onclick="iniciarLlamada()" title="Llamada de voz">
                         <i class="fas fa-phone"></i>
@@ -5327,6 +5499,20 @@
         </div>
     </div>
 
+    <!-- MODAL PREVIEW MULTIMEDIA -->
+    <div class="modal media-preview-modal" id="modal-media-preview">
+        <div class="modal-content media-preview-content">
+            <div class="modal-title" id="media-preview-title">Validar multimedia</div>
+            <div class="media-preview-body" id="media-preview-body"></div>
+            <div class="media-preview-meta" id="media-preview-meta"></div>
+            <div class="error" id="media-preview-error"></div>
+            <div class="modal-buttons media-preview-actions">
+                <button class="modal-btn modal-cancel" onclick="cancelarPreviewMultimedia()">No enviar</button>
+                <button class="modal-btn modal-confirm" id="btn-confirm-media" onclick="confirmarEnviarMultimedia()">Enviar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL IMAGEN COMPLETA -->
     <div class="modal-imagen" id="modal-imagen">
         <div class="modal-imagen-content">
@@ -5693,17 +5879,23 @@ initMessaging();
 // HELPERS UI
 // ============================================================
 function showLoading(msg = 'Cargando...') {
-    document.getElementById('loading-text').textContent = msg;
-    document.getElementById('loading-overlay').classList.add('active');
+    const text = document.getElementById('loading-text');
+    const overlay = document.getElementById('loading-overlay');
+    if (text) text.textContent = msg;
+    if (overlay) overlay.classList.add('active');
 }
 function hideLoading() {
-    document.getElementById('loading-overlay').classList.remove('active');
+    const overlay = document.getElementById('loading-overlay');
+    if (overlay) overlay.classList.remove('active');
 }
+let _toastTimer = null;
 function showToast(msg, duration = 3000) {
     const t = document.getElementById('toast');
+    if (!t) return;
     t.textContent = msg;
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), duration);
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), duration);
 }
 function setFirebaseStatus(online) {
     const el = document.getElementById('firebase-status');
@@ -5738,8 +5930,14 @@ function mostrarPantalla(id) {
 }
 
 window.irInicio = function() {
-    // Limpiar indicador de escritura y presencia
+    // Limpiar indicador de escritura, presencia y multimedia pendiente
     if (typeof window._cleanupPresenceAndTyping === 'function') window._cleanupPresenceAndTyping();
+    if (typeof window.cancelarPreviewMultimedia === 'function') {
+        try { window.cancelarPreviewMultimedia(); } catch(e) {}
+    }
+    if (typeof window._cleanupRealtimeRoom === 'function') {
+        try { window._cleanupRealtimeRoom(); } catch(e) { console.warn('[cleanup room]', e); }
+    }
     // Detach previous listeners
     if (mensajesListener) { mensajesListener(); mensajesListener = null; }
     if (_invitesListener) { _invitesListener(); _invitesListener = null; }
@@ -5788,6 +5986,7 @@ window.irCrearSala = function() {
 // ============================================================
 function escucharSalas() {
     const salasRef = ref(db, 'salas');
+    if (salasListener) { salasListener(); salasListener = null; }
     salasListener = onValue(salasRef, (snapshot) => {
         salas = [];
         snapshot.forEach(child => {
@@ -6266,7 +6465,7 @@ function escucharMensajes() {
 function buildMsgHTML(msg) {
     if (msg.tipo === 'anuncio-admin') {
         return `<div class="mensaje mensaje-anuncio-admin">
-            <div class="msg-content">${msg.texto}</div>
+            <div class="msg-content">${escapeHtml(msg.texto)}</div>
             <div class="msg-time" style="text-align:center;margin-top:6px;color:#8b4513;">${formatearHoraMs(msg.horaMs)}</div>
         </div>`;
     }
@@ -6277,14 +6476,21 @@ function buildMsgHTML(msg) {
     if (_mensajeDisfrazActivo && msg.tipo !== 'anuncio-admin') {
         contenido = `<div class="msg-content story-disguised">${escapeHtml(generarTextoDisfrazado(msg))}</div>`;
     } else if (msg.tipo === 'imagen') {
-        contenido = `<img src="${msg.mediaUrl}" class="msg-imagen" alt="Imagen" onclick="abrirModalImagen('${msg.mediaUrl}')">`;
+        const mediaUrl = normalizarMediaUrl(msg.mediaUrl);
+        contenido = mediaUrl
+            ? `<img src="${escapeAttr(mediaUrl)}" class="msg-imagen" alt="Imagen" onclick="abrirModalImagen(this.src)">`
+            : `<div class="msg-media-error">⚠️ Imagen no disponible o URL inválida</div>`;
     } else if (msg.tipo === 'audio') {
-        contenido = `<audio controls class="msg-audio"><source src="${msg.mediaUrl}" type="audio/ogg"></audio>`;
+        const mediaUrl = normalizarMediaUrl(msg.mediaUrl);
+        const dur = Number(msg.durationMs) > 0 ? formatDuration(msg.durationMs) : '';
+        contenido = mediaUrl
+            ? `${dur ? `<div class="msg-audio-label">🎙️ Audio · ${dur}</div>` : ''}<audio controls preload="metadata" class="msg-audio" src="${escapeAttr(mediaUrl)}"></audio>`
+            : `<div class="msg-media-error">⚠️ Audio no disponible o URL inválida</div>`;
     } else {
         const soloEmoji = esSoloEmoji(msg.texto || '');
         // La clase emoji-solo (con animación) solo se aplica si es el mensaje nuevo recién llegado
         const emojiClass = (soloEmoji && msg._isNew) ? ' emoji-solo' : '';
-        const emojiData  = soloEmoji ? ` data-emoji="${escapeHtml(msg.texto)}"` : '';
+        const emojiData  = soloEmoji ? ` data-emoji="${escapeAttr(msg.texto)}"` : '';
         contenido = `<div class="msg-content${emojiClass}"${emojiData}>${escapeHtml(msg.texto)}</div>`;
     }
 
@@ -6489,6 +6695,14 @@ function _attachLiveReactionListener() {
     });
 }
 
+function _detachLiveReactionListener() {
+    if (_liveReactionListener) { _liveReactionListener(); _liveReactionListener = null; }
+    if (_liveReactionCountsListener) { _liveReactionCountsListener(); _liveReactionCountsListener = null; }
+    _liveReactionSeen = new Set();
+    _liveReactionFirstLoad = true;
+}
+window._detachLiveReactionListener = _detachLiveReactionListener;
+
 function _actualizarDockReacciones() {
     const dock = document.getElementById('split-reaction-dock');
     if (!dock) return;
@@ -6623,7 +6837,35 @@ function formatearHoraMs(ms) {
 }
 
 function escapeHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeAttr(str) {
+    return String(str ?? '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+}
+function normalizarMediaUrl(url) {
+    try {
+        const u = new URL(String(url || ''), window.location.href);
+        if (!['https:', 'http:', 'blob:'].includes(u.protocol)) return '';
+        // En producción conviene dejar solo https/blob y el dominio esperado de Telegram/Storage.
+        return u.href;
+    } catch(e) { return ''; }
+}
+function formatDuration(ms) {
+    const total = Math.max(0, Math.round((Number(ms) || 0) / 1000));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return m + ':' + String(s).padStart(2, '0');
+}
+function bytesToHuman(bytes) {
+    const n = Number(bytes) || 0;
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 async function pushMensaje(msgObj) {
@@ -6753,7 +6995,7 @@ window.enviarMensaje = async function() {
 // ============================================================
 
 /** Sube un Blob/File a Telegram y devuelve la URL pública del archivo */
-async function subirArchivoTelegram(blob, filename, caption) {
+async function subirArchivoTelegram(blob, filename, caption, options = {}) {
     const formData = new FormData();
     formData.append('chat_id', TELEGRAM_CHAT_ID);
     formData.append('caption', caption || '');
@@ -6763,6 +7005,9 @@ async function subirArchivoTelegram(blob, filename, caption) {
     const fieldName = isAudio ? 'voice' : 'photo';
 
     formData.append(fieldName, blob, filename);
+    if (isAudio && options && Number(options.durationMs) > 0) {
+        formData.append('duration', String(Math.max(1, Math.round(Number(options.durationMs) / 1000))));
+    }
 
     const res  = await fetch(`${TG_API}/${endpoint}`, { method: 'POST', body: formData });
     const data = await res.json();
@@ -6788,35 +7033,149 @@ async function subirArchivoTelegram(blob, filename, caption) {
     return `${TG_FILE_API}/${filePath}`;
 }
 
-// Image sending
-window.abrirGaleria = function() {
-    document.getElementById('input-imagen').click();
-};
-
-window.enviarImagen = async function() {
-    const input  = document.getElementById('input-imagen');
-    if (!input.files.length) return;
-    const archivo = input.files[0];
-    input.value  = '';
-
-    showLoading('Subiendo imagen...');
-    try {
-        const url = await subirArchivoTelegram(archivo, archivo.name, `[SWITCH] Imagen de ${usuarioActual} en ${salaActual?.nombre}`);
-        await pushMensaje({ usuario: usuarioActual, texto: '📷 [Imagen]', tipo: 'imagen', mediaUrl: url });
-        hideLoading();
-        showToast('✅ Imagen enviada');
-    } catch(e) {
-        hideLoading();
-        showToast('❌ Error al subir imagen: ' + e.message);
-        console.error(e);
-    }
-};
-
-// Audio recording & sending
+// Image sending with validation + preview
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 20 * 1024 * 1024;
+let _pendingMedia = null;
 let mediaRecorder;
 let audioChunks = [];
 let isRecording = false;
 let audioStream;
+let _recordingStartedAt = 0;
+let _recordingMime = '';
+
+window.abrirGaleria = function() {
+    const input = document.getElementById('input-imagen');
+    if (input) input.click();
+};
+
+function _limpiarPendingMedia() {
+    if (_pendingMedia && _pendingMedia.previewUrl && _pendingMedia.previewUrl.startsWith('blob:')) {
+        try { URL.revokeObjectURL(_pendingMedia.previewUrl); } catch(e) {}
+    }
+    _pendingMedia = null;
+    const body = document.getElementById('media-preview-body');
+    const meta = document.getElementById('media-preview-meta');
+    const err = document.getElementById('media-preview-error');
+    if (body) body.innerHTML = '';
+    if (meta) meta.innerHTML = '';
+    if (err) err.textContent = '';
+}
+
+function _mostrarPreviewMedia({ tipo, blob, filename, previewUrl, durationMs }) {
+    const modal = document.getElementById('modal-media-preview');
+    const title = document.getElementById('media-preview-title');
+    const body = document.getElementById('media-preview-body');
+    const meta = document.getElementById('media-preview-meta');
+    const err = document.getElementById('media-preview-error');
+    if (!modal || !body || !meta) return;
+
+    _limpiarPendingMedia();
+    _pendingMedia = { tipo, blob, filename, previewUrl, durationMs: Number(durationMs) || 0 };
+
+    if (title) title.textContent = tipo === 'audio' ? 'Revisar audio antes de enviar' : 'Revisar imagen antes de enviar';
+    if (err) err.textContent = '';
+
+    if (tipo === 'audio') {
+        body.innerHTML = `<audio controls preload="metadata" src="${escapeAttr(previewUrl)}"></audio>`;
+        const durMeta = Number(durationMs) > 0
+            ? `<span class="media-duration-pill">🎙️ Duración real: ${formatDuration(durationMs)}</span><br>`
+            : `<span class="media-duration-pill">🎙️ Audio seleccionado</span><br>`;
+        meta.innerHTML = `${durMeta}${escapeHtml(filename || 'audio')} · ${bytesToHuman(blob.size)}`;
+    } else {
+        body.innerHTML = `<img src="${escapeAttr(previewUrl)}" alt="Vista previa de imagen">`;
+        meta.innerHTML = `${escapeHtml(filename || 'imagen')} · ${bytesToHuman(blob.size)}`;
+    }
+    modal.classList.add('active');
+}
+
+window.cancelarPreviewMultimedia = function() {
+    const modal = document.getElementById('modal-media-preview');
+    if (modal) modal.classList.remove('active');
+    _limpiarPendingMedia();
+    showToast('Multimedia descartada', 1600);
+};
+
+window.confirmarEnviarMultimedia = async function() {
+    if (!_pendingMedia || !_pendingMedia.blob) return;
+    const media = _pendingMedia;
+    const btn = document.getElementById('btn-confirm-media');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+    const modal = document.getElementById('modal-media-preview');
+
+    showLoading(media.tipo === 'audio' ? 'Subiendo audio...' : 'Subiendo imagen...');
+    try {
+        const caption = media.tipo === 'audio'
+            ? `[SWITCH] Audio de ${usuarioActual} en ${salaActual?.nombre}`
+            : `[SWITCH] Imagen de ${usuarioActual} en ${salaActual?.nombre}`;
+        const url = await subirArchivoTelegram(media.blob, media.filename, caption, { durationMs: media.durationMs });
+        if (media.tipo === 'audio') {
+            await pushMensaje({
+                usuario: usuarioActual,
+                texto: media.durationMs > 0 ? `🎙️ Audio · ${formatDuration(media.durationMs)}` : '🎙️ [Audio]', 
+                tipo: 'audio',
+                mediaUrl: url,
+                durationMs: media.durationMs
+            });
+        } else {
+            await pushMensaje({ usuario: usuarioActual, texto: '📷 [Imagen]', tipo: 'imagen', mediaUrl: url });
+        }
+        hideLoading();
+        if (modal) modal.classList.remove('active');
+        _limpiarPendingMedia();
+        showToast(media.tipo === 'audio' ? '✅ Audio enviado' : '✅ Imagen enviada');
+    } catch(e) {
+        hideLoading();
+        const err = document.getElementById('media-preview-error');
+        if (err) err.textContent = '❌ Error al subir: ' + (e.message || e);
+        showToast('❌ No se pudo enviar multimedia');
+        console.error(e);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Enviar'; }
+    }
+};
+
+window.enviarImagen = async function() {
+    const input  = document.getElementById('input-imagen');
+    if (!input || !input.files.length) return;
+    const archivo = input.files[0];
+    input.value = '';
+
+    if (!archivo.type || !archivo.type.startsWith('image/')) {
+        showToast('❌ Solo se permiten imágenes');
+        return;
+    }
+    if (archivo.size > MAX_IMAGE_BYTES) {
+        showToast('❌ Imagen demasiado pesada. Máximo 8 MB');
+        return;
+    }
+
+    const previewUrl = URL.createObjectURL(archivo);
+    _mostrarPreviewMedia({ tipo: 'imagen', blob: archivo, filename: archivo.name || 'imagen.jpg', previewUrl });
+};
+
+window.enviarAudio = async function() {
+    const input = document.getElementById('input-audio');
+    if (!input || !input.files.length) return;
+    const archivo = input.files[0];
+    input.value = '';
+    if (!archivo.type || !archivo.type.startsWith('audio/')) {
+        showToast('❌ Solo se permiten audios');
+        return;
+    }
+    if (archivo.size > MAX_AUDIO_BYTES) {
+        showToast('❌ Audio demasiado pesado. Máximo 20 MB');
+        return;
+    }
+    const previewUrl = URL.createObjectURL(archivo);
+    _mostrarPreviewMedia({
+        tipo: 'audio',
+        blob: archivo,
+        filename: archivo.name || 'audio',
+        previewUrl,
+        durationMs: 0
+    });
+};
 
 // ── Botón enviar inteligente: 🎙️ cuando el input está vacío, ➤ cuando hay texto ──
 (function _initSmartSendBtn() {
@@ -6841,8 +7200,10 @@ let audioStream;
             btn.onclick = null;
             btn.onmousedown = (e) => { e.preventDefault(); _iniciarGrabacion(); };
             btn.onmouseup   = (e) => { e.preventDefault(); _detenerGrabacion(); };
+            btn.onmouseleave = (e) => { if (isRecording) { e.preventDefault(); _detenerGrabacion(); } };
             btn.ontouchstart = (e) => { e.preventDefault(); _iniciarGrabacion(); };
             btn.ontouchend   = (e) => { e.preventDefault(); _detenerGrabacion(); };
+            btn.ontouchcancel= (e) => { if (isRecording) { e.preventDefault(); _detenerGrabacion(); } };
         }
     }
 
@@ -6858,6 +7219,8 @@ let audioStream;
 
 // ══════════════════════════════════════════════════════════
 // TYPING INDICATOR — "está escribiendo / borró su mensaje"
+// ══════════════════════════════════════════════════════════
+ — "está escribiendo / borró su mensaje"
 // ══════════════════════════════════════════════════════════
 (function _initTypingSystem() {
     // Publish own typing state to Firebase when icon changes
@@ -7033,49 +7396,81 @@ async function _iniciarGrabacion() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         showToast('❌ Tu navegador no soporta grabación de audio'); return;
     }
+    if (_pendingMedia) {
+        showToast('Primero envía o descarta la multimedia pendiente'); return;
+    }
     const btn = document.getElementById('btn-enviar-smart');
     try {
-        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 },
+            video: false
+        });
     } catch(err) {
-        showToast('❌ Error micrófono: ' + err.message); return;
+        showToast('❌ Error micrófono: ' + (err.message || err)); return;
     }
-    // Elegir mimeType compatible
-    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    // Preferir OGG/Opus cuando el navegador lo soporte; ayuda a evitar duraciones falsas.
+    const mime = MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')
+        ? 'audio/ogg;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : MediaRecorder.isTypeSupported('audio/webm')
         ? 'audio/webm'
         : '';
+    _recordingMime = mime || 'audio/webm';
     mediaRecorder = new MediaRecorder(audioStream, mime ? { mimeType: mime } : {});
     audioChunks = [];
+    _recordingStartedAt = performance.now();
 
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onerror = e => {
+        console.error('[Audio] recorder error:', e);
+        showToast('❌ Error durante la grabación');
+    };
     mediaRecorder.onstop = async () => {
+        const durationMs = Math.max(0, performance.now() - _recordingStartedAt);
         if (btn) { btn.classList.remove('recording-btn'); btn.innerHTML = '<i class="fas fa-microphone"></i>'; }
-        if (!audioChunks.length) { audioStream.getTracks().forEach(t => t.stop()); return; }
-        const audioBlob = new Blob(audioChunks, { type: mime || 'audio/webm' });
-        showLoading('Subiendo audio...');
-        try {
-            const url = await subirArchivoTelegram(audioBlob, 'audio.ogg', `[SWITCH] Audio de ${usuarioActual} en ${salaActual?.nombre}`);
-            await pushMensaje({ usuario: usuarioActual, texto: '🎙️ [Audio]', tipo: 'audio', mediaUrl: url });
-            hideLoading();
-            showToast('✅ Audio enviado');
-        } catch(e) {
-            hideLoading();
-            showToast('❌ Error al subir audio: ' + e.message);
+        try { if (audioStream) audioStream.getTracks().forEach(t => t.stop()); } catch(e) {}
+        audioStream = null;
+
+        if (!audioChunks.length || durationMs < 450) {
+            audioChunks = [];
+            showToast('Audio demasiado corto, no se enviará');
+            return;
         }
-        audioStream.getTracks().forEach(t => t.stop());
+        const audioBlob = new Blob(audioChunks, { type: _recordingMime || 'audio/webm' });
+        audioChunks = [];
+        if (audioBlob.size > MAX_AUDIO_BYTES) {
+            showToast('❌ Audio demasiado pesado. Máximo 20 MB');
+            return;
+        }
+        const ext = (_recordingMime || '').includes('ogg') ? 'ogg' : 'webm';
+        const previewUrl = URL.createObjectURL(audioBlob);
+        _mostrarPreviewMedia({
+            tipo: 'audio',
+            blob: audioBlob,
+            filename: `audio.${ext}`,
+            previewUrl,
+            durationMs
+        });
     };
 
-    mediaRecorder.start();
-    isRecording = true;
-    if (btn) { btn.classList.add('recording-btn'); btn.innerHTML = '<i class="fas fa-stop"></i>'; }
-    showToast('🔴 Grabando... suelta para enviar');
+    try {
+        mediaRecorder.start(250); // timeslice: guarda chunks pequeños y evita pérdidas al detener rápido
+        isRecording = true;
+        if (btn) { btn.classList.add('recording-btn'); btn.innerHTML = '<i class="fas fa-stop"></i>'; }
+        showToast('🔴 Grabando... suelta para revisar');
+    } catch(e) {
+        try { audioStream.getTracks().forEach(t => t.stop()); } catch(_) {}
+        audioStream = null;
+        showToast('❌ No se pudo iniciar la grabación');
+    }
 }
 
 function _detenerGrabacion() {
     if (!isRecording || !mediaRecorder || mediaRecorder.state === 'inactive') return;
-    mediaRecorder.stop();
     isRecording = false;
+    try { mediaRecorder.requestData(); } catch(e) {}
+    mediaRecorder.stop();
 }
 
 // Mantener compatibilidad con cualquier llamada externa
@@ -12211,6 +12606,27 @@ window.cerrarJuegoWindow = function() {
 
 
 // ============================================================
+
+// ============================================================
+// LIMPIEZA CENTRALIZADA DE LISTENERS POR SALA
+// Evita duplicados al salir/entrar de salas o cambiar de juego.
+// ============================================================
+window._cleanupRealtimeRoom = function() {
+    try { if (typeof window._detachLiveReactionListener === 'function') window._detachLiveReactionListener(); } catch(e) {}
+    try { if (typeof _detachStopGameListener === 'function') _detachStopGameListener(); } catch(e) {}
+    try { if (typeof _detachStopCalifListener === 'function') _detachStopCalifListener(); } catch(e) {}
+    try { if (typeof _detachStopScoreListener === 'function') _detachStopScoreListener(); } catch(e) {}
+    try { if (typeof _tttDetachListener === 'function') _tttDetachListener(); } catch(e) {}
+    try { if (typeof _naipesDetach === 'function') _naipesDetach(); } catch(e) {}
+    try { if (typeof _quizDetachListener === 'function') _quizDetachListener(); } catch(e) {}
+    try { if (typeof _rachaListener !== 'undefined' && _rachaListener) { _rachaListener(); _rachaListener = null; } } catch(e) {}
+};
+window.addEventListener('beforeunload', () => {
+    try { if (typeof window._cleanupPresenceAndTyping === 'function') window._cleanupPresenceAndTyping(); } catch(e) {}
+    try { if (typeof window._cleanupRealtimeRoom === 'function') window._cleanupRealtimeRoom(); } catch(e) {}
+    try { if (typeof window._cleanupWebRTC === 'function') window._cleanupWebRTC(); } catch(e) {}
+});
+
 // WEBRTC — LLAMADA (chat-header) + VOZ JUEGO (game-header)
 // Señalización via Firebase Realtime Database
 // ============================================================
@@ -12226,6 +12642,9 @@ window.cerrarJuegoWindow = function() {
     let _callSeconds = 0;
     let _isCaller = false;
     let _callListener = null;
+    let _incomingCallListener = null;
+    let _gameVoiceOfferListener = null;
+    let _gameVoiceAnswerListener = null;
     let _activeGameVoice = null;   // id del juego con voz activa
 
     const ICE_SERVERS = [
@@ -12458,7 +12877,8 @@ window.cerrarJuegoWindow = function() {
     // ── ESCUCHAR LLAMADAS ENTRANTES ──
     function escucharLlamadasEntrantes() {
         if (!getSalaKey()) return;
-        onValue(callRef(), snap => {
+        if (_incomingCallListener) { _incomingCallListener(); _incomingCallListener = null; }
+        _incomingCallListener = onValue(callRef(), snap => {
             const data = snap.val();
             if (!data) return;
             if (data.status === 'calling' && data.caller !== window.usuarioActual && !_pc) {
@@ -12547,7 +12967,8 @@ window.cerrarJuegoWindow = function() {
         });
 
         // Escuchar answer del otro
-        onValue(gameVoiceRef(), async snap => {
+        if (_gameVoiceAnswerListener) { _gameVoiceAnswerListener(); _gameVoiceAnswerListener = null; }
+        _gameVoiceAnswerListener = onValue(gameVoiceRef(), async snap => {
             const d = snap.val();
             if (!d) return;
             if (d.status === 'answer' && d.host === myRole && d.answer && _gamePc && !_gamePc.currentRemoteDescription) {
@@ -12605,13 +13026,15 @@ window.cerrarJuegoWindow = function() {
     }
 
     async function _apagarVozJuego(gameId) {
+        if (_gameVoiceAnswerListener) { _gameVoiceAnswerListener(); _gameVoiceAnswerListener = null; }
         if (_gamePc) { _gamePc.close(); _gamePc = null; }
         if (_gameStream) { _gameStream.getTracks().forEach(t => t.stop()); _gameStream = null; }
         const ra = document.getElementById('game-remote-audio');
         if (ra) ra.remove();
+        const hadVoice = !!_activeGameVoice;
         _activeGameVoice = null;
 
-        if (gameVoiceRef()) await update(gameVoiceRef(), { status: 'off' }).catch(()=>{});
+        if (hadVoice && gameVoiceRef()) await update(gameVoiceRef(), { status: 'off' }).catch(()=>{});
 
         _actualizarBotonesVoz(false);
     }
@@ -12619,7 +13042,8 @@ window.cerrarJuegoWindow = function() {
     // Escuchar ofertas de voz de juego del otro usuario
     function escucharOfertasVozJuego() {
         if (!getSalaKey()) return;
-        onValue(gameVoiceRef(), snap => {
+        if (_gameVoiceOfferListener) { _gameVoiceOfferListener(); _gameVoiceOfferListener = null; }
+        _gameVoiceOfferListener = onValue(gameVoiceRef(), snap => {
             const d = snap.val();
             if (!d) return;
             if (d.status === 'offer' && d.host !== window.usuarioActual && !_gamePc) {
@@ -12627,6 +13051,14 @@ window.cerrarJuegoWindow = function() {
             }
         });
     }
+
+    window._cleanupWebRTC = function() {
+        try { limpiarLlamada(); } catch(e) {}
+        try { _apagarVozJuego(_activeGameVoice); } catch(e) {}
+        if (_incomingCallListener) { _incomingCallListener(); _incomingCallListener = null; }
+        if (_gameVoiceOfferListener) { _gameVoiceOfferListener(); _gameVoiceOfferListener = null; }
+        if (_gameVoiceAnswerListener) { _gameVoiceAnswerListener(); _gameVoiceAnswerListener = null; }
+    };
 
     // ── HOOK EN guardarNombreUsuario ORIGINAL ──
     const _origGuardar = window.guardarNombreUsuario;
@@ -12641,6 +13073,9 @@ window.cerrarJuegoWindow = function() {
     // Limpiar en irInicio
     const _origIrInicio = window.irInicio;
     window.irInicio = function() {
+        if (_incomingCallListener) { _incomingCallListener(); _incomingCallListener = null; }
+        if (_gameVoiceOfferListener) { _gameVoiceOfferListener(); _gameVoiceOfferListener = null; }
+        if (_gameVoiceAnswerListener) { _gameVoiceAnswerListener(); _gameVoiceAnswerListener = null; }
         limpiarLlamada();
         _apagarVozJuego(_activeGameVoice);
         _origIrInicio && _origIrInicio();
