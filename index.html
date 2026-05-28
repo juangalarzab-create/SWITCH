@@ -4830,6 +4830,331 @@
             .game-header .btn-voice-game { margin-right: 12px !important; }
         }
 
+
+        /* ===== MEJORAS VIDEOLLAMADA + PDF FICTICIO ===== */
+        .btn-video-header {
+            color: #03a9f4;
+        }
+        .btn-video-header:hover {
+            background: rgba(3,169,244,0.16);
+            transform: scale(1.1);
+        }
+        .btn-video-header.calling {
+            color: #e53935;
+            animation: pulse-call 1s infinite;
+        }
+        .game-header {
+            gap: 10px;
+        }
+        .game-header .game-title {
+            margin-right: auto;
+        }
+        .btn-camera-game {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(3,169,244,0.12);
+            border: 1.5px solid #03a9f4;
+            color: #03a9f4;
+            border-radius: 20px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+            margin-left: 4px;
+            margin-right: 14px;
+            white-space: nowrap;
+        }
+        .btn-camera-game:hover { background: rgba(3,169,244,0.22); }
+        .btn-camera-game.cam-activa {
+            background: rgba(76,175,80,0.16);
+            border-color: #4caf50;
+            color: #4caf50;
+            animation: pulse-voice 2s infinite;
+        }
+        .btn-camera-game i { font-size: 13px; }
+        .game-header .btn-close-game {
+            margin-left: 4px;
+            min-width: 34px;
+            min-height: 34px;
+        }
+        .screen-chat.jugando .btn-camera-game,
+        .game-window.jugando .btn-camera-game {
+            padding: 3px 8px;
+            font-size: 11px;
+            margin-right: 16px;
+        }
+        @media (max-width: 420px) {
+            .btn-camera-game .camera-label,
+            .btn-voice-game .voice-label { display: none; }
+            .btn-camera-game,
+            .btn-voice-game { padding: 6px 9px; }
+        }
+        .video-call-stage {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: #050505;
+            z-index: 9989;
+            align-items: center;
+            justify-content: center;
+        }
+        .video-call-stage.active { display: flex; }
+        #call-remote-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #000;
+        }
+        #call-local-video {
+            position: absolute;
+            right: 14px;
+            bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+            width: min(34vw, 150px);
+            height: min(44vw, 210px);
+            object-fit: cover;
+            border-radius: 18px;
+            border: 2px solid rgba(255,255,255,0.75);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+            background: #111;
+        }
+        .video-call-topbar {
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            top: calc(10px + env(safe-area-inset-top, 0px));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+            background: rgba(0,0,0,0.42);
+            border: 1px solid rgba(255,255,255,0.12);
+            backdrop-filter: blur(10px);
+            border-radius: 18px;
+            padding: 10px 12px;
+            font-weight: 700;
+            z-index: 2;
+        }
+        .video-call-topbar button {
+            background: #e53935;
+            color: #fff;
+            border: none;
+            border-radius: 999px;
+            padding: 8px 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .game-video-stage {
+            display: none;
+            position: fixed;
+            top: calc(58px + env(safe-area-inset-top, 0px));
+            right: 10px;
+            width: min(46vw, 190px);
+            background: rgba(0,0,0,0.72);
+            border: 1px solid rgba(3,169,244,0.45);
+            border-radius: 18px;
+            z-index: 9950;
+            padding: 8px;
+            box-shadow: 0 10px 34px rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+        }
+        .game-video-stage.active { display: block; }
+        .game-video-title {
+            color: #fff;
+            font-size: 11px;
+            font-weight: 800;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        #game-remote-video {
+            width: 100%;
+            height: 122px;
+            object-fit: cover;
+            border-radius: 14px;
+            background: #050505;
+        }
+        #game-local-video {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 54px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1.5px solid #fff;
+            background: #111;
+        }
+        .game-video-close {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: none;
+            background: #e53935;
+            color: #fff;
+            cursor: pointer;
+        }
+        .btn-pdf-fake {
+            border-color: rgba(255,255,255,0.22);
+        }
+        .btn-pdf-fake .disguise-icon {
+            color: #ff5252;
+        }
+        .fake-pdf-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 20000;
+            background: #e6e6e6;
+            color: #161616;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: calc(52px + env(safe-area-inset-top, 0px)) 12px calc(24px + env(safe-area-inset-bottom, 0px));
+        }
+        .fake-pdf-overlay.active { display: block; }
+        .fake-pdf-toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: calc(44px + env(safe-area-inset-top, 0px));
+            padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 8px;
+            background: #2f2f2f;
+            color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            z-index: 1;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+        }
+        .fake-pdf-toolbar small {
+            color: #ddd;
+            font-size: 11px;
+        }
+        .fake-pdf-page {
+            width: min(100%, 760px);
+            min-height: 92vh;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 8px 34px rgba(0,0,0,0.26);
+            padding: clamp(22px, 5vw, 46px);
+            font-family: Georgia, 'Times New Roman', serif;
+            line-height: 1.55;
+        }
+        .fake-pdf-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            border-bottom: 2px solid #222;
+            padding-bottom: 14px;
+            margin-bottom: 18px;
+        }
+        .fake-pdf-kicker {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #555;
+            font-size: 11px;
+            font-family: Arial, sans-serif;
+            font-weight: 700;
+        }
+        .fake-pdf-head h1 {
+            font-size: clamp(24px, 6vw, 38px);
+            line-height: 1.08;
+            margin: 8px 0 8px;
+            color: #111;
+        }
+        .fake-pdf-head p {
+            color: #555;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+        }
+        .fake-pdf-stamp {
+            flex: 0 0 auto;
+            width: 58px;
+            height: 58px;
+            border: 3px solid #b71c1c;
+            color: #b71c1c;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            font-weight: 900;
+            transform: rotate(-8deg);
+        }
+        .fake-pdf-abstract {
+            background: #f4f4f4;
+            border-left: 4px solid #444;
+            padding: 12px 14px;
+            margin: 14px 0 18px;
+            font-size: 14px;
+        }
+        .fake-pdf-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 26px;
+            font-size: 14px;
+            text-align: justify;
+        }
+        .fake-pdf-columns h2 {
+            font-size: 18px;
+            margin: 14px 0 8px;
+            color: #111;
+        }
+        .fake-pdf-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            margin: 10px 0 14px;
+        }
+        .fake-pdf-table th,
+        .fake-pdf-table td {
+            border: 1px solid #bbb;
+            padding: 7px;
+            text-align: left;
+        }
+        .fake-pdf-table th { background: #e9e9e9; }
+        .fake-pdf-chart {
+            height: 120px;
+            border: 1px solid #bbb;
+            display: flex;
+            align-items: end;
+            gap: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            background: repeating-linear-gradient(0deg, #fff, #fff 23px, #eee 24px);
+        }
+        .fake-pdf-chart span {
+            flex: 1;
+            background: #444;
+            display: block;
+        }
+        .fake-pdf-chart span:nth-child(1) { height: 45%; }
+        .fake-pdf-chart span:nth-child(2) { height: 72%; }
+        .fake-pdf-chart span:nth-child(3) { height: 55%; }
+        .fake-pdf-chart span:nth-child(4) { height: 86%; }
+        .fake-pdf-footer {
+            border-top: 1px solid #bbb;
+            margin-top: 26px;
+            padding-top: 10px;
+            color: #666;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        @media (max-width: 620px) {
+            .fake-pdf-columns { grid-template-columns: 1fr; }
+            .fake-pdf-head { align-items: flex-start; }
+            .fake-pdf-toolbar span { max-width: 68%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        }
+
     </style>
 </head>
 <body>
@@ -4912,13 +5237,16 @@
                     <!-- Indicador escritura + Switch visual para disfrazar mensajes -->
                     <div class="chat-disguise-wrap">
                         <div class="header-typing-status" id="header-typing-status"></div>
-                        <button class="btn-chat-disguise" id="btn-chat-disguise" onclick="toggleDisfrazMensajes()" title="Disfrazar mensajes como cuento">
-                            <span class="disguise-icon">🐷</span><span class="disguise-label">Cuento</span>
+                        <button class="btn-chat-disguise btn-pdf-fake" id="btn-chat-disguise" onclick="activarModoPDFInvestigacion()" title="Activar pantalla PDF ficticia">
+                            <span class="disguise-icon"><i class="fas fa-file-pdf"></i></span><span class="disguise-label">PDF</span>
                         </button>
                     </div>
-                    <!-- Botón llamada WebRTC -->
+                    <!-- Botones llamada WebRTC -->
                     <button class="btn-call-header" id="btn-call-header" onclick="iniciarLlamada()" title="Llamada de voz">
                         <i class="fas fa-phone"></i>
+                    </button>
+                    <button class="btn-call-header btn-video-header" id="btn-video-call-header" onclick="iniciarVideoLlamada()" title="Videollamada">
+                        <i class="fas fa-video"></i>
                     </button>
                 </div>
                 <div class="mensajes-area" id="mensajes"></div>
@@ -5038,6 +5366,10 @@
                 <i class="fas fa-microphone-slash"></i>
                 <span class="voice-label">Voz off</span>
             </button>
+            <button class="btn-camera-game" id="camera-btn-tictactoe" onclick="toggleCamaraJuego('tictactoe')" title="Activar cámara">
+                <i class="fas fa-video-slash"></i>
+                <span class="camera-label">Cam off</span>
+            </button>
             <button class="btn-close-game" onclick="cerrarJuegoWindow()">✕</button>
         </div>
         <div class="players-info" id="players-info" style="display:none;">
@@ -5086,6 +5418,10 @@
             <button class="btn-voice-game" id="voice-btn-stop" onclick="toggleVozJuego('stop')" title="Activar voz">
                 <i class="fas fa-microphone-slash"></i>
                 <span class="voice-label">Voz off</span>
+            </button>
+            <button class="btn-camera-game" id="camera-btn-stop" onclick="toggleCamaraJuego('stop')" title="Activar cámara">
+                <i class="fas fa-video-slash"></i>
+                <span class="camera-label">Cam off</span>
             </button>
             <button class="btn-close-game" onclick="cerrarJuegoWindow()">✕</button>
         </div>
@@ -5259,6 +5595,10 @@
                 <i class="fas fa-microphone-slash"></i>
                 <span class="voice-label">Voz off</span>
             </button>
+            <button class="btn-camera-game" id="camera-btn-quiz" onclick="toggleCamaraJuego('quiz')" title="Activar cámara">
+                <i class="fas fa-video-slash"></i>
+                <span class="camera-label">Cam off</span>
+            </button>
             <button class="btn-close-game" onclick="cerrarJuegoWindow()">✕</button>
         </div>
         <div class="game-content" style="overflow-y:auto; padding:0;">
@@ -5342,6 +5682,10 @@
             <button class="btn-voice-game" id="voice-btn-naipes" onclick="toggleVozJuego('naipes')" title="Activar voz">
                 <i class="fas fa-microphone-slash"></i>
                 <span class="voice-label">Voz off</span>
+            </button>
+            <button class="btn-camera-game" id="camera-btn-naipes" onclick="toggleCamaraJuego('naipes')" title="Activar cámara">
+                <i class="fas fa-video-slash"></i>
+                <span class="camera-label">Cam off</span>
             </button>
             <button class="btn-close-game" onclick="cerrarJuegoWindow()">✕</button>
         </div>
@@ -5590,6 +5934,86 @@
         <button class="btn-end-call-bar" onclick="colgarLlamada()">
             <i class="fas fa-phone-slash"></i> Colgar
         </button>
+    </div>
+
+    <!-- ESCENARIO VIDEOLLAMADA CHAT -->
+    <div class="video-call-stage" id="video-call-stage">
+        <video id="call-remote-video" autoplay playsinline></video>
+        <video id="call-local-video" autoplay playsinline muted></video>
+        <div class="video-call-topbar">
+            <span><i class="fas fa-video"></i> Videollamada</span>
+            <button onclick="colgarLlamada()"><i class="fas fa-phone-slash"></i> Colgar</button>
+        </div>
+    </div>
+
+    <!-- VIDEOLLAMADA / CÁMARA EN JUEGOS -->
+    <div class="game-video-stage" id="game-video-stage">
+        <div class="game-video-title"><i class="fas fa-video"></i> Cámara en juego</div>
+        <video id="game-remote-video" autoplay playsinline></video>
+        <video id="game-local-video" autoplay playsinline muted></video>
+        <button class="game-video-close" onclick="apagarCamaraJuego()"><i class="fas fa-video-slash"></i></button>
+    </div>
+
+    <div class="call-modal-overlay" id="game-video-invite-overlay">
+        <div class="call-modal-box game-video-invite-box">
+            <div class="call-avatar-ring">
+                <div class="call-avatar" id="game-video-invite-avatar">?</div>
+            </div>
+            <div class="call-modal-label">Invitación de cámara</div>
+            <div class="call-modal-caller" id="game-video-invite-caller">Usuario</div>
+            <div class="call-modal-subtitle" id="game-video-invite-subtitle">quiere activar videollamada durante el juego</div>
+            <div class="call-modal-actions">
+                <button class="btn-call-reject" onclick="rechazarCamaraJuego()">
+                    <i class="fas fa-video-slash"></i>
+                </button>
+                <button class="btn-call-accept" onclick="aceptarCamaraJuego()">
+                    <i class="fas fa-video"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PANTALLA PDF FICTICIA -->
+    <div class="fake-pdf-overlay" id="fake-pdf-overlay" aria-hidden="true">
+        <div class="fake-pdf-toolbar">
+            <span><i class="fas fa-file-pdf"></i> visor_documento_investigacion.pdf</span>
+            <small>Doble toque para cerrar</small>
+        </div>
+        <div class="fake-pdf-page">
+            <div class="fake-pdf-head">
+                <div>
+                    <div class="fake-pdf-kicker">Revista Académica de Investigación Aplicada</div>
+                    <h1>Análisis comparativo de comunicación digital en entornos interactivos</h1>
+                    <p>Autores: Equipo de Investigación · Universidad Nacional · Mayo 2026</p>
+                </div>
+                <div class="fake-pdf-stamp">PDF</div>
+            </div>
+            <div class="fake-pdf-abstract">
+                <strong>Resumen.</strong> Este documento presenta un análisis metodológico sobre plataformas de comunicación sincrónica, interacción social y validación de datos multimedia en aplicaciones web progresivas. Se evalúan variables de estabilidad, latencia percibida, comunicación audiovisual y experiencia de usuario.
+            </div>
+            <div class="fake-pdf-columns">
+                <section>
+                    <h2>1. Introducción</h2>
+                    <p>La comunicación digital moderna requiere interfaces capaces de integrar mensajería, audio, video y actividades compartidas sin afectar la continuidad de la experiencia del usuario. Las aplicaciones web progresivas permiten simular un entorno nativo conservando portabilidad entre dispositivos móviles y navegadores.</p>
+                    <p>En este contexto, la validación previa del contenido multimedia y la gestión correcta de permisos son factores determinantes para reducir errores de envío, pérdidas de datos y eventos duplicados.</p>
+                    <h2>2. Metodología</h2>
+                    <p>Se aplicó una revisión funcional de flujos de comunicación, ventanas modales, escucha de eventos en tiempo real y mecanismos de interacción durante sesiones de juego colaborativo.</p>
+                </section>
+                <section>
+                    <h2>3. Resultados preliminares</h2>
+                    <table class="fake-pdf-table">
+                        <tr><th>Variable</th><th>Estado</th><th>Observación</th></tr>
+                        <tr><td>Audio</td><td>Validado</td><td>Previsualización antes de enviar.</td></tr>
+                        <tr><td>Video</td><td>Activo</td><td>Comunicación bajo aceptación.</td></tr>
+                        <tr><td>Eventos</td><td>Controlado</td><td>Limpieza de listeners.</td></tr>
+                    </table>
+                    <h2>4. Discusión</h2>
+                    <p>El uso de señalización en tiempo real permite coordinar la aceptación de llamadas, evitando que la cámara se active sin consentimiento. La separación entre llamada de voz y videollamada mejora el control del usuario.</p>
+                    <div class="fake-pdf-chart"><span></span><span></span><span></span><span></span></div>
+                </section>
+            </div>
+            <div class="fake-pdf-footer">Página 1 de 12 · Documento de investigación · Vista protegida</div>
+        </div>
     </div>
 
     <!-- MODAL GANAR TICTACTOE / STOP (con premio y confeti) -->
@@ -6309,7 +6733,8 @@ let _mensajesCacheDisfraz = [];
 let _mensajeDisfrazActivo = false;
 
 try {
-    _mensajeDisfrazActivo = localStorage.getItem('switch_modo_cuento_chat') === '1';
+    _mensajeDisfrazActivo = false;
+try { localStorage.setItem('switch_modo_cuento_chat', '0'); } catch(e) {}
 } catch(e) { _mensajeDisfrazActivo = false; }
 
 function actualizarBotonDisfrazMensajes() {
@@ -12627,57 +13052,88 @@ window.addEventListener('beforeunload', () => {
     try { if (typeof window._cleanupWebRTC === 'function') window._cleanupWebRTC(); } catch(e) {}
 });
 
-// WEBRTC — LLAMADA (chat-header) + VOZ JUEGO (game-header)
+
+// WEBRTC — LLAMADA DE VOZ, VIDEOLLAMADA Y CÁMARA EN JUEGOS
 // Señalización via Firebase Realtime Database
 // ============================================================
 (function() {
     'use strict';
 
-    // ── Estado global de llamada ──
-    let _pc = null;                // RTCPeerConnection activa
-    let _localStream = null;       // MediaStream local (llamada)
-    let _gameStream = null;        // MediaStream local (juego-voz)
-    let _gamePc = null;            // RTCPeerConnection para voz en juego
+    let _pc = null;
+    let _localStream = null;
+    let _currentCallMode = 'audio';
+    let _pendingIncomingMode = 'audio';
     let _callTimerInterval = null;
     let _callSeconds = 0;
-    let _isCaller = false;
     let _callListener = null;
     let _incomingCallListener = null;
+
+    let _gameStream = null;
+    let _gamePc = null;
     let _gameVoiceOfferListener = null;
     let _gameVoiceAnswerListener = null;
-    let _activeGameVoice = null;   // id del juego con voz activa
+    let _activeGameVoice = null;
+
+    let _gameVideoStream = null;
+    let _gameVideoPc = null;
+    let _gameVideoListener = null;
+    let _gameVideoCallListener = null;
+    let _activeGameCamera = null;
+    let _pendingGameCameraInvite = null;
+    let _isGameCameraHost = false;
 
     const ICE_SERVERS = [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' }
     ];
 
-    // ── Helpers ──
-    function getOtherUser() {
-        // Busca el otro usuario en presencia
-        const el = document.getElementById('presence-label');
-        // Fallback: nombre sala / "oponente"
-        const nombreSala = (window.salaActual && window.salaActual.nombre) ? window.salaActual.nombre : 'otro'; // salaActual via defineProperty
-        return el && el.textContent !== 'offline' && el.textContent !== 'en línea'
-            ? el.textContent
-            : (document.getElementById('nombre-usuario')?.textContent || nombreSala);
-    }
-
     function getSalaKey() { return window.salaActualKey || null; }
     function getUsuario() { return window.usuarioActual || null; }
     function callRef() {
         const k = getSalaKey();
-        if (!k) return null;
-        return ref(db, `webrtc_call/${k}`);
+        return k ? ref(db, `webrtc_call/${k}`) : null;
     }
     function gameVoiceRef() {
         const k = getSalaKey();
-        if (!k) return null;
-        return ref(db, `webrtc_game/${k}`);
+        return k ? ref(db, `webrtc_game/${k}`) : null;
+    }
+    function gameVideoRef() {
+        const k = getSalaKey();
+        return k ? ref(db, `webrtc_game_video/${k}`) : null;
+    }
+    function mediaConstraints(mode) {
+        return {
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 },
+            video: mode === 'video' ? {
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 960 },
+                frameRate: { ideal: 24, max: 30 }
+            } : false
+        };
+    }
+    function gameVideoConstraints() {
+        return {
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 },
+            video: { facingMode: 'user', width: { ideal: 480 }, height: { ideal: 640 }, frameRate: { ideal: 20, max: 24 } }
+        };
+    }
+    function stopTracks(stream) {
+        try { stream && stream.getTracks().forEach(t => t.stop()); } catch(e) {}
+    }
+    function waitIceComplete(pc) {
+        return new Promise(res => {
+            if (!pc || pc.iceGatheringState === 'complete') return res();
+            pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') res(); };
+            setTimeout(res, 3000);
+        });
+    }
+    function getOtherDisplayName() {
+        return document.getElementById('nombre-usuario')?.textContent || 'Usuario';
     }
 
-    // ── TIMER ──
     function startCallTimer() {
+        stopCallTimer();
         _callSeconds = 0;
         _callTimerInterval = setInterval(() => {
             _callSeconds++;
@@ -12691,190 +13147,201 @@ window.addEventListener('beforeunload', () => {
         if (_callTimerInterval) { clearInterval(_callTimerInterval); _callTimerInterval = null; }
     }
 
-    // ── INICIAR LLAMADA (quien pulsa teléfono) ──
-    window.iniciarLlamada = async function() {
+    function attachCallRemoteStream(stream) {
+        if (_currentCallMode === 'video') {
+            const stage = document.getElementById('video-call-stage');
+            const remoteVideo = document.getElementById('call-remote-video');
+            const localVideo = document.getElementById('call-local-video');
+            if (remoteVideo) remoteVideo.srcObject = stream;
+            if (localVideo) localVideo.srcObject = _localStream;
+            if (stage) stage.classList.add('active');
+            return;
+        }
+        let audio = document.getElementById('call-remote-audio');
+        if (!audio) {
+            audio = document.createElement('audio');
+            audio.autoplay = true;
+            audio.id = 'call-remote-audio';
+            document.body.appendChild(audio);
+        }
+        audio.srcObject = stream;
+    }
+
+    function setCallingVisual(active, mode) {
+        document.getElementById('btn-call-header')?.classList.toggle('calling', !!active && mode !== 'video');
+        document.getElementById('btn-video-call-header')?.classList.toggle('calling', !!active && mode === 'video');
+    }
+
+    window.iniciarVideoLlamada = function() {
+        return window.iniciarLlamada('video');
+    };
+
+    window.iniciarLlamada = async function(mode = 'audio') {
+        mode = mode === 'video' ? 'video' : 'audio';
         if (!getSalaKey() || !getUsuario()) { showToast('Debes estar en un chat'); return; }
         if (_pc) { showToast('Ya hay una llamada activa'); return; }
-        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            showToast('❌ Tu navegador no permite cámara/micrófono aquí'); return;
+        }
 
-        _isCaller = true;
-
-        // Mostrar overlay "Llamando"
+        _currentCallMode = mode;
         const callingName = document.getElementById('calling-name');
         const callingAvatar = document.getElementById('calling-avatar');
-        const otherName = document.getElementById('nombre-usuario')?.textContent || 'Usuario';
-        if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
+        const callingLabel = document.querySelector('#calling-overlay .calling-label');
+        const otherName = getOtherDisplayName();
         if (callingName) callingName.textContent = otherName;
         if (callingAvatar) callingAvatar.textContent = otherName.substring(0,2).toUpperCase();
-        document.getElementById('calling-overlay').classList.add('active');
-        document.getElementById('btn-call-header')?.classList.add('calling');
+        if (callingLabel) callingLabel.textContent = mode === 'video' ? 'Videollamando a' : 'Llamando a';
+        document.getElementById('calling-overlay')?.classList.add('active');
+        setCallingVisual(true, mode);
 
-        // Obtener micrófono
         try {
-            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
+            _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints(mode));
         } catch(e) {
-            showToast('❌ No se pudo acceder al micrófono');
-            document.getElementById('calling-overlay').classList.remove('active');
+            showToast(mode === 'video' ? '❌ No se pudo acceder a cámara/micrófono' : '❌ No se pudo acceder al micrófono');
+            document.getElementById('calling-overlay')?.classList.remove('active');
+            setCallingVisual(false, mode);
             return;
         }
 
-        // Crear peer connection
         _pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         _localStream.getTracks().forEach(t => _pc.addTrack(t, _localStream));
+        _pc.ontrack = e => attachCallRemoteStream(e.streams[0]);
 
-        _pc.ontrack = e => {
-            const audio = document.createElement('audio');
-            audio.autoplay = true;
-            audio.srcObject = e.streams[0];
-            document.body.appendChild(audio);
-            audio.id = 'call-remote-audio';
-        };
-
-        // Colectar ICE candidates y subirlos
-        const candidates = [];
-        _pc.onicecandidate = e => { if (e.candidate) candidates.push(e.candidate.toJSON()); };
+        const callerCandidates = [];
+        _pc.onicecandidate = e => { if (e.candidate) callerCandidates.push(e.candidate.toJSON()); };
 
         const offer = await _pc.createOffer();
         await _pc.setLocalDescription(offer);
+        await waitIceComplete(_pc);
 
-        // Esperar ICE gathering
-        await new Promise(res => {
-            if (_pc.iceGatheringState === 'complete') return res();
-            _pc.onicegatheringstatechange = () => { if (_pc.iceGatheringState === 'complete') res(); };
-            setTimeout(res, 3000);
-        });
-
-        // Publicar oferta en Firebase
         await set(callRef(), {
             caller: getUsuario(),
+            mode,
             offer: _pc.localDescription.toJSON(),
+            callerCandidates: callerCandidates.reduce((a,c,i) => { a[i] = c; return a; }, {}),
             status: 'calling',
             ts: Date.now()
         });
 
-        // Escuchar respuesta
+        if (_callListener) { _callListener(); _callListener = null; }
         _callListener = onValue(callRef(), snap => {
             const data = snap.val();
             if (!data) return;
-            if (data.status === 'answered' && data.answer) {
-                _callListener && _callListener();
-                _callListener = null;
-                const remoteDesc = new RTCSessionDescription(data.answer);
-                _pc.setRemoteDescription(remoteDesc).then(() => {
+            if (data.status === 'answered' && data.answer && _pc && !_pc.currentRemoteDescription) {
+                _pc.setRemoteDescription(new RTCSessionDescription(data.answer)).then(() => {
                     if (data.calleeCandidates) {
-                        Object.values(data.calleeCandidates).forEach(c => _pc.addIceCandidate(new RTCIceCandidate(c)));
+                        Object.values(data.calleeCandidates).forEach(c => _pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));
                     }
-                    mostrarLlamadaActiva(window.usuarioActual === data.caller
-                        ? (document.getElementById('nombre-usuario')?.textContent || 'Usuario')
-                        : data.caller);
-                });
+                    mostrarLlamadaActiva(otherName, data.mode || mode);
+                }).catch(()=>{});
             }
             if (data.status === 'rejected' || data.status === 'ended') {
                 limpiarLlamada();
-                if (data.status === 'rejected') showToast('📵 Llamada rechazada');
+                if (data.status === 'rejected') showToast(mode === 'video' ? '📵 Videollamada rechazada' : '📵 Llamada rechazada');
             }
         });
     };
 
-    // ── ACEPTAR LLAMADA ──
     window.aceptarLlamada = async function() {
-        const snap = await get(callRef());
+        const r = callRef();
+        if (!r) return;
+        const snap = await get(r);
         const data = snap.val();
         if (!data || data.status !== 'calling') return;
 
-        document.getElementById('call-modal-overlay').classList.remove('active');
-        _isCaller = false;
+        _currentCallMode = data.mode === 'video' ? 'video' : 'audio';
+        document.getElementById('call-modal-overlay')?.classList.remove('active');
 
         try {
-            _localStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
+            _localStream = await navigator.mediaDevices.getUserMedia(mediaConstraints(_currentCallMode));
         } catch(e) {
-            showToast('❌ No se pudo acceder al micrófono'); return;
+            showToast(_currentCallMode === 'video' ? '❌ No se pudo acceder a cámara/micrófono' : '❌ No se pudo acceder al micrófono');
+            await update(r, { status: 'rejected' }).catch(()=>{});
+            return;
         }
 
         _pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         _localStream.getTracks().forEach(t => _pc.addTrack(t, _localStream));
-
-        _pc.ontrack = e => {
-            const audio = document.createElement('audio');
-            audio.autoplay = true;
-            audio.srcObject = e.streams[0];
-            document.body.appendChild(audio);
-            audio.id = 'call-remote-audio';
-        };
+        _pc.ontrack = e => attachCallRemoteStream(e.streams[0]);
 
         await _pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        if (data.callerCandidates) {
+            Object.values(data.callerCandidates).forEach(c => _pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));
+        }
 
         const calleeCandidates = [];
         _pc.onicecandidate = e => { if (e.candidate) calleeCandidates.push(e.candidate.toJSON()); };
 
         const answer = await _pc.createAnswer();
         await _pc.setLocalDescription(answer);
+        await waitIceComplete(_pc);
 
-        await new Promise(res => {
-            if (_pc.iceGatheringState === 'complete') return res();
-            _pc.onicegatheringstatechange = () => { if (_pc.iceGatheringState === 'complete') res(); };
-            setTimeout(res, 3000);
-        });
-
-        // Publicar respuesta
-        await update(callRef(), {
+        await update(r, {
             answer: _pc.localDescription.toJSON(),
             calleeCandidates: calleeCandidates.reduce((a,c,i) => { a[i] = c; return a; }, {}),
             status: 'answered'
         });
 
-        mostrarLlamadaActiva(data.caller);
+        mostrarLlamadaActiva(data.caller, _currentCallMode);
     };
 
-    // ── RECHAZAR LLAMADA ──
     window.rechazarLlamada = async function() {
-        document.getElementById('call-modal-overlay').classList.remove('active');
-        if (callRef()) await update(callRef(), { status: 'rejected' });
+        document.getElementById('call-modal-overlay')?.classList.remove('active');
+        if (callRef()) await update(callRef(), { status: 'rejected' }).catch(()=>{});
     };
 
-    // ── CANCELAR LLAMADA (el que llama) ──
     window.cancelarLlamada = async function() {
-        document.getElementById('calling-overlay').classList.remove('active');
-        document.getElementById('btn-call-header')?.classList.remove('calling');
-        if (callRef()) await remove(callRef());
+        document.getElementById('calling-overlay')?.classList.remove('active');
+        setCallingVisual(false, _currentCallMode);
+        if (callRef()) await remove(callRef()).catch(()=>{});
         limpiarLlamada();
     };
 
-    // ── COLGAR ──
     window.colgarLlamada = async function() {
-        if (callRef()) await update(callRef(), { status: 'ended' });
+        if (callRef()) await update(callRef(), { status: 'ended' }).catch(()=>{});
         limpiarLlamada();
     };
 
-    function mostrarLlamadaActiva(otherName) {
-        document.getElementById('calling-overlay').classList.remove('active');
-        document.getElementById('call-modal-overlay').classList.remove('active');
-        document.getElementById('btn-call-header')?.classList.remove('calling');
+    function mostrarLlamadaActiva(otherName, mode = 'audio') {
+        _currentCallMode = mode === 'video' ? 'video' : 'audio';
+        document.getElementById('calling-overlay')?.classList.remove('active');
+        document.getElementById('call-modal-overlay')?.classList.remove('active');
+        setCallingVisual(false, _currentCallMode);
 
         const bar = document.getElementById('active-call-bar');
         const nameEl = document.getElementById('active-call-name');
-        if (nameEl) nameEl.textContent = otherName;
+        const icon = bar?.querySelector('i');
+        if (nameEl) nameEl.textContent = (_currentCallMode === 'video' ? 'Video: ' : '') + otherName;
+        if (icon) icon.className = _currentCallMode === 'video' ? 'fas fa-video' : 'fas fa-phone';
         if (bar) bar.classList.add('active');
-
+        if (_currentCallMode === 'video') {
+            const stage = document.getElementById('video-call-stage');
+            const localVideo = document.getElementById('call-local-video');
+            if (localVideo && _localStream) localVideo.srcObject = _localStream;
+            stage?.classList.add('active');
+        }
         startCallTimer();
     }
 
     function limpiarLlamada() {
-        if (_pc) { _pc.close(); _pc = null; }
-        if (_localStream) { _localStream.getTracks().forEach(t => t.stop()); _localStream = null; }
+        if (_pc) { try { _pc.close(); } catch(e) {} _pc = null; }
+        stopTracks(_localStream); _localStream = null;
         if (_callListener) { _callListener(); _callListener = null; }
         stopCallTimer();
 
         document.getElementById('active-call-bar')?.classList.remove('active');
         document.getElementById('calling-overlay')?.classList.remove('active');
         document.getElementById('call-modal-overlay')?.classList.remove('active');
-        document.getElementById('btn-call-header')?.classList.remove('calling');
+        document.getElementById('video-call-stage')?.classList.remove('active');
+        setCallingVisual(false, _currentCallMode);
 
-        const remoteAudio = document.getElementById('call-remote-audio');
-        if (remoteAudio) remoteAudio.remove();
+        ['call-remote-audio'].forEach(id => document.getElementById(id)?.remove());
+        const rv = document.getElementById('call-remote-video'); if (rv) rv.srcObject = null;
+        const lv = document.getElementById('call-local-video'); if (lv) lv.srcObject = null;
+        _currentCallMode = 'audio';
     }
 
-    // ── ESCUCHAR LLAMADAS ENTRANTES ──
     function escucharLlamadasEntrantes() {
         if (!getSalaKey()) return;
         if (_incomingCallListener) { _incomingCallListener(); _incomingCallListener = null; }
@@ -12882,206 +13349,329 @@ window.addEventListener('beforeunload', () => {
             const data = snap.val();
             if (!data) return;
             if (data.status === 'calling' && data.caller !== window.usuarioActual && !_pc) {
-                // Mostrar modal de llamada entrante
+                _pendingIncomingMode = data.mode === 'video' ? 'video' : 'audio';
                 const callerEl = document.getElementById('call-modal-caller');
                 const avatarEl = document.getElementById('call-modal-avatar');
+                const labelEl = document.querySelector('#call-modal-overlay .call-modal-label');
+                const subtitleEl = document.querySelector('#call-modal-overlay .call-modal-subtitle');
                 if (callerEl) callerEl.textContent = data.caller;
-                if (avatarEl) avatarEl.textContent = data.caller.substring(0,2).toUpperCase();
-                document.getElementById('call-modal-overlay').classList.add('active');
-
-                // Ringtone
+                if (avatarEl) avatarEl.textContent = String(data.caller || '?').substring(0,2).toUpperCase();
+                if (labelEl) labelEl.textContent = _pendingIncomingMode === 'video' ? 'Videollamada entrante' : 'Llamada entrante';
+                if (subtitleEl) subtitleEl.textContent = _pendingIncomingMode === 'video' ? 'quiere comunicarse por video contigo' : 'quiere hablar contigo';
+                document.getElementById('call-modal-overlay')?.classList.add('active');
                 try {
                     const ctx = new (window.AudioContext || window.webkitAudioContext)();
                     function beep() {
                         const osc = ctx.createOscillator();
                         const gain = ctx.createGain();
                         osc.connect(gain); gain.connect(ctx.destination);
-                        osc.frequency.value = 440;
-                        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-                        osc.start(); osc.stop(ctx.currentTime + 0.4);
+                        osc.frequency.value = _pendingIncomingMode === 'video' ? 660 : 440;
+                        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+                        osc.start(); osc.stop(ctx.currentTime + 0.35);
                     }
-                    beep();
-                    setTimeout(beep, 800);
-                    setTimeout(beep, 1600);
+                    beep(); setTimeout(beep, 750); setTimeout(beep, 1500);
                 } catch(e) {}
             }
-            if (data.status === 'ended' && _pc) { limpiarLlamada(); showToast('📵 Llamada terminada'); }
+            if (data.status === 'ended' && _pc) { limpiarLlamada(); showToast('📵 Comunicación terminada'); }
         });
     }
 
-    // ── VOZ EN JUEGO (toggle directo) ──
+    // ── VOZ EN JUEGO ──
     window.toggleVozJuego = async function(gameId) {
         const btn = document.getElementById('voice-btn-' + gameId);
         if (!btn) return;
-
-        // Si ya hay voz activa en OTRO juego, apagarla primero
-        if (_activeGameVoice && _activeGameVoice !== gameId) {
-            await _apagarVozJuego(_activeGameVoice);
-        }
-
-        if (_activeGameVoice === gameId) {
-            // Apagar
-            await _apagarVozJuego(gameId);
-        } else {
-            // Encender
-            await _encenderVozJuego(gameId);
-        }
+        if (_activeGameVoice && _activeGameVoice !== gameId) await _apagarVozJuego(_activeGameVoice);
+        if (_activeGameVoice === gameId) await _apagarVozJuego(gameId);
+        else await _encenderVozJuego(gameId);
     };
 
     async function _encenderVozJuego(gameId) {
         if (!getSalaKey()) { showToast('Debes estar en un chat'); return; }
-
         try {
-            _gameStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
-        } catch(e) {
-            showToast('❌ No se pudo acceder al micrófono'); return;
-        }
+            _gameStream = await navigator.mediaDevices.getUserMedia(mediaConstraints('audio'));
+        } catch(e) { showToast('❌ No se pudo acceder al micrófono'); return; }
 
         const myRole = getUsuario();
-
-        // Siempre crear PC y emitir offer
         _gamePc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
         _gameStream.getTracks().forEach(t => _gamePc.addTrack(t, _gameStream));
-
         _gamePc.ontrack = e => {
             let ra = document.getElementById('game-remote-audio');
             if (!ra) { ra = document.createElement('audio'); ra.id = 'game-remote-audio'; ra.autoplay = true; document.body.appendChild(ra); }
             ra.srcObject = e.streams[0];
         };
-
         const offer = await _gamePc.createOffer();
         await _gamePc.setLocalDescription(offer);
+        await waitIceComplete(_gamePc);
+        await set(gameVoiceRef(), { host: myRole, offer: _gamePc.localDescription.toJSON(), status: 'offer', ts: Date.now() });
 
-        await new Promise(res => {
-            if (_gamePc.iceGatheringState === 'complete') return res();
-            _gamePc.onicegatheringstatechange = () => { if (_gamePc.iceGatheringState === 'complete') res(); };
-            setTimeout(res, 3000);
-        });
-
-        await set(gameVoiceRef(), {
-            host: myRole,
-            offer: _gamePc.localDescription.toJSON(),
-            status: 'offer',
-            ts: Date.now()
-        });
-
-        // Escuchar answer del otro
         if (_gameVoiceAnswerListener) { _gameVoiceAnswerListener(); _gameVoiceAnswerListener = null; }
         _gameVoiceAnswerListener = onValue(gameVoiceRef(), async snap => {
-            const d = snap.val();
-            if (!d) return;
+            const d = snap.val(); if (!d) return;
             if (d.status === 'answer' && d.host === myRole && d.answer && _gamePc && !_gamePc.currentRemoteDescription) {
                 await _gamePc.setRemoteDescription(new RTCSessionDescription(d.answer)).catch(()=>{});
             }
-            if (d.status === 'off') { _apagarVozJuego(gameId); }
+            if (d.status === 'off') _apagarVozJuego(gameId);
         });
-
         _activeGameVoice = gameId;
         _actualizarBotonesVoz(true);
     }
 
-    // El que recibe el offer responde
     async function _responderVozJuego(data) {
         _gamePc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-
         try {
-            _gameStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, sampleRate: 48000 }, video: false });
+            _gameStream = await navigator.mediaDevices.getUserMedia(mediaConstraints('audio'));
             _gameStream.getTracks().forEach(t => _gamePc.addTrack(t, _gameStream));
         } catch(e) {}
-
         _gamePc.ontrack = e => {
             let ra = document.getElementById('game-remote-audio');
             if (!ra) { ra = document.createElement('audio'); ra.id = 'game-remote-audio'; ra.autoplay = true; document.body.appendChild(ra); }
             ra.srcObject = e.streams[0];
         };
-
         await _gamePc.setRemoteDescription(new RTCSessionDescription(data.offer));
         const answer = await _gamePc.createAnswer();
         await _gamePc.setLocalDescription(answer);
-
-        await new Promise(res => {
-            if (_gamePc.iceGatheringState === 'complete') return res();
-            _gamePc.onicegatheringstatechange = () => { if (_gamePc.iceGatheringState === 'complete') res(); };
-            setTimeout(res, 3000);
-        });
-
+        await waitIceComplete(_gamePc);
         await update(gameVoiceRef(), { answer: _gamePc.localDescription.toJSON(), status: 'answer' });
-
+        _activeGameVoice = data.gameId || _activeGameVoice || 'game';
         _actualizarBotonesVoz(true);
     }
 
     function _actualizarBotonesVoz(activo) {
         document.querySelectorAll('.btn-voice-game').forEach(btn => {
-            if (activo) {
-                btn.classList.add('voz-activa');
-                btn.querySelector('i').className = 'fas fa-microphone';
-                btn.querySelector('.voice-label').textContent = 'Voz on';
-            } else {
-                btn.classList.remove('voz-activa');
-                btn.querySelector('i').className = 'fas fa-microphone-slash';
-                btn.querySelector('.voice-label').textContent = 'Voz off';
-            }
+            btn.classList.toggle('voz-activa', !!activo);
+            const icon = btn.querySelector('i');
+            const label = btn.querySelector('.voice-label');
+            if (icon) icon.className = activo ? 'fas fa-microphone' : 'fas fa-microphone-slash';
+            if (label) label.textContent = activo ? 'Voz on' : 'Voz off';
         });
     }
 
     async function _apagarVozJuego(gameId) {
         if (_gameVoiceAnswerListener) { _gameVoiceAnswerListener(); _gameVoiceAnswerListener = null; }
-        if (_gamePc) { _gamePc.close(); _gamePc = null; }
-        if (_gameStream) { _gameStream.getTracks().forEach(t => t.stop()); _gameStream = null; }
-        const ra = document.getElementById('game-remote-audio');
-        if (ra) ra.remove();
+        if (_gamePc) { try { _gamePc.close(); } catch(e) {} _gamePc = null; }
+        stopTracks(_gameStream); _gameStream = null;
+        document.getElementById('game-remote-audio')?.remove();
         const hadVoice = !!_activeGameVoice;
         _activeGameVoice = null;
-
         if (hadVoice && gameVoiceRef()) await update(gameVoiceRef(), { status: 'off' }).catch(()=>{});
-
         _actualizarBotonesVoz(false);
     }
 
-    // Escuchar ofertas de voz de juego del otro usuario
     function escucharOfertasVozJuego() {
         if (!getSalaKey()) return;
         if (_gameVoiceOfferListener) { _gameVoiceOfferListener(); _gameVoiceOfferListener = null; }
         _gameVoiceOfferListener = onValue(gameVoiceRef(), snap => {
-            const d = snap.val();
-            if (!d) return;
-            if (d.status === 'offer' && d.host !== window.usuarioActual && !_gamePc) {
-                _responderVozJuego(d);
-            }
+            const d = snap.val(); if (!d) return;
+            if (d.status === 'offer' && d.host !== window.usuarioActual && !_gamePc) _responderVozJuego(d);
         });
     }
+
+    // ── CÁMARA EN JUEGOS, CON ACEPTACIÓN ──
+    window.toggleCamaraJuego = async function(gameId) {
+        if (_activeGameCamera === gameId) return window.apagarCamaraJuego();
+        if (_activeGameCamera && _activeGameCamera !== gameId) await window.apagarCamaraJuego();
+        return _iniciarInvitacionCamaraJuego(gameId);
+    };
+
+    async function _iniciarInvitacionCamaraJuego(gameId) {
+        if (!getSalaKey() || !getUsuario()) { showToast('Debes estar en un chat'); return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { showToast('❌ Cámara no disponible'); return; }
+        try {
+            _gameVideoStream = await navigator.mediaDevices.getUserMedia(gameVideoConstraints());
+        } catch(e) { showToast('❌ No se pudo acceder a cámara/micrófono'); return; }
+
+        _isGameCameraHost = true;
+        _activeGameCamera = gameId;
+        attachGameVideoLocal();
+        _actualizarBotonesCamara(true);
+
+        _gameVideoPc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+        _gameVideoStream.getTracks().forEach(t => _gameVideoPc.addTrack(t, _gameVideoStream));
+        _gameVideoPc.ontrack = e => attachGameVideoRemote(e.streams[0]);
+        const callerCandidates = [];
+        _gameVideoPc.onicecandidate = e => { if (e.candidate) callerCandidates.push(e.candidate.toJSON()); };
+
+        const offer = await _gameVideoPc.createOffer();
+        await _gameVideoPc.setLocalDescription(offer);
+        await waitIceComplete(_gameVideoPc);
+
+        await set(gameVideoRef(), {
+            host: getUsuario(),
+            gameId,
+            offer: _gameVideoPc.localDescription.toJSON(),
+            callerCandidates: callerCandidates.reduce((a,c,i)=>{a[i]=c; return a;}, {}),
+            status: 'invite',
+            ts: Date.now()
+        });
+        showToast('📹 Invitación de cámara enviada');
+
+        if (_gameVideoCallListener) { _gameVideoCallListener(); _gameVideoCallListener = null; }
+        _gameVideoCallListener = onValue(gameVideoRef(), async snap => {
+            const d = snap.val(); if (!d) return;
+            if (d.status === 'answered' && d.host === getUsuario() && d.answer && _gameVideoPc && !_gameVideoPc.currentRemoteDescription) {
+                await _gameVideoPc.setRemoteDescription(new RTCSessionDescription(d.answer)).catch(()=>{});
+                if (d.calleeCandidates) Object.values(d.calleeCandidates).forEach(c => _gameVideoPc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));
+                showToast('📹 Cámara conectada');
+            }
+            if (d.status === 'rejected') { showToast('📵 Cámara rechazada'); window.apagarCamaraJuego(false); }
+            if (d.status === 'off') window.apagarCamaraJuego(false);
+        });
+    }
+
+    function attachGameVideoLocal() {
+        const stage = document.getElementById('game-video-stage');
+        const local = document.getElementById('game-local-video');
+        if (local && _gameVideoStream) local.srcObject = _gameVideoStream;
+        stage?.classList.add('active');
+    }
+    function attachGameVideoRemote(stream) {
+        const stage = document.getElementById('game-video-stage');
+        const remote = document.getElementById('game-remote-video');
+        if (remote) remote.srcObject = stream;
+        stage?.classList.add('active');
+    }
+    function _actualizarBotonesCamara(activo) {
+        document.querySelectorAll('.btn-camera-game').forEach(btn => {
+            btn.classList.toggle('cam-activa', !!activo);
+            const icon = btn.querySelector('i');
+            const label = btn.querySelector('.camera-label');
+            if (icon) icon.className = activo ? 'fas fa-video' : 'fas fa-video-slash';
+            if (label) label.textContent = activo ? 'Cam on' : 'Cam off';
+        });
+    }
+
+    window.aceptarCamaraJuego = async function() {
+        const r = gameVideoRef(); if (!r) return;
+        const snap = await get(r); const data = snap.val();
+        if (!data || data.status !== 'invite') return;
+        document.getElementById('game-video-invite-overlay')?.classList.remove('active');
+        _pendingGameCameraInvite = data;
+        _activeGameCamera = data.gameId || 'game';
+        _isGameCameraHost = false;
+
+        try { _gameVideoStream = await navigator.mediaDevices.getUserMedia(gameVideoConstraints()); }
+        catch(e) { showToast('❌ No se pudo acceder a cámara/micrófono'); await update(r, { status: 'rejected' }).catch(()=>{}); return; }
+
+        attachGameVideoLocal();
+        _actualizarBotonesCamara(true);
+        _gameVideoPc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+        _gameVideoStream.getTracks().forEach(t => _gameVideoPc.addTrack(t, _gameVideoStream));
+        _gameVideoPc.ontrack = e => attachGameVideoRemote(e.streams[0]);
+        await _gameVideoPc.setRemoteDescription(new RTCSessionDescription(data.offer));
+        if (data.callerCandidates) Object.values(data.callerCandidates).forEach(c => _gameVideoPc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));
+        const calleeCandidates = [];
+        _gameVideoPc.onicecandidate = e => { if (e.candidate) calleeCandidates.push(e.candidate.toJSON()); };
+        const answer = await _gameVideoPc.createAnswer();
+        await _gameVideoPc.setLocalDescription(answer);
+        await waitIceComplete(_gameVideoPc);
+        await update(r, {
+            answer: _gameVideoPc.localDescription.toJSON(),
+            calleeCandidates: calleeCandidates.reduce((a,c,i)=>{a[i]=c; return a;}, {}),
+            status: 'answered'
+        });
+        showToast('📹 Cámara conectada');
+    };
+
+    window.rechazarCamaraJuego = async function() {
+        document.getElementById('game-video-invite-overlay')?.classList.remove('active');
+        if (gameVideoRef()) await update(gameVideoRef(), { status: 'rejected' }).catch(()=>{});
+    };
+
+    window.apagarCamaraJuego = async function(notify = true) {
+        if (_gameVideoCallListener) { _gameVideoCallListener(); _gameVideoCallListener = null; }
+        if (_gameVideoPc) { try { _gameVideoPc.close(); } catch(e) {} _gameVideoPc = null; }
+        stopTracks(_gameVideoStream); _gameVideoStream = null;
+        const remote = document.getElementById('game-remote-video'); if (remote) remote.srcObject = null;
+        const local = document.getElementById('game-local-video'); if (local) local.srcObject = null;
+        document.getElementById('game-video-stage')?.classList.remove('active');
+        document.getElementById('game-video-invite-overlay')?.classList.remove('active');
+        const hadCam = !!_activeGameCamera;
+        _activeGameCamera = null;
+        _pendingGameCameraInvite = null;
+        _isGameCameraHost = false;
+        _actualizarBotonesCamara(false);
+        if (notify && hadCam && gameVideoRef()) await update(gameVideoRef(), { status: 'off' }).catch(()=>{});
+    };
+
+    function escucharInvitacionesCamaraJuego() {
+        if (!getSalaKey()) return;
+        if (_gameVideoListener) { _gameVideoListener(); _gameVideoListener = null; }
+        _gameVideoListener = onValue(gameVideoRef(), snap => {
+            const d = snap.val(); if (!d) return;
+            if (d.status === 'invite' && d.host !== window.usuarioActual && !_gameVideoPc) {
+                _pendingGameCameraInvite = d;
+                const caller = document.getElementById('game-video-invite-caller');
+                const avatar = document.getElementById('game-video-invite-avatar');
+                const subtitle = document.getElementById('game-video-invite-subtitle');
+                if (caller) caller.textContent = d.host || 'Usuario';
+                if (avatar) avatar.textContent = String(d.host || '?').substring(0,2).toUpperCase();
+                if (subtitle) subtitle.textContent = 'quiere activar videollamada durante ' + (d.gameId || 'el juego');
+                document.getElementById('game-video-invite-overlay')?.classList.add('active');
+            }
+            if (d.status === 'off' && _gameVideoPc) window.apagarCamaraJuego(false);
+        });
+    }
+
+    // ── PDF FICTICIO ──
+    window.activarModoPDFInvestigacion = function() {
+        try { if (typeof toggleDisfrazMensajes === 'function') toggleDisfrazMensajes(false); } catch(e) {}
+        const overlay = document.getElementById('fake-pdf-overlay');
+        if (!overlay) return;
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+        showToast('📄 Modo PDF activado. Doble toque para cerrar.', 1800);
+    };
+    window.cerrarModoPDFInvestigacion = function() {
+        const overlay = document.getElementById('fake-pdf-overlay');
+        if (!overlay) return;
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+    };
+    (function instalarDobleToquePDF(){
+        let lastTap = 0;
+        document.addEventListener('DOMContentLoaded', () => {
+            const overlay = document.getElementById('fake-pdf-overlay');
+            if (!overlay) return;
+            overlay.addEventListener('dblclick', window.cerrarModoPDFInvestigacion);
+            overlay.addEventListener('touchend', () => {
+                const now = Date.now();
+                if (now - lastTap < 360) window.cerrarModoPDFInvestigacion();
+                lastTap = now;
+            }, { passive: true });
+        });
+    })();
 
     window._cleanupWebRTC = function() {
         try { limpiarLlamada(); } catch(e) {}
         try { _apagarVozJuego(_activeGameVoice); } catch(e) {}
+        try { window.apagarCamaraJuego(false); } catch(e) {}
         if (_incomingCallListener) { _incomingCallListener(); _incomingCallListener = null; }
         if (_gameVoiceOfferListener) { _gameVoiceOfferListener(); _gameVoiceOfferListener = null; }
         if (_gameVoiceAnswerListener) { _gameVoiceAnswerListener(); _gameVoiceAnswerListener = null; }
+        if (_gameVideoListener) { _gameVideoListener(); _gameVideoListener = null; }
+        if (_gameVideoCallListener) { _gameVideoCallListener(); _gameVideoCallListener = null; }
     };
 
-    // ── HOOK EN guardarNombreUsuario ORIGINAL ──
     const _origGuardar = window.guardarNombreUsuario;
     window.guardarNombreUsuario = function() {
         _origGuardar && _origGuardar();
         setTimeout(() => {
             escucharLlamadasEntrantes();
             escucharOfertasVozJuego();
+            escucharInvitacionesCamaraJuego();
         }, 500);
     };
 
-    // Limpiar en irInicio
     const _origIrInicio = window.irInicio;
     window.irInicio = function() {
-        if (_incomingCallListener) { _incomingCallListener(); _incomingCallListener = null; }
-        if (_gameVoiceOfferListener) { _gameVoiceOfferListener(); _gameVoiceOfferListener = null; }
-        if (_gameVoiceAnswerListener) { _gameVoiceAnswerListener(); _gameVoiceAnswerListener = null; }
-        limpiarLlamada();
-        _apagarVozJuego(_activeGameVoice);
+        try { window._cleanupWebRTC(); } catch(e) {}
+        window.cerrarModoPDFInvestigacion?.();
         _origIrInicio && _origIrInicio();
     };
 
 })();
+
 
     </script>
 
