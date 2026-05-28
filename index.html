@@ -5317,6 +5317,154 @@
             transition: transform .12s ease, background .12s ease;
         }
         .reaction-choice:hover { transform: scale(1.15); background: rgba(255,255,255,.16); }
+
+
+        /* ===== MEJORAS ARCHIVOS: vista previa, descarga con nombre y header compacto ===== */
+        .chat-roomname {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
+            display: block !important;
+        }
+        .chat-info { min-width: 0 !important; overflow: hidden; }
+        .presence-row { min-width: 0; overflow: hidden; }
+        .chat-user {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 95px;
+        }
+        @media (max-width: 390px) { .chat-user { max-width: 64px; } }
+        .msg-file-card {
+            cursor: default;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+        .msg-file-main {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .msg-file-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+        .msg-file-action {
+            border: none;
+            background: rgba(0,136,204,.18);
+            color: #d9f3ff;
+            border-radius: 999px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+        .msg-file-action:hover { background: rgba(0,136,204,.32); }
+        .msg-file-action.download { background: rgba(255,255,255,.10); color: #fff; }
+        .msg-file-action.download:hover { background: rgba(255,255,255,.18); }
+        .file-viewer-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.82);
+            z-index: 10080;
+            align-items: center;
+            justify-content: center;
+            padding: max(10px, env(safe-area-inset-top, 0px)) 10px max(10px, env(safe-area-inset-bottom, 0px));
+            backdrop-filter: blur(5px);
+        }
+        .file-viewer-modal.active { display: flex; }
+        .file-viewer-box {
+            width: min(980px, 100%);
+            height: min(88dvh, 860px);
+            background: #111;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 18px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 22px 80px rgba(0,0,0,.65);
+        }
+        .file-viewer-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #1b1b1d;
+            border-bottom: 1px solid rgba(255,255,255,.10);
+            color: #fff;
+        }
+        .file-viewer-title {
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 14px;
+            font-weight: 800;
+        }
+        .file-viewer-btn {
+            border: none;
+            border-radius: 999px;
+            background: rgba(255,255,255,.10);
+            color: #fff;
+            height: 34px;
+            min-width: 34px;
+            padding: 0 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .file-viewer-btn.primary { background: #0088cc; }
+        .file-viewer-btn.danger { background: rgba(229,57,53,.22); color: #ffb3b3; }
+        .file-viewer-body {
+            flex: 1;
+            min-height: 0;
+            background: #0b0b0c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+        }
+        .file-viewer-body iframe,
+        .file-viewer-body object {
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #fff;
+        }
+        .file-viewer-body video {
+            width: 100%;
+            max-height: 100%;
+            background: #000;
+        }
+        .file-viewer-body audio {
+            width: min(92%, 560px);
+        }
+        .file-viewer-fallback {
+            color: #ddd;
+            text-align: center;
+            padding: 22px;
+            line-height: 1.45;
+        }
+        .file-viewer-fallback i { font-size: 42px; color: #0088cc; margin-bottom: 12px; }
+        .file-viewer-fallback strong { display: block; color: #fff; margin-bottom: 8px; word-break: break-word; }
+        @media (max-width: 620px) {
+            .file-viewer-box { height: 92dvh; border-radius: 14px; }
+            .file-viewer-btn span { display: none; }
+        }
+
         .media-preview-file {
             display: flex;
             align-items: center;
@@ -6041,6 +6189,18 @@
         </div>
     </div>
 
+    <!-- VISOR INTERNO DE ARCHIVOS PDF / VIDEO / AUDIO -->
+    <div class="file-viewer-modal" id="file-viewer-modal" onclick="if(event.target===this) cerrarVisorArchivo()">
+        <div class="file-viewer-box">
+            <div class="file-viewer-header">
+                <div class="file-viewer-title" id="file-viewer-title">Archivo</div>
+                <button class="file-viewer-btn primary" onclick="descargarArchivoActualVisor()" title="Descargar con el nombre original"><i class="fas fa-download"></i><span>Descargar</span></button>
+                <button class="file-viewer-btn" onclick="abrirArchivoExternoActual()" title="Abrir fuera de la app"><i class="fas fa-up-right-from-square"></i><span>Abrir</span></button>
+                <button class="file-viewer-btn danger" onclick="cerrarVisorArchivo()" title="Cerrar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="file-viewer-body" id="file-viewer-body"></div>
+        </div>
+    </div>
 
 
     <!-- MENU ADJUNTAR -->
@@ -7349,7 +7509,7 @@ window.seleccionarArchivoAdjunto = function() {
             if (pill) return;
             const msg = e.target.closest('.mensaje[data-key]');
             if (!msg) return;
-            if (e.target.closest('audio, a, button, img')) return;
+            if (e.target.closest('audio, video, a, button, img, iframe, .msg-file-card')) return;
             startX = e.clientX; startY = e.clientY; startKey = msg.dataset.key; moved = false; longDone = false;
             clearLong();
             longTimer = setTimeout(() => { longDone = true; abrirAccionesMensajeKey(startKey); }, 620);
@@ -7408,6 +7568,112 @@ window.seleccionarArchivoAdjunto = function() {
     });
 })();
 
+
+
+function _inferFileKind(mime, fileName, url) {
+    const m = String(mime || '').toLowerCase();
+    const n = String(fileName || url || '').toLowerCase().split('?')[0].split('#')[0];
+    if (m.includes('pdf') || n.endsWith('.pdf')) return 'pdf';
+    if (m.startsWith('video/') || /\.(mp4|webm|mov|m4v|ogg)$/i.test(n)) return 'video';
+    if (m.startsWith('audio/') || /\.(mp3|m4a|aac|wav|ogg|webm)$/i.test(n)) return 'audio';
+    if (m.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(n)) return 'image';
+    return 'other';
+}
+function puedePrevisualizarArchivo(mime, url, fileName) {
+    return ['pdf', 'video', 'audio', 'image'].includes(_inferFileKind(mime, fileName, url));
+}
+function _safeDownloadName(name, mime) {
+    let n = String(name || 'archivo').trim() || 'archivo';
+    n = n.replace(/[\\/:*?"<>|\u0000-\u001F]/g, '_').replace(/\s+/g, ' ').slice(0, 140);
+    if (!/\.[a-z0-9]{1,8}$/i.test(n)) {
+        const m = String(mime || '').toLowerCase();
+        if (m.includes('pdf')) n += '.pdf';
+        else if (m.includes('mp4')) n += '.mp4';
+        else if (m.includes('mpeg')) n += '.mp3';
+        else if (m.includes('png')) n += '.png';
+        else if (m.includes('jpeg') || m.includes('jpg')) n += '.jpg';
+    }
+    return n;
+}
+function _isIOSLike() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+window._currentViewerFile = null;
+window.abrirVisorArchivo = function(url, fileName, mimeType) {
+    const mediaUrl = normalizarMediaUrl(url);
+    if (!mediaUrl) { showToast('Archivo no disponible'); return; }
+    const name = fileName || 'archivo';
+    const mime = mimeType || '';
+    const kind = _inferFileKind(mime, name, mediaUrl);
+    const modal = document.getElementById('file-viewer-modal');
+    const body = document.getElementById('file-viewer-body');
+    const title = document.getElementById('file-viewer-title');
+    if (!modal || !body || !title) {
+        window.open(mediaUrl, '_blank', 'noopener');
+        return;
+    }
+    window._currentViewerFile = { url: mediaUrl, fileName: name, mimeType: mime };
+    title.textContent = name;
+    if (kind === 'pdf') {
+        body.innerHTML = `<iframe src="${escapeAttr(mediaUrl)}#toolbar=1&navpanes=0" title="${escapeAttr(name)}"></iframe>`;
+    } else if (kind === 'video') {
+        body.innerHTML = `<video controls playsinline preload="metadata" src="${escapeAttr(mediaUrl)}"></video>`;
+    } else if (kind === 'audio') {
+        body.innerHTML = `<audio controls preload="metadata" src="${escapeAttr(mediaUrl)}"></audio>`;
+    } else if (kind === 'image') {
+        body.innerHTML = `<img src="${escapeAttr(mediaUrl)}" alt="${escapeAttr(name)}" style="max-width:100%;max-height:100%;object-fit:contain;">`;
+    } else {
+        body.innerHTML = `<div class="file-viewer-fallback"><i class="fas fa-file"></i><strong>${escapeHtml(name)}</strong><p>Este tipo de archivo no se puede visualizar dentro de la app. Puedes descargarlo o abrirlo fuera de SWITCH.</p></div>`;
+    }
+    modal.classList.add('active');
+};
+window.cerrarVisorArchivo = function() {
+    const modal = document.getElementById('file-viewer-modal');
+    const body = document.getElementById('file-viewer-body');
+    if (modal) modal.classList.remove('active');
+    if (body) body.innerHTML = '';
+};
+window.abrirArchivoExternoActual = function() {
+    const f = window._currentViewerFile;
+    if (f && f.url) window.open(f.url, '_blank', 'noopener');
+};
+window.descargarArchivoActualVisor = function() {
+    const f = window._currentViewerFile;
+    if (f && f.url) descargarArchivoSwitch(f.url, f.fileName, f.mimeType);
+};
+window.descargarArchivoSwitch = async function(url, fileName, mimeType) {
+    const mediaUrl = normalizarMediaUrl(url);
+    if (!mediaUrl) { showToast('Archivo no disponible'); return; }
+    const name = _safeDownloadName(fileName, mimeType);
+    showLoading('Preparando descarga...');
+    try {
+        const res = await fetch(mediaUrl);
+        if (!res.ok) throw new Error('No se pudo leer el archivo');
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = name;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            try { URL.revokeObjectURL(blobUrl); } catch(e) {}
+            if (a.parentNode) a.parentNode.removeChild(a);
+        }, 4000);
+        hideLoading();
+        showToast(`✅ Descarga lista: ${name}`, 3500);
+    } catch(e) {
+        hideLoading();
+        if (_isIOSLike()) {
+            showToast('En iPhone se abrirá el archivo. Usa Compartir o mantén presionado para guardarlo.', 5200);
+        } else {
+            showToast('No se pudo descargar directo. Se abrirá el archivo.', 3500);
+        }
+        window.open(mediaUrl, '_blank', 'noopener');
+    }
+};
+
 function buildMsgHTML(msg) {
     if (msg.tipo === 'anuncio-admin') {
         return `<div class="mensaje mensaje-anuncio-admin" data-key="${escapeAttr(msg._key || '')}" data-own="0">
@@ -7443,13 +7709,26 @@ function buildMsgHTML(msg) {
         const mediaUrl = normalizarMediaUrl(msg.mediaUrl);
         const fileName = msg.fileName || msg.texto || 'archivo';
         const fileSize = msg.fileSize ? bytesToHuman(msg.fileSize) : 'Archivo';
-        const mime = msg.mimeType ? ` · ${escapeHtml(msg.mimeType)}` : '';
+        const mimeType = msg.mimeType || '';
+        const mime = mimeType ? ` · ${escapeHtml(mimeType)}` : '';
+        const encUrl = encodeURIComponent(mediaUrl || '');
+        const encName = encodeURIComponent(fileName || 'archivo');
+        const encMime = encodeURIComponent(mimeType || '');
+        const canView = mediaUrl && puedePrevisualizarArchivo(mimeType, mediaUrl, fileName);
+        const viewBtn = canView
+            ? `<button type="button" class="msg-file-action" onclick="event.stopPropagation(); abrirVisorArchivo(decodeURIComponent('${encUrl}'), decodeURIComponent('${encName}'), decodeURIComponent('${encMime}'))"><i class="fas fa-eye"></i> Ver</button>`
+            : '';
         contenido = mediaUrl
-            ? `<a class="msg-file-card" href="${escapeAttr(mediaUrl)}" target="_blank" rel="noopener" download="${escapeAttr(fileName)}">
-                    <div class="msg-file-icon"><i class="fas fa-file-arrow-down"></i></div>
-                    <div class="msg-file-info"><div class="msg-file-name">${escapeHtml(fileName)}</div><div class="msg-file-meta">${escapeHtml(fileSize)}${mime}</div></div>
-                    <div class="msg-file-download"><i class="fas fa-download"></i></div>
-               </a>`
+            ? `<div class="msg-file-card" role="group" aria-label="Archivo ${escapeAttr(fileName)}">
+                    <div class="msg-file-main">
+                        <div class="msg-file-icon"><i class="fas ${_inferFileKind(mimeType, fileName, mediaUrl) === 'pdf' ? 'fa-file-pdf' : (_inferFileKind(mimeType, fileName, mediaUrl) === 'video' ? 'fa-file-video' : (_inferFileKind(mimeType, fileName, mediaUrl) === 'audio' ? 'fa-file-audio' : 'fa-file-arrow-down'))}"></i></div>
+                        <div class="msg-file-info"><div class="msg-file-name">${escapeHtml(fileName)}</div><div class="msg-file-meta">${escapeHtml(fileSize)}${mime}</div></div>
+                    </div>
+                    <div class="msg-file-actions">
+                        ${viewBtn}
+                        <button type="button" class="msg-file-action download" onclick="event.stopPropagation(); descargarArchivoSwitch(decodeURIComponent('${encUrl}'), decodeURIComponent('${encName}'), decodeURIComponent('${encMime}'))"><i class="fas fa-download"></i> Descargar</button>
+                    </div>
+               </div>`
             : `<div class="msg-media-error">⚠️ Archivo no disponible o URL inválida</div>`;
     } else {
         const soloEmoji = esSoloEmoji(msg.texto || '');
@@ -8108,7 +8387,7 @@ window.confirmarEnviarMultimedia = async function() {
     if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
     const modal = document.getElementById('modal-media-preview');
 
-    showLoading(media.tipo === 'audio' ? 'Subiendo audio...' : 'Subiendo imagen...');
+    showLoading(media.tipo === 'audio' ? 'Subiendo audio...' : (media.tipo === 'archivo' ? 'Subiendo archivo...' : 'Subiendo imagen...'));
     try {
         const caption = media.tipo === 'audio'
             ? `[SWITCH] Audio de ${usuarioActual} en ${salaActual?.nombre}`
@@ -8393,9 +8672,9 @@ window.enviarArchivo = async function() {
                 const nombre = activos[0][1].nombre || activos[0][0];
                 if (nameEl) nameEl.textContent = nombre.toUpperCase();
             } else if (totalOnline > 1) {
-                if (nameEl) nameEl.textContent = `${totalOnline} USUARIOS`;
+                if (nameEl) nameEl.textContent = `${totalOnline}`;
             } else {
-                if (nameEl) nameEl.textContent = 'SIN USUARIOS';
+                if (nameEl) nameEl.textContent = '0';
             }
 
             const hayOnline = totalOnline > 0;
