@@ -5155,6 +5155,189 @@
             .fake-pdf-toolbar span { max-width: 68%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         }
 
+    
+
+        /* ===== CHAT AVANZADO: editar, borrar, responder, leer, adjuntar, reacciones ===== */
+        .presence-label { display: none !important; }
+        .chat-disguise-wrap { align-items: center; gap: 6px; }
+        .btn-pdf-fake {
+            width: 38px !important;
+            height: 38px !important;
+            min-width: 38px !important;
+            min-height: 38px !important;
+            border-radius: 50% !important;
+            padding: 0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: rgba(255,255,255,0.08) !important;
+            border: 1px solid rgba(255,255,255,0.15) !important;
+        }
+        .btn-pdf-fake .disguise-label { display: none !important; }
+        .btn-pdf-fake .disguise-icon { margin: 0 !important; font-size: 17px; }
+        .mensaje { position: relative; touch-action: pan-y; }
+        .mensaje .burbuja { position: relative; }
+        .mensaje.swiping .burbuja { transform: translateX(28px); transition: transform .12s ease; }
+        .msg-reply-preview {
+            border-left: 3px solid #0088cc;
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 5px 7px;
+            margin-bottom: 5px;
+            font-size: 12px;
+            line-height: 1.3;
+            max-width: 100%;
+        }
+        .msg-reply-name { color: #4fc3f7; font-weight: 700; margin-bottom: 2px; }
+        .msg-reply-text { color: rgba(255,255,255,.78); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .msg-edited { font-size: 10px; color: rgba(255,255,255,.38); margin-left: 4px; }
+        .msg-file-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 210px;
+            text-decoration: none;
+            color: #fff;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            padding: 10px;
+        }
+        .msg-file-icon {
+            width: 42px; height: 42px; min-width: 42px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0,136,204,.2);
+            color: #4fc3f7;
+            font-size: 20px;
+        }
+        .msg-file-info { min-width: 0; flex: 1; }
+        .msg-file-name { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .msg-file-meta { font-size: 11px; color: rgba(255,255,255,.58); margin-top: 2px; }
+        .msg-file-download { color: rgba(255,255,255,.8); font-size: 16px; }
+        .msg-reaction-pill {
+            position: absolute;
+            bottom: -13px;
+            min-width: 28px;
+            height: 24px;
+            padding: 0 7px;
+            border-radius: 999px;
+            background: #202124;
+            border: 1px solid rgba(255,255,255,.14);
+            box-shadow: 0 2px 8px rgba(0,0,0,.35);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            cursor: pointer;
+            z-index: 2;
+            font-size: 14px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .mensaje.propio .msg-reaction-pill { right: 8px; }
+        .mensaje.otro .msg-reaction-pill { left: 8px; }
+        .msg-reaction-pill .reaction-count { font-size: 10px; color: rgba(255,255,255,.65); font-weight: 700; }
+        .mensaje { margin-bottom: 14px; }
+        .reply-compose-bar, .edit-compose-bar {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #171717;
+            border-top: 1px solid #2d2d2d;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .reply-compose-bar.active, .edit-compose-bar.active { display: flex; }
+        .reply-compose-line, .edit-compose-line {
+            width: 4px; align-self: stretch; border-radius: 4px; background: #0088cc;
+        }
+        .reply-compose-content, .edit-compose-content { flex: 1; min-width: 0; }
+        .reply-compose-title, .edit-compose-title { font-size: 12px; color: #4fc3f7; font-weight: 800; margin-bottom: 2px; }
+        .reply-compose-text, .edit-compose-text { font-size: 12px; color: rgba(255,255,255,.7); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .reply-compose-close, .edit-compose-close {
+            border: none; background: rgba(255,255,255,.09); color: #fff;
+            width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+        }
+        .message-action-sheet, .attachment-sheet, .reaction-picker-pop {
+            display: none;
+            position: fixed;
+            z-index: 10060;
+            inset: 0;
+            background: rgba(0,0,0,.45);
+            align-items: flex-end;
+            justify-content: center;
+            padding: 14px;
+        }
+        .message-action-sheet.active, .attachment-sheet.active, .reaction-picker-pop.active { display: flex; }
+        .message-action-box, .attachment-box, .reaction-picker-box {
+            width: min(420px, 96vw);
+            background: #1c1c1e;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 22px;
+            padding: 10px;
+            box-shadow: 0 18px 60px rgba(0,0,0,.55);
+            animation: slideUpAction .18s ease;
+        }
+        @keyframes slideUpAction { from { transform: translateY(24px); opacity: .5; } to { transform: translateY(0); opacity: 1; } }
+        .message-action-title, .attachment-title { color: rgba(255,255,255,.65); font-size: 12px; padding: 8px 10px 10px; }
+        .message-action-btn, .attachment-btn {
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 12px;
+            border-radius: 14px;
+            font-size: 15px;
+            cursor: pointer;
+            text-align: left;
+        }
+        .message-action-btn:hover, .attachment-btn:hover { background: rgba(255,255,255,.08); }
+        .message-action-btn.danger { color: #ff6b6b; }
+        .message-action-btn i, .attachment-btn i { width: 22px; text-align: center; }
+        .reaction-picker-box {
+            display: flex;
+            justify-content: center;
+            gap: 7px;
+            padding: 10px;
+            width: auto;
+            border-radius: 999px;
+        }
+        .reaction-choice {
+            width: 42px; height: 42px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(255,255,255,.08);
+            font-size: 23px;
+            cursor: pointer;
+            transition: transform .12s ease, background .12s ease;
+        }
+        .reaction-choice:hover { transform: scale(1.15); background: rgba(255,255,255,.16); }
+        .media-preview-file {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            background: rgba(0,0,0,.06);
+            color: #333;
+        }
+        .media-preview-file i { font-size: 30px; color: #0088cc; }
+        .media-preview-file strong { display: block; word-break: break-word; }
+        .media-preview-file span { font-size: 12px; color: #666; }
+        .screen-chat.jugando .reply-compose-bar,
+        .screen-chat.jugando .edit-compose-bar { padding: 4px 8px; gap: 5px; }
+        .screen-chat.jugando .reply-compose-title,
+        .screen-chat.jugando .reply-compose-text,
+        .screen-chat.jugando .edit-compose-title,
+        .screen-chat.jugando .edit-compose-text { font-size: 10px; }
+        .screen-chat.jugando .msg-reaction-pill { height: 20px; min-width: 24px; font-size: 12px; bottom: -11px; }
+
     </style>
 </head>
 <body>
@@ -5231,14 +5414,14 @@
                         <div class="presence-row">
                             <div class="presence-dot offline" id="presence-dot"></div>
                             <span class="chat-user" id="nombre-usuario">Usuario</span>
-                            <span class="presence-label offline" id="presence-label">offline</span>
+                            <span class="presence-label offline" id="presence-label"></span>
                         </div>
                     </div>
                     <!-- Indicador escritura + Switch visual para disfrazar mensajes -->
                     <div class="chat-disguise-wrap">
                         <div class="header-typing-status" id="header-typing-status"></div>
                         <button class="btn-chat-disguise btn-pdf-fake" id="btn-chat-disguise" onclick="activarModoPDFInvestigacion()" title="Activar pantalla PDF ficticia">
-                            <span class="disguise-icon"><i class="fas fa-file-pdf"></i></span><span class="disguise-label">PDF</span>
+                            <span class="disguise-icon"><i class="fas fa-hand-paper"></i></span><span class="disguise-label"></span>
                         </button>
                     </div>
                     <!-- Botones llamada WebRTC -->
@@ -5273,7 +5456,7 @@
                     <button type="button" class="emoji-quick-btn" data-emoji="😁">😁</button>
                 </div>
                 <div class="input-area">
-                    <button class="btn-multimedia" onclick="abrirGaleria()" title="Enviar imagen"><i class="fas fa-image"></i></button>
+                    <button class="btn-multimedia" onclick="abrirMenuAdjuntos()" title="Adjuntar"><i class="fas fa-paperclip"></i></button>
                     <button class="btn-multimedia" onclick="abrirJuegos()" title="Juegos"><i class="fas fa-gamepad"></i></button>
                     <input type="text" class="input-msg" id="input-mensaje" placeholder="Escribe un mensaje..." onkeypress="if(event.key==='Enter') enviarMensaje()">
                     <button class="btn-enviar" id="btn-enviar-smart" title="Enviar o grabar audio"><i class="fas fa-microphone"></i></button>
@@ -5336,6 +5519,7 @@
     <!-- INPUTS HIDDEN -->
     <input type="file" id="input-imagen" accept="image/*" style="display: none;" onchange="enviarImagen()">
     <input type="file" id="input-audio" accept="audio/*" style="display: none;" onchange="enviarAudio()">
+    <input type="file" id="input-archivo" style="display: none;" onchange="enviarArchivo()">
 
     <!-- MODAL INVITACIÓN JUEGO -->
     <!-- MODAL BORRAR SALA -->
@@ -5854,6 +6038,40 @@
                 <button class="modal-btn modal-cancel" onclick="cancelarPreviewMultimedia()">No enviar</button>
                 <button class="modal-btn modal-confirm" id="btn-confirm-media" onclick="confirmarEnviarMultimedia()">Enviar</button>
             </div>
+        </div>
+    </div>
+
+
+
+    <!-- MENU ADJUNTAR -->
+    <div class="attachment-sheet" id="attachment-sheet" onclick="if(event.target===this) cerrarMenuAdjuntos()">
+        <div class="attachment-box">
+            <div class="attachment-title">¿Qué quieres enviar?</div>
+            <button class="attachment-btn" onclick="seleccionarImagenAdjunta()"><i class="fas fa-image"></i> Imagen</button>
+            <button class="attachment-btn" onclick="seleccionarArchivoAdjunto()"><i class="fas fa-file-arrow-up"></i> Archivo</button>
+            <button class="attachment-btn" onclick="cerrarMenuAdjuntos()"><i class="fas fa-times"></i> Cancelar</button>
+        </div>
+    </div>
+
+    <!-- ACCIONES DE MENSAJE -->
+    <div class="message-action-sheet" id="message-action-sheet" onclick="if(event.target===this) cerrarAccionesMensaje()">
+        <div class="message-action-box">
+            <div class="message-action-title" id="message-action-title">Mensaje</div>
+            <button class="message-action-btn" id="message-action-edit" onclick="editarMensajeSeleccionado()"><i class="fas fa-pen"></i> Editar mensaje</button>
+            <button class="message-action-btn danger" id="message-action-delete" onclick="borrarMensajeSeleccionado()"><i class="fas fa-trash"></i> Borrar mensaje</button>
+            <button class="message-action-btn" onclick="cerrarAccionesMensaje()"><i class="fas fa-times"></i> Cancelar</button>
+        </div>
+    </div>
+
+    <!-- SELECTOR DE REACCIONES -->
+    <div class="reaction-picker-pop" id="reaction-picker-pop" onclick="if(event.target===this) cerrarSelectorReacciones()">
+        <div class="reaction-picker-box">
+            <button class="reaction-choice" data-reaction="👍">👍</button>
+            <button class="reaction-choice" data-reaction="❤️">❤️</button>
+            <button class="reaction-choice" data-reaction="😂">😂</button>
+            <button class="reaction-choice" data-reaction="😮">😮</button>
+            <button class="reaction-choice" data-reaction="😢">😢</button>
+            <button class="reaction-choice" data-reaction="🔥">🔥</button>
         </div>
     </div>
 
@@ -6741,11 +6959,11 @@ function actualizarBotonDisfrazMensajes() {
     const btn = document.getElementById('btn-chat-disguise');
     if (!btn) return;
     btn.classList.toggle('active', !!_mensajeDisfrazActivo);
-    btn.title = _mensajeDisfrazActivo
-        ? 'Desactivar disfraz de mensajes'
-        : 'Disfrazar mensajes como cuento';
+    btn.title = 'Activar pantalla PDF ficticia';
+    const icon = btn.querySelector('.disguise-icon i');
+    if (icon) icon.className = 'fas fa-hand-paper';
     const label = btn.querySelector('.disguise-label');
-    if (label) label.textContent = _mensajeDisfrazActivo ? 'Activo' : 'Cuento';
+    if (label) label.textContent = '';
 }
 
 function toggleDisfrazMensajes(force) {
@@ -6887,9 +7105,312 @@ function escucharMensajes() {
     });
 }
 
+
+// ============================================================
+// CHAT AVANZADO: editar, borrar, responder, leer, adjuntar, reacciones
+// ============================================================
+let _replyTarget = null;
+let _editingMessageKey = null;
+let _editingOriginalText = '';
+let _selectedMessageKey = null;
+let _selectedReactionMessageKey = null;
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+
+function _safeUserKey(name) {
+    return String(name || 'usuario').trim().replace(/[.#$\/\[\]]/g, '_') || 'usuario';
+}
+function _findMsgByKey(key) {
+    const item = (_mensajesCacheDisfraz || []).find(x => x.key === key);
+    return item ? { ...item.val, _key: item.key } : null;
+}
+function _messagePlainText(msg) {
+    if (!msg) return '';
+    if (msg.tipo === 'imagen') return 'Imagen enviada';
+    if (msg.tipo === 'audio') return msg.durationMs ? `Audio de ${formatDuration(msg.durationMs)}` : 'Audio enviado';
+    if (msg.tipo === 'archivo') return `Archivo enviado: ${msg.fileName || msg.texto || 'archivo'}`;
+    return String(msg.texto || '').replace(/\s+/g, ' ').trim();
+}
+function _shortText(text, len = 90) {
+    const t = String(text || '').replace(/\s+/g, ' ').trim();
+    return t.length > len ? t.slice(0, len - 1) + '…' : t;
+}
+function _msgPath(key) { return `mensajes/${salaActualKey}/${key}`; }
+function _reactionPath(key) { return `mensajes/${salaActualKey}/${key}/reactions/${_safeUserKey(usuarioActual)}`; }
+function _cssEscapeIdent(value) {
+    try {
+        return (window.CSS && CSS.escape)
+            ? CSS.escape(String(value))
+            : String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    } catch(e) {
+        return String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    }
+}
+
+function _ensureComposeBars() {
+    const chat = document.getElementById('pantalla-chat');
+    const inputArea = chat ? chat.querySelector('.input-area') : null;
+    if (!chat || !inputArea) return;
+    if (!document.getElementById('reply-compose-bar')) {
+        const div = document.createElement('div');
+        div.id = 'reply-compose-bar';
+        div.className = 'reply-compose-bar';
+        div.innerHTML = `<div class="reply-compose-line"></div><div class="reply-compose-content"><div class="reply-compose-title">Respondiendo</div><div class="reply-compose-text" id="reply-compose-text"></div></div><button class="reply-compose-close" onclick="cancelarRespuesta()"><i class="fas fa-times"></i></button>`;
+        inputArea.parentNode.insertBefore(div, inputArea);
+    }
+    if (!document.getElementById('edit-compose-bar')) {
+        const div = document.createElement('div');
+        div.id = 'edit-compose-bar';
+        div.className = 'edit-compose-bar';
+        div.innerHTML = `<div class="edit-compose-line"></div><div class="edit-compose-content"><div class="edit-compose-title">Editando mensaje</div><div class="edit-compose-text" id="edit-compose-text">Guarda con enviar</div></div><button class="edit-compose-close" onclick="cancelarEdicionMensaje()"><i class="fas fa-times"></i></button>`;
+        inputArea.parentNode.insertBefore(div, inputArea);
+    }
+}
+function _updateReplyBar() {
+    _ensureComposeBars();
+    const bar = document.getElementById('reply-compose-bar');
+    const txt = document.getElementById('reply-compose-text');
+    if (!bar || !txt) return;
+    if (_replyTarget && !_editingMessageKey) {
+        bar.classList.add('active');
+        txt.textContent = `${_replyTarget.usuario || 'Usuario'}: ${_shortText(_replyTarget.texto || '', 80)}`;
+    } else {
+        bar.classList.remove('active');
+        txt.textContent = '';
+    }
+}
+function _updateEditBar() {
+    _ensureComposeBars();
+    const bar = document.getElementById('edit-compose-bar');
+    const txt = document.getElementById('edit-compose-text');
+    if (!bar || !txt) return;
+    if (_editingMessageKey) {
+        bar.classList.add('active');
+        txt.textContent = _shortText(_editingOriginalText || 'Edita el texto y presiona enviar', 90);
+    } else {
+        bar.classList.remove('active');
+        txt.textContent = '';
+    }
+}
+window.cancelarRespuesta = function() {
+    _replyTarget = null;
+    _updateReplyBar();
+};
+window.cancelarEdicionMensaje = function() {
+    _editingMessageKey = null;
+    _editingOriginalText = '';
+    const input = document.getElementById('input-mensaje');
+    if (input) { input.value = ''; input.dispatchEvent(new Event('input')); }
+    _updateEditBar();
+    _updateReplyBar();
+};
+function iniciarRespuestaMensaje(key) {
+    const msg = _findMsgByKey(key);
+    if (!msg) return;
+    _replyTarget = {
+        key,
+        usuario: msg.usuario || 'Usuario',
+        texto: _messagePlainText(msg),
+        tipo: msg.tipo || 'texto'
+    };
+    if (_editingMessageKey) cancelarEdicionMensaje();
+    _updateReplyBar();
+    const input = document.getElementById('input-mensaje');
+    if (input) input.focus();
+    showToast('↩️ Respondiendo mensaje', 1200);
+}
+
+function leerMensajeVoz(key) {
+    const msg = _findMsgByKey(key);
+    if (!msg || !('speechSynthesis' in window)) return;
+    const texto = _messagePlainText(msg);
+    if (!texto) return;
+    try {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(texto);
+        u.lang = 'es-ES';
+        u.rate = 0.95;
+        window.speechSynthesis.speak(u);
+    } catch(e) { console.warn('[TTS]', e); }
+}
+
+function abrirAccionesMensajeKey(key) {
+    const msg = _findMsgByKey(key);
+    if (!msg) return;
+    _selectedMessageKey = key;
+    const sheet = document.getElementById('message-action-sheet');
+    const title = document.getElementById('message-action-title');
+    const editBtn = document.getElementById('message-action-edit');
+    const delBtn = document.getElementById('message-action-delete');
+    const own = msg.usuario === usuarioActual;
+    if (title) title.textContent = own ? 'Acciones de tu mensaje' : 'Mensaje de ' + (msg.usuario || 'Usuario');
+    if (editBtn) editBtn.style.display = (own && (!msg.tipo || msg.tipo === 'texto')) ? 'flex' : 'none';
+    if (delBtn) delBtn.style.display = own ? 'flex' : 'none';
+    if (sheet) sheet.classList.add('active');
+}
+window.cerrarAccionesMensaje = function() {
+    const sheet = document.getElementById('message-action-sheet');
+    if (sheet) sheet.classList.remove('active');
+};
+window.editarMensajeSeleccionado = function() {
+    const msg = _findMsgByKey(_selectedMessageKey);
+    if (!msg || msg.usuario !== usuarioActual || (msg.tipo && msg.tipo !== 'texto')) return;
+    _editingMessageKey = _selectedMessageKey;
+    _editingOriginalText = msg.texto || '';
+    _replyTarget = null;
+    const input = document.getElementById('input-mensaje');
+    if (input) {
+        input.value = msg.texto || '';
+        input.focus();
+        input.dispatchEvent(new Event('input'));
+    }
+    _updateEditBar();
+    _updateReplyBar();
+    cerrarAccionesMensaje();
+};
+window.borrarMensajeSeleccionado = async function() {
+    const msg = _findMsgByKey(_selectedMessageKey);
+    if (!msg || msg.usuario !== usuarioActual || !salaActualKey) return;
+    cerrarAccionesMensaje();
+    const ok = confirm('¿Borrar este mensaje?');
+    if (!ok) return;
+    try {
+        await remove(ref(db, _msgPath(_selectedMessageKey)));
+        const sala = salas.find(s => s._key === salaActualKey);
+        const nextCount = Math.max(0, Number(sala?.msgCount || 1) - 1);
+        update(ref(db, `salas/${salaActualKey}`), { msgCount: nextCount }).catch(() => {});
+        showToast('🗑️ Mensaje borrado', 1400);
+    } catch(e) {
+        showToast('❌ No se pudo borrar');
+    }
+};
+
+function _reactionSummary(reactions) {
+    const vals = Object.values(reactions || {}).filter(Boolean);
+    if (!vals.length) return { emoji: '👍', count: 0, reacted: false };
+    const counts = {};
+    vals.forEach(e => counts[e] = (counts[e] || 0) + 1);
+    const emoji = Object.keys(counts).sort((a,b) => counts[b] - counts[a])[0] || '👍';
+    const mine = reactions && reactions[_safeUserKey(usuarioActual)];
+    return { emoji: mine || emoji, count: vals.length, reacted: !!mine };
+}
+function buildReactionButtonHTML(msg) {
+    if (!msg || !msg._key || msg.tipo === 'anuncio-admin') return '';
+    const r = _reactionSummary(msg.reactions || {});
+    const label = r.count > 0 ? `${escapeHtml(r.emoji)}${r.count > 1 ? `<span class="reaction-count">${r.count}</span>` : ''}` : '👍';
+    return `<button class="msg-reaction-pill${r.reacted ? ' reacted' : ''}" data-reaction-btn="1" data-key="${escapeAttr(msg._key)}" title="Reaccionar">${label}</button>`;
+}
+window.cerrarSelectorReacciones = function() {
+    const pop = document.getElementById('reaction-picker-pop');
+    if (pop) pop.classList.remove('active');
+    _selectedReactionMessageKey = null;
+};
+function abrirSelectorReacciones(key) {
+    _selectedReactionMessageKey = key;
+    const pop = document.getElementById('reaction-picker-pop');
+    if (pop) pop.classList.add('active');
+}
+async function reaccionarMensaje(key, emoji = '👍') {
+    if (!key || !salaActualKey || !usuarioActual) return;
+    try {
+        await set(ref(db, _reactionPath(key)), emoji);
+        try { manejarReaccionEmojiChat(emoji); } catch(e) {}
+    } catch(e) { showToast('❌ No se pudo reaccionar'); }
+}
+
+window.abrirMenuAdjuntos = function() {
+    const sheet = document.getElementById('attachment-sheet');
+    if (sheet) sheet.classList.add('active');
+};
+window.cerrarMenuAdjuntos = function() {
+    const sheet = document.getElementById('attachment-sheet');
+    if (sheet) sheet.classList.remove('active');
+};
+window.seleccionarImagenAdjunta = function() {
+    cerrarMenuAdjuntos();
+    const input = document.getElementById('input-imagen');
+    if (input) input.click();
+};
+window.seleccionarArchivoAdjunto = function() {
+    cerrarMenuAdjuntos();
+    const input = document.getElementById('input-archivo');
+    if (input) input.click();
+};
+
+(function _initChatAdvancedDelegation() {
+    document.addEventListener('DOMContentLoaded', () => {
+        _ensureComposeBars();
+        const cont = document.getElementById('mensajes');
+        if (!cont) return;
+        let longTimer = null;
+        let startX = 0, startY = 0, startKey = null, moved = false, longDone = false;
+        const clearLong = () => { if (longTimer) { clearTimeout(longTimer); longTimer = null; } };
+        cont.addEventListener('pointerdown', (e) => {
+            const pill = e.target.closest('[data-reaction-btn]');
+            if (pill) return;
+            const msg = e.target.closest('.mensaje[data-key]');
+            if (!msg) return;
+            if (e.target.closest('audio, a, button, img')) return;
+            startX = e.clientX; startY = e.clientY; startKey = msg.dataset.key; moved = false; longDone = false;
+            clearLong();
+            longTimer = setTimeout(() => { longDone = true; abrirAccionesMensajeKey(startKey); }, 620);
+        });
+        cont.addEventListener('pointermove', (e) => {
+            if (!startKey) return;
+            const dx = e.clientX - startX;
+            const dy = Math.abs(e.clientY - startY);
+            if (Math.abs(dx) > 8 || dy > 8) moved = true;
+            if (Math.abs(dx) > 12 || dy > 12) clearLong();
+            const msg = cont.querySelector(`.mensaje[data-key="${_cssEscapeIdent(startKey)}"]`);
+            if (msg && dx > 18 && dy < 35) msg.classList.add('swiping');
+        });
+        cont.addEventListener('pointerup', (e) => {
+            clearLong();
+            const key = startKey;
+            if (!key) return;
+            const dx = e.clientX - startX;
+            const dy = Math.abs(e.clientY - startY);
+            const msg = cont.querySelector(`.mensaje[data-key="${_cssEscapeIdent(key)}"]`);
+            if (msg) msg.classList.remove('swiping');
+            startKey = null;
+            if (longDone) return;
+            if (dx > 62 && dy < 42) { iniciarRespuestaMensaje(key); return; }
+            if (!moved && Math.abs(dx) < 8 && dy < 8) leerMensajeVoz(key);
+        });
+        cont.addEventListener('pointercancel', () => { clearLong(); startKey = null; document.querySelectorAll('.mensaje.swiping').forEach(el => el.classList.remove('swiping')); });
+        cont.addEventListener('click', (e) => {
+            const pill = e.target.closest('[data-reaction-btn]');
+            if (!pill) return;
+            e.preventDefault(); e.stopPropagation();
+            reaccionarMensaje(pill.dataset.key, '👍');
+        });
+        cont.addEventListener('contextmenu', (e) => {
+            const pill = e.target.closest('[data-reaction-btn]');
+            if (pill) { e.preventDefault(); abrirSelectorReacciones(pill.dataset.key); }
+        });
+        let reactionTouchTimer = null;
+        cont.addEventListener('touchstart', (e) => {
+            const pill = e.target.closest('[data-reaction-btn]');
+            if (!pill) return;
+            reactionTouchTimer = setTimeout(() => abrirSelectorReacciones(pill.dataset.key), 520);
+        }, { passive: true });
+        cont.addEventListener('touchend', () => { if (reactionTouchTimer) clearTimeout(reactionTouchTimer); reactionTouchTimer = null; }, { passive: true });
+        const picker = document.getElementById('reaction-picker-pop');
+        if (picker) {
+            picker.addEventListener('click', (e) => {
+                const btn = e.target.closest('.reaction-choice');
+                if (!btn) return;
+                const emoji = btn.dataset.reaction || '👍';
+                const key = _selectedReactionMessageKey;
+                cerrarSelectorReacciones();
+                reaccionarMensaje(key, emoji);
+            });
+        }
+    });
+})();
+
 function buildMsgHTML(msg) {
     if (msg.tipo === 'anuncio-admin') {
-        return `<div class="mensaje mensaje-anuncio-admin">
+        return `<div class="mensaje mensaje-anuncio-admin" data-key="${escapeAttr(msg._key || '')}" data-own="0">
             <div class="msg-content">${escapeHtml(msg.texto)}</div>
             <div class="msg-time" style="text-align:center;margin-top:6px;color:#8b4513;">${formatearHoraMs(msg.horaMs)}</div>
         </div>`;
@@ -6897,6 +7418,13 @@ function buildMsgHTML(msg) {
 
     const esPropio = msg.usuario === usuarioActual;
     let contenido  = '';
+    let replyHtml = '';
+    if (msg.replyTo && (msg.replyTo.texto || msg.replyTo.usuario)) {
+        replyHtml = `<div class="msg-reply-preview" data-reply-key="${escapeAttr(msg.replyTo.key || '')}">
+            <div class="msg-reply-name">${escapeHtml(msg.replyTo.usuario || 'Usuario')}</div>
+            <div class="msg-reply-text">${escapeHtml(_shortText(msg.replyTo.texto || '', 95))}</div>
+        </div>`;
+    }
 
     if (_mensajeDisfrazActivo && msg.tipo !== 'anuncio-admin') {
         contenido = `<div class="msg-content story-disguised">${escapeHtml(generarTextoDisfrazado(msg))}</div>`;
@@ -6911,19 +7439,33 @@ function buildMsgHTML(msg) {
         contenido = mediaUrl
             ? `${dur ? `<div class="msg-audio-label">🎙️ Audio · ${dur}</div>` : ''}<audio controls preload="metadata" class="msg-audio" src="${escapeAttr(mediaUrl)}"></audio>`
             : `<div class="msg-media-error">⚠️ Audio no disponible o URL inválida</div>`;
+    } else if (msg.tipo === 'archivo') {
+        const mediaUrl = normalizarMediaUrl(msg.mediaUrl);
+        const fileName = msg.fileName || msg.texto || 'archivo';
+        const fileSize = msg.fileSize ? bytesToHuman(msg.fileSize) : 'Archivo';
+        const mime = msg.mimeType ? ` · ${escapeHtml(msg.mimeType)}` : '';
+        contenido = mediaUrl
+            ? `<a class="msg-file-card" href="${escapeAttr(mediaUrl)}" target="_blank" rel="noopener" download="${escapeAttr(fileName)}">
+                    <div class="msg-file-icon"><i class="fas fa-file-arrow-down"></i></div>
+                    <div class="msg-file-info"><div class="msg-file-name">${escapeHtml(fileName)}</div><div class="msg-file-meta">${escapeHtml(fileSize)}${mime}</div></div>
+                    <div class="msg-file-download"><i class="fas fa-download"></i></div>
+               </a>`
+            : `<div class="msg-media-error">⚠️ Archivo no disponible o URL inválida</div>`;
     } else {
         const soloEmoji = esSoloEmoji(msg.texto || '');
-        // La clase emoji-solo (con animación) solo se aplica si es el mensaje nuevo recién llegado
         const emojiClass = (soloEmoji && msg._isNew) ? ' emoji-solo' : '';
         const emojiData  = soloEmoji ? ` data-emoji="${escapeAttr(msg.texto)}"` : '';
         contenido = `<div class="msg-content${emojiClass}"${emojiData}>${escapeHtml(msg.texto)}</div>`;
     }
 
-    return `<div class="mensaje ${esPropio ? 'propio' : 'otro'}">
+    const edited = msg.edited ? `<span class="msg-edited">editado</span>` : '';
+    return `<div class="mensaje ${esPropio ? 'propio' : 'otro'}" data-key="${escapeAttr(msg._key || '')}" data-own="${esPropio ? '1' : '0'}">
         ${!esPropio ? `<div class="msg-sender">${escapeHtml(msg.usuario)}</div>` : ''}
         <div class="burbuja">
+            ${replyHtml}
             ${contenido}
-            <div class="msg-time">${formatearHoraMs(msg.horaMs)}</div>
+            <div class="msg-time">${formatearHoraMs(msg.horaMs)}${edited}</div>
+            ${buildReactionButtonHTML(msg)}
         </div>
     </div>`;
 }
@@ -7380,18 +7922,50 @@ window.enviarMensaje = async function() {
     const texto = input.value.trim();
     if (!texto || !usuarioActual) return;
     input.value = '';
-    // Actualizar icono del botón inteligente a 🎙️ (input ya vacío)
     const btn = document.getElementById('btn-enviar-smart');
     if (btn) { input.dispatchEvent(new Event('input')); }
+
+    // Si está editando, reemplaza el mensaje existente en Firebase; no crea otro.
+    if (_editingMessageKey) {
+        const key = _editingMessageKey;
+        const original = _findMsgByKey(key);
+        if (!original || original.usuario !== usuarioActual) {
+            cancelarEdicionMensaje();
+            showToast('❌ No se pudo editar este mensaje');
+            return;
+        }
+        try {
+            await update(ref(db, _msgPath(key)), {
+                texto,
+                edited: true,
+                editedAtMs: Date.now()
+            });
+            _editingMessageKey = null;
+            _editingOriginalText = '';
+            _updateEditBar();
+            showToast('✅ Mensaje editado', 1300);
+        } catch(e) {
+            showToast('❌ Error al editar mensaje');
+            input.value = texto;
+            if (btn) input.dispatchEvent(new Event('input'));
+        }
+        return;
+    }
+
+    const replyTo = _replyTarget ? { ..._replyTarget } : null;
+    _replyTarget = null;
+    _updateReplyBar();
     try {
-        await pushMensaje({ usuario: usuarioActual, texto, tipo: 'texto' });
-        // Emoji/fuego local para el emisor; el fuego especial solo aparece en pantalla dividida
+        const payload = { usuario: usuarioActual, texto, tipo: 'texto' };
+        if (replyTo) payload.replyTo = replyTo;
+        await pushMensaje(payload);
         if ((contarEmojisFuego(texto) > 0 && estaEnPantallaDividida()) || esSoloEmoji(texto)) {
             try { manejarReaccionEmojiChat(texto.trim()); } catch(e) {}
         }
     } catch(e) {
         showToast('❌ Error al enviar mensaje');
         input.value = texto;
+        if (replyTo) { _replyTarget = replyTo; _updateReplyBar(); }
         if (btn) { input.dispatchEvent(new Event('input')); }
     }
 };
@@ -7421,6 +7995,44 @@ window.enviarMensaje = async function() {
 
 /** Sube un Blob/File a Telegram y devuelve la URL pública del archivo */
 async function subirArchivoTelegram(blob, filename, caption, options = {}) {
+    const formData = new FormData();
+    formData.append('chat_id', TELEGRAM_CHAT_ID);
+    formData.append('caption', caption || '');
+
+    const forceDocument = !!(options && options.forceDocument);
+    const isAudio = !forceDocument && blob.type && blob.type.startsWith('audio');
+    const isImage = !forceDocument && blob.type && blob.type.startsWith('image');
+    const endpoint = forceDocument ? 'sendDocument' : (isAudio ? 'sendVoice' : (isImage ? 'sendPhoto' : 'sendDocument'));
+    const fieldName = endpoint === 'sendVoice' ? 'voice' : (endpoint === 'sendPhoto' ? 'photo' : 'document');
+
+    formData.append(fieldName, blob, filename || 'archivo');
+    if (isAudio && options && Number(options.durationMs) > 0) {
+        formData.append('duration', String(Math.max(1, Math.round(Number(options.durationMs) / 1000))));
+    }
+
+    const res  = await fetch(`${TG_API}/${endpoint}`, { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!data.ok) throw new Error(data.description || 'Telegram error');
+
+    let fileId;
+    if (endpoint === 'sendVoice') {
+        fileId = data.result.voice?.file_id;
+    } else if (endpoint === 'sendPhoto') {
+        const photos = data.result.photo;
+        fileId = photos && photos[photos.length - 1]?.file_id;
+    } else {
+        fileId = data.result.document?.file_id || data.result.video?.file_id || data.result.audio?.file_id;
+    }
+    if (!fileId) throw new Error('No file_id from Telegram');
+
+    const fileRes  = await fetch(`${TG_API}/getFile?file_id=${fileId}`);
+    const fileData = await fileRes.json();
+    if (!fileData.ok) throw new Error('Cannot get file path');
+
+    const filePath = fileData.result.file_path;
+    return `${TG_FILE_API}/${filePath}`;
+}) {
     const formData = new FormData();
     formData.append('chat_id', TELEGRAM_CHAT_ID);
     formData.append('caption', caption || '');
@@ -7498,7 +8110,7 @@ function _mostrarPreviewMedia({ tipo, blob, filename, previewUrl, durationMs }) 
     _limpiarPendingMedia();
     _pendingMedia = { tipo, blob, filename, previewUrl, durationMs: Number(durationMs) || 0 };
 
-    if (title) title.textContent = tipo === 'audio' ? 'Revisar audio antes de enviar' : 'Revisar imagen antes de enviar';
+    if (title) title.textContent = tipo === 'audio' ? 'Revisar audio antes de enviar' : (tipo === 'archivo' ? 'Revisar archivo antes de enviar' : 'Revisar imagen antes de enviar');
     if (err) err.textContent = '';
 
     if (tipo === 'audio') {
@@ -7507,6 +8119,10 @@ function _mostrarPreviewMedia({ tipo, blob, filename, previewUrl, durationMs }) 
             ? `<span class="media-duration-pill">🎙️ Duración real: ${formatDuration(durationMs)}</span><br>`
             : `<span class="media-duration-pill">🎙️ Audio seleccionado</span><br>`;
         meta.innerHTML = `${durMeta}${escapeHtml(filename || 'audio')} · ${bytesToHuman(blob.size)}`;
+    } else if (tipo === 'archivo') {
+        const icon = (blob.type || '').includes('pdf') ? 'fa-file-pdf' : ((blob.type || '').startsWith('video/') ? 'fa-file-video' : ((blob.type || '').startsWith('audio/') ? 'fa-file-audio' : 'fa-file'));
+        body.innerHTML = `<div class="media-preview-file"><i class="fas ${icon}"></i><div><strong>${escapeHtml(filename || 'archivo')}</strong><span>${bytesToHuman(blob.size)}${blob.type ? ' · ' + escapeHtml(blob.type) : ''}</span></div></div>`;
+        meta.innerHTML = `El receptor podrá descargar este archivo desde el chat.`;
     } else {
         body.innerHTML = `<img src="${escapeAttr(previewUrl)}" alt="Vista previa de imagen">`;
         meta.innerHTML = `${escapeHtml(filename || 'imagen')} · ${bytesToHuman(blob.size)}`;
@@ -7532,8 +8148,8 @@ window.confirmarEnviarMultimedia = async function() {
     try {
         const caption = media.tipo === 'audio'
             ? `[SWITCH] Audio de ${usuarioActual} en ${salaActual?.nombre}`
-            : `[SWITCH] Imagen de ${usuarioActual} en ${salaActual?.nombre}`;
-        const url = await subirArchivoTelegram(media.blob, media.filename, caption, { durationMs: media.durationMs });
+            : (media.tipo === 'archivo' ? `[SWITCH] Archivo de ${usuarioActual} en ${salaActual?.nombre}` : `[SWITCH] Imagen de ${usuarioActual} en ${salaActual?.nombre}`);
+        const url = await subirArchivoTelegram(media.blob, media.filename, caption, { durationMs: media.durationMs, forceDocument: media.tipo === 'archivo' });
         if (media.tipo === 'audio') {
             await pushMensaje({
                 usuario: usuarioActual,
@@ -7542,13 +8158,23 @@ window.confirmarEnviarMultimedia = async function() {
                 mediaUrl: url,
                 durationMs: media.durationMs
             });
+        } else if (media.tipo === 'archivo') {
+            await pushMensaje({
+                usuario: usuarioActual,
+                texto: `📎 ${media.filename || 'Archivo'}`,
+                tipo: 'archivo',
+                mediaUrl: url,
+                fileName: media.filename || 'archivo',
+                fileSize: media.blob.size,
+                mimeType: media.blob.type || 'application/octet-stream'
+            });
         } else {
             await pushMensaje({ usuario: usuarioActual, texto: '📷 [Imagen]', tipo: 'imagen', mediaUrl: url });
         }
         hideLoading();
         if (modal) modal.classList.remove('active');
         _limpiarPendingMedia();
-        showToast(media.tipo === 'audio' ? '✅ Audio enviado' : '✅ Imagen enviada');
+        showToast(media.tipo === 'audio' ? '✅ Audio enviado' : (media.tipo === 'archivo' ? '✅ Archivo enviado' : '✅ Imagen enviada'));
     } catch(e) {
         hideLoading();
         const err = document.getElementById('media-preview-error');
@@ -7597,6 +8223,29 @@ window.enviarAudio = async function() {
         tipo: 'audio',
         blob: archivo,
         filename: archivo.name || 'audio',
+        previewUrl,
+        durationMs: 0
+    });
+};
+
+window.enviarArchivo = async function() {
+    const input = document.getElementById('input-archivo');
+    if (!input || !input.files.length) return;
+    const archivo = input.files[0];
+    input.value = '';
+    if (!archivo || !archivo.size) {
+        showToast('❌ Archivo inválido');
+        return;
+    }
+    if (archivo.size > MAX_FILE_BYTES) {
+        showToast('❌ Archivo demasiado pesado. Máximo 50 MB');
+        return;
+    }
+    const previewUrl = URL.createObjectURL(archivo);
+    _mostrarPreviewMedia({
+        tipo: 'archivo',
+        blob: archivo,
+        filename: archivo.name || 'archivo',
         previewUrl,
         durationMs: 0
     });
@@ -7788,7 +8437,7 @@ window.enviarAudio = async function() {
             const hayOnline = totalOnline > 0;
             dot.className = 'presence-dot ' + (hayOnline ? 'online' : 'offline');
             label.className = 'presence-label' + (hayOnline ? '' : ' offline');
-            label.textContent = hayOnline ? `${totalOnline} online` : (totalOffline > 0 ? `${totalOffline} offline` : 'offline');
+            label.textContent = ''; // el punto rojo/verde ya indica presencia
         }
 
         _presenceListener = onValue(presenceRef, (snap) => {
